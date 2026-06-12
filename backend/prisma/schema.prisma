@@ -1,0 +1,362 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== USERS & AUTH ====================
+model User {
+  id               String    @id @default(cuid())
+  name             String
+  email            String    @unique
+  emailVerified    Boolean   @default(false)
+  emailVerifiedAt  DateTime?
+  password         String
+  avatar           String?
+  country          String?
+  phone            String?
+  role             UserRole  @default(user)
+  status           UserStatus @default(active)
+  twoFactorEnabled Boolean   @default(false)
+  twoFactorSecret  String?
+  lastLoginAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  refreshTokens    RefreshToken[]
+  subscriptions    Subscription[]
+  notifications    Notification[]
+  auditLogs        AuditLog[]
+  newsArticles     NewsArticle[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  super_admin
+  admin
+  moderator
+  editor
+  user
+  @@map("user_role")
+}
+
+enum UserStatus {
+  active
+  suspended
+  banned
+  pending
+  @@map("user_status")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@map("refresh_tokens")
+}
+
+// ==================== LIVE STREAMS ====================
+model Live {
+  id          String     @id @default(cuid())
+  title       String
+  description String?    @db.Text
+  thumbnail   String?
+  banner      String?
+  sport       SportCategory
+  league      String?
+  teamA       String?
+  teamALogo   String?
+  teamB       String?
+  teamBLogo   String?
+  scoreA      Int?
+  scoreB      Int?
+  streamUrl   String?
+  hlsUrl      String?
+  m3u8Url     String?
+  status      LiveStatus @default(scheduled)
+  featured    Boolean    @default(false)
+  viewerCount Int        @default(0)
+  totalViews  Int        @default(0)
+  matchTime   String?
+  tags        String[]
+  scheduledAt DateTime
+  startedAt   DateTime?
+  endedAt     DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@map("lives")
+}
+
+enum LiveStatus {
+  scheduled
+  live
+  ended
+  cancelled
+  @@map("live_status")
+}
+
+// ==================== EVENTS ====================
+model Event {
+  id          String        @id @default(cuid())
+  title       String
+  description String?
+  thumbnail   String?
+  sport       SportCategory
+  league      String?
+  teamA       String?
+  teamALogo   String?
+  teamB       String?
+  teamBLogo   String?
+  scheduledAt DateTime
+  status      EventStatus   @default(upcoming)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@map("events")
+}
+
+enum EventStatus {
+  upcoming
+  live
+  finished
+  cancelled
+  @@map("event_status")
+}
+
+// ==================== SPORT CATEGORIES ====================
+enum SportCategory {
+  football
+  basketball
+  tennis
+  ufc
+  f1
+  volleyball
+  baseball
+  other
+  @@map("sport_category")
+}
+
+model Category {
+  id          String        @id @default(cuid())
+  name        String        @unique
+  slug        String        @unique
+  description String?
+  icon        String?
+  sport       SportCategory
+  color       String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@map("categories")
+}
+
+// ==================== ADS ====================
+model Ad {
+  id         String    @id @default(cuid())
+  title      String
+  campaign   String?
+  position   AdPosition
+  format     AdFormat
+  content    String    @db.Text
+  imageUrl   String?
+  videoUrl   String?
+  clickUrl   String?
+  width      Int?
+  height     Int?
+  impressions Int     @default(0)
+  clicks     Int      @default(0)
+  ctr        Float    @default(0)
+  revenue    Float    @default(0)
+  status     AdStatus @default(active)
+  startDate  DateTime?
+  endDate    DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("ads")
+}
+
+enum AdPosition {
+  header
+  sidebar
+  footer
+  in_content
+  player
+  popup
+  @@map("ad_position")
+}
+
+enum AdFormat {
+  banner
+  video
+  html
+  script
+  @@map("ad_format")
+}
+
+enum AdStatus {
+  active
+  paused
+  expired
+  draft
+  @@map("ad_status")
+}
+
+// ==================== NEWS ====================
+model NewsArticle {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  excerpt     String?
+  content     String   @db.Text
+  thumbnail   String?
+  sport       SportCategory?
+  tags        String[]
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id])
+  published   Boolean  @default(false)
+  featured    Boolean  @default(false)
+  views       Int      @default(0)
+  publishedAt DateTime?
+  metaTitle   String?
+  metaDesc    String?
+  ogImage     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("news_articles")
+}
+
+// ==================== SUBSCRIPTIONS ====================
+model Plan {
+  id           String         @id @default(cuid())
+  name         String
+  type         PlanType
+  price        Float
+  currency     String         @default("BRL")
+  interval     BillingInterval
+  features     String[]
+  maxDevices   Int            @default(1)
+  hdQuality    Boolean        @default(false)
+  adsRemoved   Boolean        @default(false)
+  active       Boolean        @default(true)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  subscriptions Subscription[]
+
+  @@map("plans")
+}
+
+enum PlanType {
+  free
+  basic
+  premium
+  enterprise
+  @@map("plan_type")
+}
+
+enum BillingInterval {
+  monthly
+  yearly
+  @@map("billing_interval")
+}
+
+model Subscription {
+  id         String             @id @default(cuid())
+  userId     String
+  user       User               @relation(fields: [userId], references: [id])
+  planId     String
+  plan       Plan               @relation(fields: [planId], references: [id])
+  status     SubscriptionStatus @default(active)
+  startDate  DateTime
+  endDate    DateTime
+  autoRenew  Boolean            @default(true)
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+
+  @@map("subscriptions")
+}
+
+enum SubscriptionStatus {
+  active
+  cancelled
+  expired
+  trial
+  @@map("subscription_status")
+}
+
+// ==================== NOTIFICATIONS ====================
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      NotificationType @default(info)
+  read      Boolean          @default(false)
+  actionUrl String?
+  createdAt DateTime         @default(now())
+
+  @@map("notifications")
+}
+
+enum NotificationType {
+  info
+  success
+  warning
+  error
+  live
+  @@map("notification_type")
+}
+
+// ==================== BANNERS ====================
+model Banner {
+  id        String        @id @default(cuid())
+  title     String
+  imageUrl  String
+  linkUrl   String?
+  position  BannerPosition
+  active    Boolean       @default(true)
+  startDate DateTime?
+  endDate   DateTime?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@map("banners")
+}
+
+enum BannerPosition {
+  hero
+  sidebar
+  in_content
+  @@map("banner_position")
+}
+
+// ==================== AUDIT LOGS ====================
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  action     String
+  resource   String
+  resourceId String?
+  details    Json?
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@map("audit_logs")
+}
