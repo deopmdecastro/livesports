@@ -8,10 +8,11 @@ export default function PublicLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen flex flex-col bg-[#0A0A0A]">
+    <div className="min-h-screen flex flex-col bg-[#060609]">
       <Navbar />
-      <main className="flex-1 pt-16">
-        <div className="px-4 pt-4 lg:px-6">
+      {/* pt-7 for ticker + pt-14 for navbar = pt-21 */}
+      <main className="flex-1 pt-[84px]">
+        <div className="px-4 pt-3 lg:px-6">
           <AdSlot position="header" />
         </div>
         {children}

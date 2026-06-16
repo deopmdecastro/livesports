@@ -10,7 +10,7 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "#0A0A0A",
+        background: "#060609",
         foreground: "#FFFFFF",
         primary: {
           DEFAULT: "#E50914",
@@ -18,23 +18,26 @@ const config: Config = {
           light: "#FF1A1A",
         },
         secondary: {
-          DEFAULT: "#1A1A1A",
-          light: "#2A2A2A",
-          dark: "#0F0F0F",
+          DEFAULT: "#111118",
+          light: "#1A1A28",
+          dark: "#0A0A10",
         },
-        accent: {
-          DEFAULT: "#E50914",
+        surface: {
+          DEFAULT: "#0E0E16",
+          2: "#14141E",
+          3: "#1A1A28",
         },
+        accent: { DEFAULT: "#E50914" },
         muted: {
-          DEFAULT: "#1A1A1A",
+          DEFAULT: "#111118",
           foreground: "#9CA3AF",
         },
         card: {
-          DEFAULT: "#1A1A1A",
+          DEFAULT: "#111118",
           foreground: "#FFFFFF",
         },
-        border: "#2A2A2A",
-        input: "#2A2A2A",
+        border: "#1E1E2A",
+        input: "#1E1E2A",
         ring: "#E50914",
         destructive: {
           DEFAULT: "#E50914",
@@ -43,24 +46,33 @@ const config: Config = {
         success: "#22C55E",
         warning: "#F59E0B",
         info: "#3B82F6",
+        gold: "#FFD700",
       },
       fontFamily: {
         sans: ["Inter", "sans-serif"],
-        heading: ["Poppins", "sans-serif"],
+        heading: ["'Barlow Condensed'", "'Rajdhani'", "sans-serif"],
+        condensed: ["'Barlow Condensed'", "sans-serif"],
       },
       animation: {
         "fade-in": "fadeIn 0.5s ease-in-out",
+        "fade-in-up": "fadeInUp 0.6s ease forwards",
         "slide-up": "slideUp 0.5s ease-out",
         "slide-down": "slideDown 0.3s ease-out",
         "slide-left": "slideLeft 0.3s ease-out",
         "pulse-red": "pulseRed 2s infinite",
         "spin-slow": "spin 3s linear infinite",
         shimmer: "shimmer 2s infinite",
+        ticker: "ticker 30s linear infinite",
+        float: "float 6s ease-in-out infinite",
       },
       keyframes: {
         fadeIn: {
           "0%": { opacity: "0" },
           "100%": { opacity: "1" },
+        },
+        fadeInUp: {
+          from: { opacity: "0", transform: "translateY(24px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
         },
         slideUp: {
           "0%": { transform: "translateY(20px)", opacity: "0" },
@@ -82,18 +94,35 @@ const config: Config = {
           "0%": { backgroundPosition: "-200% 0" },
           "100%": { backgroundPosition: "200% 0" },
         },
+        ticker: {
+          "0%": { transform: "translateX(0)" },
+          "100%": { transform: "translateX(-50%)" },
+        },
+        float: {
+          "0%, 100%": { transform: "translateY(0) translateX(0)" },
+          "33%": { transform: "translateY(-20px) translateX(10px)" },
+          "66%": { transform: "translateY(10px) translateX(-10px)" },
+        },
       },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
         "gradient-red": "linear-gradient(135deg, #E50914 0%, #B00000 100%)",
-        "gradient-dark": "linear-gradient(135deg, #1A1A1A 0%, #0A0A0A 100%)",
-        "hero-gradient": "linear-gradient(to right, rgba(10,10,10,0.95) 40%, transparent 100%)",
+        "gradient-dark": "linear-gradient(135deg, #111118 0%, #060609 100%)",
+        "hero-gradient": "linear-gradient(to right, rgba(6,6,9,0.99) 45%, transparent 100%)",
+        "grid-pattern": "linear-gradient(rgba(229,9,20,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(229,9,20,0.04) 1px, transparent 1px)",
       },
       boxShadow: {
-        "red": "0 4px 14px rgba(229, 9, 20, 0.4)",
-        "red-lg": "0 8px 24px rgba(229, 9, 20, 0.5)",
-        "card": "0 2px 8px rgba(0,0,0,0.5)",
-        "card-hover": "0 8px 32px rgba(229, 9, 20, 0.2)",
+        red: "0 4px 20px rgba(229, 9, 20, 0.4)",
+        "red-lg": "0 8px 32px rgba(229, 9, 20, 0.5)",
+        "red-xl": "0 16px 48px rgba(229, 9, 20, 0.4)",
+        card: "0 2px 12px rgba(0,0,0,0.5)",
+        "card-hover": "0 12px 40px rgba(229, 9, 20, 0.2)",
+        gold: "0 4px 20px rgba(255, 215, 0, 0.4)",
+        neon: "0 0 10px rgba(229,9,20,0.6), 0 0 30px rgba(229,9,20,0.3)",
+      },
+      borderRadius: {
+        "2xl": "1rem",
+        "3xl": "1.5rem",
       },
     },
   },

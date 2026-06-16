@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Ad, AdPosition } from "@/types";
 import { publicApiRequest } from "@/lib/api";
 import { cn } from "@/utils";
+import { X } from "lucide-react";
 
 interface AdSlotProps {
   position: AdPosition;
@@ -19,21 +20,42 @@ function isActive(ad: Ad) {
   return true;
 }
 
+// Mock ads as placeholders when API is unavailable
+function AdPlaceholder({ variant }: { variant: "horizontal" | "box" | "popup" }) {
+  if (variant === "popup") return null;
+  return (
+    <div className={cn(
+      "ad-container mx-auto w-full flex items-center justify-center",
+      variant === "box" ? "max-w-[320px] aspect-[4/3]" : "max-w-[1100px] h-[90px]"
+    )}>
+      <span className="ad-label">Publicidade · Advertisement</span>
+    </div>
+  );
+}
+
 export default function AdSlot({ position, className = "", variant = "horizontal" }: AdSlotProps) {
   const [ads, setAds] = useState<Ad[]>([]);
   const [closed, setClosed] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     publicApiRequest<Ad[]>("/ads")
-      .then(setAds)
-      .catch(() => setAds([]));
+      .then((data) => { setAds(data); setLoaded(true); })
+      .catch(() => { setAds([]); setLoaded(true); });
   }, []);
 
   const ad = useMemo(() => ads.find((item) => item.position === position && isActive(item)), [ads, position]);
 
-  if (!ad || closed) return null;
+  if (closed) return null;
 
-  const content = (
+  // Show placeholder if no ad
+  if (loaded && !ad) {
+    return <AdPlaceholder variant={variant} />;
+  }
+
+  if (!ad) return null;
+
+  const adContent = (
     <>
       {ad.format === "video" && ad.videoUrl ? (
         <video
@@ -43,14 +65,20 @@ export default function AdSlot({ position, className = "", variant = "horizontal
           controls
           muted
           playsInline
+          autoPlay
+          loop
         />
       ) : ad.format === "html" || ad.format === "script" ? (
         <div className="h-full w-full" dangerouslySetInnerHTML={{ __html: ad.content }} />
       ) : ad.imageUrl ? (
-        <img src={ad.imageUrl} alt={ad.title} className="h-full w-full object-contain" />
+        <img
+          src={ad.imageUrl}
+          alt={ad.title}
+          className="h-full w-full object-contain transition-transform duration-300 hover:scale-[1.02]"
+        />
       ) : (
-        <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-gray-500">
-          {ad.title}
+        <div className="flex h-full w-full items-center justify-center">
+          <span className="ad-label">{ad.title}</span>
         </div>
       )}
     </>
@@ -58,33 +86,52 @@ export default function AdSlot({ position, className = "", variant = "horizontal
 
   if (variant === "popup") {
     return (
-      <div className={cn("fixed bottom-5 right-5 z-40 hidden w-[320px] overflow-hidden rounded-xl border border-white/10 bg-[#111] shadow-2xl lg:block", className)}>
-        <div className="flex items-center justify-between border-b border-white/10 px-3 py-2">
-          <span className="text-[10px] font-bold uppercase tracking-wide text-gray-400">Publicidade</span>
-          <button onClick={() => setClosed(true)} className="text-xs font-bold text-gray-400 hover:text-white">Fechar</button>
+      <div className={cn(
+        "fixed bottom-6 right-6 z-40 hidden w-[300px] overflow-hidden rounded-2xl shadow-2xl lg:block",
+        "border border-white/8 bg-[#111118]",
+        className
+      )}>
+        <div className="flex items-center justify-between px-3 py-2 border-b border-white/6 bg-[#0E0E16]">
+          <span className="ad-label">Publicidade · Ad</span>
+          <button
+            onClick={() => setClosed(true)}
+            className="p-1 rounded-lg text-gray-600 hover:text-white hover:bg-white/8 transition-all"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
         </div>
-        <a href={ad.clickUrl || "#"} target={ad.clickUrl ? "_blank" : undefined} rel="noreferrer" className="block h-[180px] bg-black/40 p-2">
-          {content}
+        <a
+          href={ad.clickUrl || "#"}
+          target={ad.clickUrl ? "_blank" : undefined}
+          rel="noreferrer"
+          className="block h-[200px] bg-black/30"
+          onClick={() => {/* track click */}}
+        >
+          {adContent}
         </a>
       </div>
     );
   }
 
   return (
-    <div
-      className={cn(
-        "mx-auto w-full overflow-hidden rounded-xl border border-white/10 bg-[#111] p-2",
-        variant === "box" ? "max-w-[320px]" : "max-w-[1100px]",
-        className
-      )}
-    >
+    <div className={cn(
+      "ad-container mx-auto w-full overflow-hidden",
+      variant === "box" ? "max-w-[320px]" : "max-w-[1100px]",
+      className
+    )}>
+      <div className="px-2 py-1">
+        <span className="ad-label block text-center">Publicidade · Advertisement</span>
+      </div>
       <a
         href={ad.clickUrl || "#"}
         target={ad.clickUrl ? "_blank" : undefined}
         rel="noreferrer"
-        className={cn("block bg-black/30", variant === "box" ? "aspect-[4/3]" : "aspect-[970/90]")}
+        className={cn(
+          "block overflow-hidden rounded-lg",
+          variant === "box" ? "aspect-[4/3]" : "h-[90px]"
+        )}
       >
-        {content}
+        {adContent}
       </a>
     </div>
   );
