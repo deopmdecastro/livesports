@@ -10,12 +10,14 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=http://localhost:3001
+      # use service name for inter-container calls
+      - NEXT_PUBLIC_API_URL=http://backend:3001
       - API_INTERNAL_URL=http://backend:3001
     depends_on:
       - backend
     networks:
       - livesports-network
+
 
   # ==================== Backend (Express) ====================
   backend:

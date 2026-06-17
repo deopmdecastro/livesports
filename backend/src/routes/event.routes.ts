@@ -92,6 +92,49 @@ router.get('/', async (_req, res, next) => {
   }
 });
 
+// ===== Search for admin select (title / teams / league) =====
+router.get('/search', async (req, res, next) => {
+  try {
+    const q = String(req.query.q || '').trim();
+    const sport = String(req.query.sport || '').trim();
+    const limit = Math.min(Number(req.query.limit || 20), 50);
+
+    const conditions: string[] = [];
+    const values: unknown[] = [];
+
+    if (q) {
+      const like = `%${q}%`;
+      values.push(like);
+      // title | league | teams
+      conditions.push(
+        `(
+          title ILIKE $${values.length}
+          OR league ILIKE $${values.length}
+          OR team_a ILIKE $${values.length}
+          OR team_b ILIKE $${values.length}
+        )`
+      );
+    }
+
+    if (sport) {
+      values.push(sport);
+      conditions.push(`sport = $${values.length}::sport_category`);
+    }
+
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const rows = await prisma.$queryRawUnsafe<any[]>(
+      `${selectEventSql} ${where} ORDER BY status = 'live' DESC, scheduled_at ASC, created_at DESC LIMIT $${values.length + 1}`,
+      ...values,
+      limit
+    );
+
+    res.json({ success: true, data: rows.map(mapEvent) });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get('/:id', async (req, res, next) => {
   try {
     const rows = await prisma.$queryRawUnsafe<any[]>(`${selectEventSql} WHERE id = $1 LIMIT 1`, req.params.id);
@@ -240,3 +283,4 @@ router.delete('/:id', authenticateToken, requireEditor, async (req, res, next) =
 });
 
 export default router;
+

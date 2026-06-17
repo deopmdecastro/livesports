@@ -20,7 +20,7 @@ import {
   X,
 } from "lucide-react";
 import { cn, formatDateTime, formatNumber, getSportLabel } from "@/utils";
-import type { Live, LiveStatus, LiveStreamServer, SportCategory } from "@/types";
+import type { Live, LiveStatus, LiveStreamServer, SportCategory, Event } from "@/types";
 import toast from "react-hot-toast";
 import AdminImageField from "@/components/admin/AdminImageField";
 import AdminSelect from "@/components/admin/AdminSelect";
@@ -133,9 +133,16 @@ export default function LivesPage() {
   const [sportFilter, setSportFilter] = useState<string>("all");
   const [showModal, setShowModal] = useState(false);
   const [editingLive, setEditingLive] = useState<Live | null>(null);
+
+  // Event select/search state (Nova Live)
+  const [eventQuery, setEventQuery] = useState("");
+  const [eventSearchLoading, setEventSearchLoading] = useState(false);
+  const [eventOptions, setEventOptions] = useState<Event[]>([]);
+
   const [form, setForm] = useState({
+    eventId: "",
     title: "",
-    sport: "football",
+    sport: "football" as SportCategory,
     league: "",
     leagueLogo: "",
     teamA: "",
@@ -144,6 +151,9 @@ export default function LivesPage() {
     teamBLogo: "",
     thumbnail: "",
     banner: "",
+    scoreA: undefined as number | undefined,
+    scoreB: undefined as number | undefined,
+    matchTime: "",
     hlsUrl: "",
     m3u8Url: "",
     streamServers: [createStreamServer(0, DEFAULT_STREAM_URL)],
@@ -158,6 +168,25 @@ export default function LivesPage() {
       .catch((error) => toast.error(error instanceof Error ? error.message : "Nao foi possivel carregar as lives."))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (!showModal) return;
+    const q = eventQuery.trim();
+    if (!q) {
+      setEventOptions([]);
+      return;
+    }
+
+    const t = setTimeout(() => {
+      setEventSearchLoading(true);
+      apiRequest<Event[]>(`/events/search?q=${encodeURIComponent(q)}&limit=20&sport=${encodeURIComponent(String(form.sport))}`)
+        .then((events) => setEventOptions(events))
+        .catch(() => setEventOptions([]))
+        .finally(() => setEventSearchLoading(false));
+    }, 250);
+
+    return () => clearTimeout(t);
+  }, [eventQuery, showModal, form.sport]);
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -197,7 +226,11 @@ export default function LivesPage() {
 
   const handleEdit = (live: Live) => {
     setEditingLive(live);
+    setEventQuery("");
+    setEventOptions([]);
+
     setForm({
+      eventId: "", // snapshot não persistido no DB; edição mantém campos copiados
       title: live.title,
       sport: live.sport,
       league: live.league || "",
@@ -208,6 +241,9 @@ export default function LivesPage() {
       teamBLogo: isImageValue(live.teamBLogo) ? live.teamBLogo || "" : "",
       thumbnail: live.thumbnail || "",
       banner: live.banner || "",
+      scoreA: live.scoreA,
+      scoreB: live.scoreB,
+      matchTime: live.matchTime || "",
       hlsUrl: live.hlsUrl || "",
       m3u8Url: live.m3u8Url || "",
       streamServers:
@@ -220,12 +256,17 @@ export default function LivesPage() {
       description: live.description || "",
       featured: live.featured,
     });
+
     setShowModal(true);
   };
 
   const handleCreate = () => {
     setEditingLive(null);
+    setEventQuery("");
+    setEventOptions([]);
+
     setForm({
+      eventId: "",
       title: "",
       sport: "football",
       league: "",
@@ -236,6 +277,9 @@ export default function LivesPage() {
       teamBLogo: "",
       thumbnail: "",
       banner: "",
+      scoreA: undefined,
+      scoreB: undefined,
+      matchTime: "",
       hlsUrl: "",
       m3u8Url: "",
       streamServers: [createStreamServer(0, DEFAULT_STREAM_URL)],
@@ -243,12 +287,37 @@ export default function LivesPage() {
       description: "",
       featured: false,
     });
+
     setShowModal(true);
   };
 
+  const handlePickEvent = (eventId: string) => {
+    const ev = eventOptions.find((e) => e.id === eventId);
+    if (!ev) return;
+
+    setForm((prev) => ({
+      ...prev,
+      eventId,
+      title: ev.title,
+      sport: ev.sport,
+      league: ev.league || "",
+      leagueLogo: isImageValue(ev.leagueLogo) ? ev.leagueLogo || "" : "",
+      teamA: ev.teamA || "",
+      teamALogo: isImageValue(ev.teamALogo) ? ev.teamALogo || "" : "",
+      teamB: ev.teamB || "",
+      teamBLogo: isImageValue(ev.teamBLogo) ? ev.teamBLogo || "" : "",
+      thumbnail: ev.thumbnail || prev.thumbnail,
+      banner: ev.thumbnail || prev.banner,
+      scoreA: typeof ev.scoreA === "number" ? ev.scoreA : undefined,
+      scoreB: typeof ev.scoreB === "number" ? ev.scoreB : undefined,
+      matchTime: ev.matchTime || "",
+      description: ev.description || prev.description,
+    }));
+  };
+
   const handleSave = async () => {
-    if (!form.title.trim()) {
-      toast.error("Informe o titulo da live.");
+    if (!form.eventId) {
+      toast.error("Selecione um evento para criar a live.");
       return;
     }
 
@@ -269,10 +338,27 @@ export default function LivesPage() {
     }
 
     const payload = {
-        ...form,
-        streamServers: cleanServers,
-        sport: form.sport as SportCategory,
-        status: editingLive?.status || "scheduled",
+      eventId: form.eventId,
+      sport: form.sport,
+      league: form.league || null,
+      leagueLogo: form.leagueLogo || null,
+      teamA: form.teamA || null,
+      teamALogo: form.teamALogo || null,
+      teamB: form.teamB || null,
+      teamBLogo: form.teamBLogo || null,
+      title: form.title, // fallback (backend usa snapshot se eventId existir)
+      scoreA: form.scoreA ?? null,
+      scoreB: form.scoreB ?? null,
+      matchTime: form.matchTime || null,
+      thumbnail: form.thumbnail || null,
+      banner: form.banner || null,
+      description: form.description || null,
+      hlsUrl: form.hlsUrl || null,
+      m3u8Url: form.m3u8Url || null,
+      streamServers: cleanServers,
+      scheduledAt: form.scheduledAt,
+      featured: form.featured,
+      status: editingLive?.status || "scheduled",
     };
 
     try {
@@ -281,7 +367,7 @@ export default function LivesPage() {
           method: "PUT",
           body: JSON.stringify(payload),
         });
-        setLives((prev) => prev.map((live) => live.id === editingLive.id ? updated : live));
+        setLives((prev) => prev.map((live) => (live.id === editingLive.id ? updated : live)));
         toast.success("Live atualizada com sucesso!");
       } else {
         const created = await apiRequest<Live>("/lives", {
@@ -460,18 +546,10 @@ export default function LivesPage() {
                       <AdminActionButton title="Ver live" tone="view">
                         <Eye className="h-4 w-4" />
                       </AdminActionButton>
-                      <AdminActionButton
-                        title="Editar live"
-                        onClick={() => handleEdit(live)}
-                        tone="edit"
-                      >
+                      <AdminActionButton title="Editar live" onClick={() => handleEdit(live)} tone="edit">
                         <Edit2 className="h-4 w-4" />
                       </AdminActionButton>
-                      <AdminActionButton
-                        title="Remover live"
-                        onClick={() => handleDelete(live.id)}
-                        tone="danger"
-                      >
+                      <AdminActionButton title="Remover live" onClick={() => handleDelete(live.id)} tone="danger">
                         <Trash2 className="h-4 w-4" />
                       </AdminActionButton>
                     </div>
@@ -508,15 +586,60 @@ export default function LivesPage() {
             </div>
 
             <div className="grid gap-4 p-5">
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold text-gray-300">Titulo *</label>
-                <input
-                  value={form.title}
-                  onChange={(event) => setForm({ ...form, title: event.target.value })}
-                  className="input-dark w-full px-3 py-2.5 text-sm"
-                  placeholder="Titulo da transmissao"
-                />
-              </div>
+              {!editingLive && (
+                <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <div>
+                      <label className="mb-1.5 block text-xs font-semibold text-gray-300">Evento *</label>
+                      <p className="text-xs text-gray-500">Pesquise entre eventos registrados e vincule a live.</p>
+                    </div>
+                    {eventSearchLoading && (
+                      <span className="text-xs text-red-300">A pesquisar...</span>
+                    )}
+                  </div>
+
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+                    <input
+                      value={eventQuery}
+                      onChange={(e) => setEventQuery(e.target.value)}
+                      placeholder="Buscar por titulo, equipa ou liga"
+                      className="input-dark h-11 w-full pl-9 pr-4 text-sm"
+                    />
+                  </div>
+
+                  <div className="mt-3">
+                    <AdminSelect
+                      value={form.eventId}
+                      onChange={(value) => {
+                        setForm((prev) => ({ ...prev, eventId: value }));
+                        handlePickEvent(value);
+                      }}
+                      options={
+                        eventOptions.length
+                          ? eventOptions.map((ev) => ({
+                              value: ev.id,
+                              label: `${ev.title}`,
+                            }))
+                          : [{ value: "", label: "Selecione um evento" }]
+                      }
+                      disabled={eventOptions.length === 0}
+                      ariaLabel="Selecionar evento"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {editingLive && (
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold text-gray-300">Titulo</label>
+                  <input
+                    value={form.title}
+                    onChange={(event) => setForm({ ...form, title: event.target.value })}
+                    className="input-dark w-full px-3 py-2.5 text-sm"
+                  />
+                </div>
+              )}
 
               <AdminImageField
                 label="Capa"
@@ -530,11 +653,13 @@ export default function LivesPage() {
                   <label className="mb-1.5 block text-xs font-semibold text-gray-300">Desporto</label>
                   <AdminSelect
                     value={form.sport}
-                    onChange={(value) => setForm({ ...form, sport: value })}
+                    onChange={(value) => setForm({ ...form, sport: value as SportCategory })}
                     options={sportOptions}
                     ariaLabel="Selecionar desporto"
+                    disabled={!editingLive}
                   />
                 </div>
+
                 <div>
                   <label className="mb-1.5 block text-xs font-semibold text-gray-300">Liga</label>
                   <input
@@ -546,6 +671,27 @@ export default function LivesPage() {
                 </div>
               </div>
 
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold text-gray-300">Time A</label>
+                  <input
+                    value={form.teamA}
+                    onChange={(e) => setForm({ ...form, teamA: e.target.value })}
+                    className="input-dark w-full px-3 py-2.5 text-sm"
+                    placeholder="Time A"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold text-gray-300">Time B</label>
+                  <input
+                    value={form.teamB}
+                    onChange={(e) => setForm({ ...form, teamB: e.target.value })}
+                    className="input-dark w-full px-3 py-2.5 text-sm"
+                    placeholder="Time B"
+                  />
+                </div>
+              </div>
+
               <div className="rounded-xl border border-white/10 bg-black/20 p-4">
                 <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
@@ -553,9 +699,7 @@ export default function LivesPage() {
                       <Server className="h-4 w-4 text-[#E50914]" />
                       <h4 className="text-sm font-bold text-white">Servidores do player</h4>
                     </div>
-                    <p className="mt-1 text-xs text-gray-500">
-                      Estes servidores aparecem no player para o utilizador escolher.
-                    </p>
+                    <p className="mt-1 text-xs text-gray-500">Estes servidores aparecem no player para o utilizador escolher.</p>
                   </div>
                   <button
                     type="button"
@@ -576,9 +720,7 @@ export default function LivesPage() {
                   {form.streamServers.map((server, index) => (
                     <div key={server.id} className="rounded-lg border border-white/10 bg-[#141414] p-3">
                       <div className="mb-3 flex items-center justify-between gap-3">
-                        <span className="text-xs font-black uppercase tracking-wider text-gray-500">
-                          Servidor {index + 1}
-                        </span>
+                        <span className="text-xs font-black uppercase tracking-wider text-gray-500">Servidor {index + 1}</span>
                         <button
                           type="button"
                           onClick={() =>
@@ -605,9 +747,7 @@ export default function LivesPage() {
                             onChange={(event) =>
                               setForm({
                                 ...form,
-                                streamServers: form.streamServers.map((item) =>
-                                  item.id === server.id ? { ...item, name: event.target.value } : item
-                                ),
+                                streamServers: form.streamServers.map((item) => (item.id === server.id ? { ...item, name: event.target.value } : item)),
                               })
                             }
                             className="input-dark w-full px-3 py-2.5 text-sm"
@@ -621,9 +761,7 @@ export default function LivesPage() {
                             onChange={(event) =>
                               setForm({
                                 ...form,
-                                streamServers: form.streamServers.map((item) =>
-                                  item.id === server.id ? { ...item, url: event.target.value } : item
-                                ),
+                                streamServers: form.streamServers.map((item) => (item.id === server.id ? { ...item, url: event.target.value } : item)),
                               })
                             }
                             className="input-dark w-full px-3 py-2.5 text-sm"
@@ -637,9 +775,7 @@ export default function LivesPage() {
                             onChange={(event) =>
                               setForm({
                                 ...form,
-                                streamServers: form.streamServers.map((item) =>
-                                  item.id === server.id ? { ...item, quality: event.target.value } : item
-                                ),
+                                streamServers: form.streamServers.map((item) => (item.id === server.id ? { ...item, quality: event.target.value } : item)),
                               })
                             }
                             className="input-dark w-full px-3 py-2.5 text-sm"
@@ -653,9 +789,7 @@ export default function LivesPage() {
                             onChange={(event) =>
                               setForm({
                                 ...form,
-                                streamServers: form.streamServers.map((item) =>
-                                  item.id === server.id ? { ...item, latency: event.target.value } : item
-                                ),
+                                streamServers: form.streamServers.map((item) => (item.id === server.id ? { ...item, latency: event.target.value } : item)),
                               })
                             }
                             className="input-dark w-full px-3 py-2.5 text-sm"
@@ -720,3 +854,4 @@ export default function LivesPage() {
     </div>
   );
 }
+

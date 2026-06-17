@@ -62,6 +62,38 @@ function mapComment(row: any) {
   };
 }
 
+async function getEventSnapshot(eventId: string) {
+  const rows = await prisma.$queryRawUnsafe<any[]>(
+    `
+      SELECT id, title, description, thumbnail, sport::text, league, league_logo,
+             team_a, team_a_logo, team_b, team_b_logo, score_a, score_b, match_time
+      FROM "events"
+      WHERE id = $1
+      LIMIT 1
+    `,
+    eventId
+  );
+
+  if (!rows[0]) return null;
+
+  const row = rows[0];
+  return {
+    title: row.title,
+    description: row.description,
+    thumbnail: row.thumbnail,
+    sport: row.sport,
+    league: row.league,
+    leagueLogo: row.league_logo,
+    teamA: row.team_a,
+    teamALogo: row.team_a_logo,
+    teamB: row.team_b,
+    teamBLogo: row.team_b_logo,
+    scoreA: row.score_a,
+    scoreB: row.score_b,
+    matchTime: row.match_time,
+  };
+}
+
 router.get('/', async (req, res, next) => {
   try {
     const { status, sport, page = 1, limit = 20 } = req.query;
@@ -312,30 +344,64 @@ router.post('/', authenticateToken, requireEditor, async (req: AuthRequest, res,
     const body = req.body;
     const servers = body.streamServers || [];
     const streamUrl = body.hlsUrl || body.m3u8Url || body.streamUrl || servers[0]?.url || null;
+
+    // Snapshot from event (optional)
+    let snapshot: Awaited<ReturnType<typeof getEventSnapshot>> | null = null;
+    if (body.eventId) {
+      snapshot = await getEventSnapshot(String(body.eventId));
+      if (!snapshot) {
+        res.status(400).json({ success: false, error: 'eventId invalido' });
+        return;
+      }
+    }
+
+    const title = snapshot?.title || body.title;
+    const sport = (snapshot?.sport || body.sport || 'football') as string;
+
+    if (!title) {
+      res.status(400).json({ success: false, error: 'Informe o titulo da live.' });
+      return;
+    }
+
     const rows = await prisma.$queryRawUnsafe<any[]>(
       `
         INSERT INTO "lives" (
           title, description, thumbnail, banner, sport, league, league_logo, stream_url, hls_url, m3u8_url,
-          stream_servers, status, featured, scheduled_at
+          stream_servers, status, featured, scheduled_at,
+          team_a, team_a_logo, team_b, team_b_logo, score_a, score_b, match_time
         )
-        VALUES ($1, $2, $3, $4, $5::sport_category, $6, $7, $8, $9, $10, $11::jsonb, $12::live_status, $13, $14::timestamptz)
+        VALUES (
+          $1, $2, $3, $4,
+          $5::sport_category, $6, $7,
+          $8, $9, $10,
+          $11::jsonb, $12::live_status, $13, $14::timestamptz,
+          $15, $16, $17, $18, $19, $20, $21
+        )
         RETURNING *
       `,
-      body.title,
-      body.description || null,
-      body.thumbnail || null,
-      body.banner || body.thumbnail || null,
-      body.sport || 'football',
-      body.league || null,
-      body.leagueLogo || null,
+      title,
+      snapshot?.description ?? body.description ?? null,
+      snapshot?.thumbnail ?? body.thumbnail ?? null,
+      snapshot?.thumbnail ?? body.banner ?? body.thumbnail ?? null,
+      sport,
+      snapshot?.league ?? body.league ?? null,
+      snapshot?.leagueLogo ?? body.leagueLogo ?? null,
       streamUrl,
       body.hlsUrl || streamUrl,
       body.m3u8Url || null,
       JSON.stringify(servers),
       body.status || 'scheduled',
       Boolean(body.featured),
-      body.scheduledAt || new Date().toISOString()
+      body.scheduledAt || new Date().toISOString(),
+      snapshot?.teamA ?? body.teamA ?? null,
+      snapshot?.teamALogo ?? body.teamALogo ?? null,
+      snapshot?.teamB ?? body.teamB ?? null,
+      snapshot?.teamBLogo ?? body.teamBLogo ?? null,
+      snapshot?.scoreA ?? body.scoreA ?? null,
+      snapshot?.scoreB ?? body.scoreB ?? null,
+      snapshot?.matchTime ?? body.matchTime ?? null
     );
+
     res.status(201).json({ success: true, data: mapLive(rows[0]), message: 'Live criada com sucesso!' });
   } catch (error) {
     next(error);
@@ -347,32 +413,56 @@ router.put('/:id', authenticateToken, requireEditor, async (req: AuthRequest, re
     const body = req.body;
     const servers = body.streamServers || [];
     const streamUrl = body.hlsUrl || body.m3u8Url || body.streamUrl || servers[0]?.url || null;
+
+    // Snapshot from event (optional)
+    let snapshot: Awaited<ReturnType<typeof getEventSnapshot>> | null = null;
+    if (body.eventId) {
+      snapshot = await getEventSnapshot(String(body.eventId));
+      if (!snapshot) {
+        res.status(400).json({ success: false, error: 'eventId invalido' });
+        return;
+      }
+    }
+
+    const title = snapshot?.title || body.title;
+    const sport = (snapshot?.sport || body.sport || 'football') as string;
+
     const rows = await prisma.$queryRawUnsafe<any[]>(
       `
         UPDATE "lives"
         SET title = $2, description = $3, thumbnail = $4, banner = $5, sport = $6::sport_category,
-          league = $7, league_logo = $8, stream_url = $9, hls_url = $10, m3u8_url = $11,
-          stream_servers = $12::jsonb, status = $13::live_status, featured = $14,
-          scheduled_at = $15::timestamptz, updated_at = NOW()
+            league = $7, league_logo = $8, stream_url = $9, hls_url = $10, m3u8_url = $11,
+            stream_servers = $12::jsonb, status = $13::live_status, featured = $14,
+            scheduled_at = $15::timestamptz, updated_at = NOW(),
+            team_a = $16, team_a_logo = $17, team_b = $18, team_b_logo = $19,
+            score_a = $20, score_b = $21, match_time = $22
         WHERE id = $1
         RETURNING *
       `,
       req.params.id,
-      body.title,
-      body.description || null,
-      body.thumbnail || null,
-      body.banner || body.thumbnail || null,
-      body.sport || 'football',
-      body.league || null,
-      body.leagueLogo || null,
+      title,
+      snapshot?.description ?? body.description ?? null,
+      snapshot?.thumbnail ?? body.thumbnail ?? null,
+      snapshot?.thumbnail ?? body.banner ?? body.thumbnail ?? null,
+      sport,
+      snapshot?.league ?? body.league ?? null,
+      snapshot?.leagueLogo ?? body.leagueLogo ?? null,
       streamUrl,
       body.hlsUrl || streamUrl,
       body.m3u8Url || null,
       JSON.stringify(servers),
       body.status || 'scheduled',
       Boolean(body.featured),
-      body.scheduledAt || new Date().toISOString()
+      body.scheduledAt || new Date().toISOString(),
+      snapshot?.teamA ?? body.teamA ?? null,
+      snapshot?.teamALogo ?? body.teamALogo ?? null,
+      snapshot?.teamB ?? body.teamB ?? null,
+      snapshot?.teamBLogo ?? body.teamBLogo ?? null,
+      snapshot?.scoreA ?? body.scoreA ?? null,
+      snapshot?.scoreB ?? body.scoreB ?? null,
+      snapshot?.matchTime ?? body.matchTime ?? null
     );
+
     if (!rows[0]) {
       res.status(404).json({ success: false, error: 'Live nao encontrada' });
       return;
@@ -414,3 +504,4 @@ router.delete('/:id', authenticateToken, requireAdmin, async (req: AuthRequest, 
 });
 
 export default router;
+
