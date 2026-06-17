@@ -137,10 +137,51 @@ router.post('/refresh', async (req: Request, res: Response) => {
 });
 
 router.post('/forgot-password', async (_req: Request, res: Response) => {
+  // In production: generate token, store hash, send email
   res.json({ success: true, message: 'Se o email existir, voce recebera as instrucoes.' });
 });
 
+// ─── POST /change-password ─────────────────────────────────────────────────────
+
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Senha atual obrigatoria'),
+  newPassword: z.string().min(8, 'Nova senha: minimo 8 caracteres'),
+});
+
+router.post('/change-password', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const { currentPassword, newPassword } = changePasswordSchema.parse(req.body);
+    const user = await findUserById(req.user?.id || '');
+    if (!user) {
+      res.status(404).json({ success: false, error: 'Utilizador nao encontrado' });
+      return;
+    }
+
+    if (!bcrypt.compareSync(currentPassword, user.password)) {
+      res.status(401).json({ success: false, error: 'Senha atual incorreta' });
+      return;
+    }
+
+    const hashed = bcrypt.hashSync(newPassword, 12);
+    await prisma.$executeRawUnsafe(
+      `UPDATE "users" SET "password" = $2, "updated_at" = NOW() WHERE "id" = $1`,
+      user.id, hashed,
+    );
+
+    res.json({ success: true, message: 'Senha alterada com sucesso' });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({ success: false, error: error.errors[0].message });
+    } else {
+      res.status(500).json({ success: false, error: 'Erro interno' });
+    }
+  }
+});
+
+// ─── POST /logout ─────────────────────────────────────────────────────────────
+
 router.post('/logout', authenticateToken, (_req: AuthRequest, res: Response) => {
+  // In production: add token to blocklist / invalidate refresh token in DB
   res.json({ success: true, message: 'Logout realizado com sucesso' });
 });
 
