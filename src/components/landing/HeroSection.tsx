@@ -111,10 +111,36 @@ export default function HeroSection() {
 
   const slide = slides[current];
   if (!slide) {
-    // Skeleton
+    // Enhanced Skeleton with content placeholders
     return (
-      <section className="relative h-[88vh] min-h-[600px] max-h-[950px] overflow-hidden shimmer">
-        <div className="absolute inset-0 grid-bg opacity-30" />
+      <section className="relative h-[88vh] min-h-[600px] max-h-[950px] overflow-hidden bg-[#060609]">
+        <div className="absolute inset-0 grid-bg opacity-20" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#060609] via-[#060609]/80 to-transparent" />
+        <div className="relative z-10 flex h-full items-center">
+          <div className="mx-auto w-full max-w-[1400px] px-4 lg:px-6">
+            <div className="max-w-2xl space-y-5">
+              {/* Badge skeleton */}
+              <div className="flex items-center gap-3">
+                <div className="shimmer h-7 w-24 rounded-full" />
+                <div className="shimmer h-7 w-32 rounded-full" />
+              </div>
+              {/* Title skeleton */}
+              <div className="space-y-3">
+                <div className="shimmer h-14 w-full max-w-xl rounded-xl" />
+                <div className="shimmer h-14 w-3/4 max-w-md rounded-xl" />
+              </div>
+              {/* Subtitle skeleton */}
+              <div className="shimmer h-5 w-full max-w-lg rounded-lg" />
+              {/* Score board skeleton */}
+              <div className="shimmer h-20 w-72 rounded-xl" />
+              {/* CTA skeleton */}
+              <div className="flex gap-3">
+                <div className="shimmer h-12 w-40 rounded-xl" />
+                <div className="shimmer h-12 w-44 rounded-xl" />
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
     );
   }

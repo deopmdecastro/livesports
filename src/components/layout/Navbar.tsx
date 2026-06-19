@@ -1,10 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
-import { Search, Menu, X, Bell, ChevronDown, Zap, Globe, Trophy } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Search, Menu, X, Bell, ChevronDown, Zap, Globe, Trophy, User, LogOut, Settings, Shield } from "lucide-react";
 import { cn } from "@/utils";
 import { useLang } from "@/lib/lang";
+import { publicApiRequest, getStoredUser, clearAuthSession } from "@/lib/api";
+import type { ApiListResponse } from "@/lib/api";
+import type { Live } from "@/types";
+
+interface StoredUser {
+  id: string;
+  name: string;
+  email: string;
+  avatar?: string;
+  role: string;
+}
 
 export default function Navbar() {
   const { lang, setLang, t } = useLang();
@@ -13,7 +24,33 @@ export default function Navbar() {
   const [moreOpen, setMoreOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [liveCount] = useState(3);
+  const [liveCount, setLiveCount] = useState(0);
+  const [user, setUser] = useState<StoredUser | null>(null);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+  const notifRef = useRef<HTMLDivElement>(null);
+
+  // Load user from localStorage
+  useEffect(() => {
+    const stored = getStoredUser<StoredUser>();
+    setUser(stored);
+  }, []);
+
+  // Fetch live count dynamically
+  useEffect(() => {
+    const fetchLiveCount = async () => {
+      try {
+        const data = await publicApiRequest<ApiListResponse<Live>>("/lives?status=live&limit=1");
+        setLiveCount(data.pagination?.total ?? data.items?.length ?? 0);
+      } catch {
+        setLiveCount(0);
+      }
+    };
+    fetchLiveCount();
+    const interval = setInterval(fetchLiveCount, 60_000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -26,6 +63,23 @@ export default function Navbar() {
     else document.body.style.overflow = "";
     return () => { document.body.style.overflow = ""; };
   }, [mobileOpen]);
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) setUserMenuOpen(false);
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const handleLogout = () => {
+    clearAuthSession();
+    setUser(null);
+    setUserMenuOpen(false);
+    window.location.href = "/";
+  };
 
   const navLinks = [
     { label: t.nav_home, href: "/" },
@@ -43,6 +97,8 @@ export default function Navbar() {
     { label: "Ciclismo / Cycling", href: "/ciclismo" },
     { label: "Atletismo / Athletics", href: "/atletismo" },
   ];
+
+  const isAdmin = user && ["super_admin", "admin", "moderator", "editor"].includes(user.role);
 
   return (
     <>
@@ -156,11 +212,13 @@ export default function Navbar() {
 
             {/* Right Actions */}
             <div className="flex items-center gap-1.5">
-              {/* Live count pill */}
-              <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E50914]/10 border border-[#E50914]/20 mr-1">
-                <span className="live-badge h-1.5 w-1.5 rounded-full bg-[#E50914]" />
-                <span className="text-[11px] font-bold text-[#E50914]">{liveCount} {t.nav_live_now}</span>
-              </div>
+              {/* Live count pill — dynamic */}
+              {liveCount > 0 && (
+                <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E50914]/10 border border-[#E50914]/20 mr-1">
+                  <span className="live-badge h-1.5 w-1.5 rounded-full bg-[#E50914]" />
+                  <span className="text-[11px] font-bold text-[#E50914]">{liveCount} {t.nav_live_now}</span>
+                </div>
+              )}
 
               {/* Search */}
               {searchOpen ? (
@@ -188,10 +246,43 @@ export default function Navbar() {
               )}
 
               {/* Notifications */}
-              <button className="relative p-2 text-gray-400 hover:text-white transition-colors rounded-xl hover:bg-[#111118] hidden sm:block">
-                <Bell className="w-4.5 h-4.5" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#E50914] rounded-full live-badge" />
-              </button>
+              <div className="relative hidden sm:block" ref={notifRef}>
+                <button
+                  onClick={() => setNotifOpen(!notifOpen)}
+                  className="relative p-2 text-gray-400 hover:text-white transition-colors rounded-xl hover:bg-[#111118]"
+                >
+                  <Bell className="w-4.5 h-4.5" />
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#E50914] rounded-full live-badge" />
+                </button>
+                {notifOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-80 glass border border-[#1E1E2A] rounded-xl shadow-2xl overflow-hidden animate-fade-in-up z-50">
+                    <div className="p-4 border-b border-[#1E1E2A]">
+                      <h3 className="text-sm font-bold text-white">Notificações</h3>
+                    </div>
+                    <div className="p-2">
+                      {[
+                        { title: "Man United vs Liverpool AO VIVO", time: "agora", dot: true },
+                        { title: "El Clásico começa em 30 minutos", time: "28 min", dot: false },
+                        { title: "Nova transmissão: Copa Libertadores", time: "1h", dot: false },
+                      ].map((n, i) => (
+                        <div key={i} className="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-[#111118] transition-colors cursor-pointer">
+                          {n.dot && <span className="mt-1.5 h-2 w-2 rounded-full bg-[#E50914] flex-shrink-0 live-badge" />}
+                          {!n.dot && <span className="mt-1.5 h-2 w-2 rounded-full bg-gray-600 flex-shrink-0" />}
+                          <div>
+                            <p className="text-xs font-semibold text-white leading-snug">{n.title}</p>
+                            <p className="text-[10px] text-gray-500 mt-0.5">{n.time}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="p-2 border-t border-[#1E1E2A]">
+                      <button className="w-full text-center text-xs text-[#E50914] font-semibold py-1.5 hover:text-red-400 transition-colors">
+                        Ver todas as notificações
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* Language Toggle */}
               <button
@@ -203,19 +294,75 @@ export default function Navbar() {
                 <span className="text-xs font-bold uppercase">{lang === "pt" ? "PT" : "EN"}</span>
               </button>
 
-              {/* Auth */}
-              <Link
-                href="/login"
-                className="hidden sm:block px-4 py-2 text-sm font-semibold text-gray-200 border border-[#1E1E2A] rounded-xl hover:bg-[#111118] hover:border-[#E50914]/30 transition-all"
-              >
-                {t.nav_login}
-              </Link>
-              <Link
-                href="/register"
-                className="px-4 py-2 text-sm font-bold bg-gradient-to-r from-[#E50914] to-[#B00000] text-white rounded-xl hover:from-[#FF1A24] hover:to-[#E50914] transition-all shadow-red"
-              >
-                {t.nav_register}
-              </Link>
+              {/* Auth — logged in */}
+              {user ? (
+                <div className="relative" ref={userMenuRef}>
+                  <button
+                    onClick={() => setUserMenuOpen(!userMenuOpen)}
+                    className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl border border-[#1E1E2A] hover:border-[#E50914]/30 bg-[#111118] hover:bg-[#1A1A22] transition-all"
+                  >
+                    {user.avatar ? (
+                      <img src={user.avatar} alt={user.name} className="w-6 h-6 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#E50914] to-[#B00000] flex items-center justify-center text-white text-[10px] font-black">
+                        {user.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <span className="hidden sm:block text-sm font-semibold text-white max-w-[80px] truncate">{user.name.split(" ")[0]}</span>
+                    <ChevronDown className={cn("w-3 h-3 text-gray-400 transition-transform", userMenuOpen && "rotate-180")} />
+                  </button>
+                  {userMenuOpen && (
+                    <div className="absolute right-0 top-full mt-2 w-56 glass border border-[#1E1E2A] rounded-xl shadow-2xl overflow-hidden animate-fade-in-up z-50">
+                      <div className="p-3 border-b border-[#1E1E2A]">
+                        <p className="text-sm font-bold text-white truncate">{user.name}</p>
+                        <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                        <span className="inline-flex mt-1.5 items-center gap-1 px-2 py-0.5 rounded-full bg-[#E50914]/10 border border-[#E50914]/20 text-[#E50914] text-[10px] font-bold uppercase">
+                          {user.role}
+                        </span>
+                      </div>
+                      <div className="p-1">
+                        <Link href="/admin/profile" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#E50914]/10 hover:text-white rounded-lg transition-colors" onClick={() => setUserMenuOpen(false)}>
+                          <User className="w-4 h-4" />
+                          Meu Perfil
+                        </Link>
+                        {isAdmin && (
+                          <Link href="/admin/dashboard" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#E50914]/10 hover:text-white rounded-lg transition-colors" onClick={() => setUserMenuOpen(false)}>
+                            <Shield className="w-4 h-4" />
+                            Painel Admin
+                          </Link>
+                        )}
+                        <Link href="/admin/settings" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#E50914]/10 hover:text-white rounded-lg transition-colors" onClick={() => setUserMenuOpen(false)}>
+                          <Settings className="w-4 h-4" />
+                          Configurações
+                        </Link>
+                        <div className="h-px bg-[#1E1E2A] my-1" />
+                        <button
+                          onClick={handleLogout}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          Sair
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    className="hidden sm:block px-4 py-2 text-sm font-semibold text-gray-200 border border-[#1E1E2A] rounded-xl hover:bg-[#111118] hover:border-[#E50914]/30 transition-all"
+                  >
+                    {t.nav_login}
+                  </Link>
+                  <Link
+                    href="/register"
+                    className="px-4 py-2 text-sm font-bold bg-gradient-to-r from-[#E50914] to-[#B00000] text-white rounded-xl hover:from-[#FF1A24] hover:to-[#E50914] transition-all shadow-red"
+                  >
+                    {t.nav_register}
+                  </Link>
+                </>
+              )}
 
               {/* Mobile toggle */}
               <button
@@ -257,6 +404,19 @@ export default function Navbar() {
               </div>
             </Link>
 
+            {/* User info on mobile */}
+            {user && (
+              <div className="flex items-center gap-3 p-3 mb-4 rounded-xl border border-[#1E1E2A] bg-[#111118]">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#E50914] to-[#B00000] flex items-center justify-center text-white font-black text-sm">
+                  {user.name.charAt(0).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-white truncate">{user.name}</p>
+                  <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                </div>
+              </div>
+            )}
+
             {/* Nav Links */}
             <nav className="space-y-1 mb-5">
               {[...navLinks, ...moreLinks].map((link) => (
@@ -269,6 +429,16 @@ export default function Navbar() {
                   {link.label}
                 </Link>
               ))}
+              {user && isAdmin && (
+                <Link
+                  href="/admin/dashboard"
+                  className="flex items-center gap-3 px-3 py-3 text-sm font-medium text-[#E50914] hover:text-white hover:bg-[#111118] rounded-xl transition-colors"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  <Shield className="w-4 h-4" />
+                  Painel Admin
+                </Link>
+              )}
             </nav>
 
             {/* Language + Auth */}
@@ -280,22 +450,32 @@ export default function Navbar() {
                 <Globe className="w-4 h-4" />
                 {lang === "pt" ? "Switch to English" : "Mudar para Português"}
               </button>
-              <div className="flex gap-2">
-                <Link
-                  href="/login"
-                  className="flex-1 text-center px-4 py-3 text-sm font-semibold text-white border border-[#1E1E2A] rounded-xl hover:bg-[#111118] transition-colors"
-                  onClick={() => setMobileOpen(false)}
+              {user ? (
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold text-red-400 border border-red-500/20 rounded-xl hover:bg-red-500/10 transition-colors"
                 >
-                  {t.nav_login}
-                </Link>
-                <Link
-                  href="/register"
-                  className="flex-1 text-center px-4 py-3 text-sm font-bold bg-gradient-to-r from-[#E50914] to-[#B00000] text-white rounded-xl"
-                  onClick={() => setMobileOpen(false)}
-                >
-                  {t.nav_register}
-                </Link>
-              </div>
+                  <LogOut className="w-4 h-4" />
+                  Sair da conta
+                </button>
+              ) : (
+                <div className="flex gap-2">
+                  <Link
+                    href="/login"
+                    className="flex-1 text-center px-4 py-3 text-sm font-semibold text-white border border-[#1E1E2A] rounded-xl hover:bg-[#111118] transition-colors"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    {t.nav_login}
+                  </Link>
+                  <Link
+                    href="/register"
+                    className="flex-1 text-center px-4 py-3 text-sm font-bold bg-gradient-to-r from-[#E50914] to-[#B00000] text-white rounded-xl"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    {t.nav_register}
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         </div>

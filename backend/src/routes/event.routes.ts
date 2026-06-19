@@ -83,10 +83,56 @@ async function fetchApiFootballFixtureData(fixtureId: string) {
   };
 }
 
-router.get('/', async (_req, res, next) => {
+router.get('/', async (req, res, next) => {
   try {
-    const rows = await prisma.$queryRawUnsafe<any[]>(`${selectEventSql} ORDER BY status = 'live' DESC, scheduled_at ASC`);
-    res.json({ success: true, data: rows.map(mapEvent) });
+    const { status, sport, q, page = 1, limit = 50, from, to } = req.query;
+    const conditions: string[] = [];
+    const values: unknown[] = [];
+
+    if (status) {
+      values.push(status);
+      conditions.push(`status = $${values.length}::event_status`);
+    }
+    if (sport) {
+      values.push(sport);
+      conditions.push(`sport = $${values.length}::sport_category`);
+    }
+    if (q) {
+      const like = `%${String(q)}%`;
+      values.push(like);
+      conditions.push(`(title ILIKE $${values.length} OR league ILIKE $${values.length} OR team_a ILIKE $${values.length} OR team_b ILIKE $${values.length})`);
+    }
+    if (from) {
+      values.push(from);
+      conditions.push(`scheduled_at >= $${values.length}::timestamptz`);
+    }
+    if (to) {
+      values.push(to);
+      conditions.push(`scheduled_at <= $${values.length}::timestamptz`);
+    }
+
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    const pageNum = Math.max(1, Number(page));
+    const limitNum = Math.min(100, Math.max(1, Number(limit)));
+    const offset = (pageNum - 1) * limitNum;
+
+    const [rows, countRows] = await Promise.all([
+      prisma.$queryRawUnsafe<any[]>(
+        `${selectEventSql} ${where} ORDER BY status = 'live' DESC, scheduled_at ASC LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
+        ...values, limitNum, offset
+      ),
+      prisma.$queryRawUnsafe<Array<{ total: bigint }>>(
+        `SELECT COUNT(*)::bigint AS total FROM "events" ${where}`,
+        ...values
+      ),
+    ]);
+
+    const total = Number(countRows[0]?.total || 0);
+    res.json({
+      success: true,
+      data: rows.map(mapEvent),
+      pagination: { page: pageNum, limit: limitNum, total, totalPages: Math.ceil(total / limitNum) },
+    });
   } catch (error) {
     next(error);
   }
