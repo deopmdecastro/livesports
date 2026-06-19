@@ -134,6 +134,53 @@ router.get('/', async (req, res, next) => {
   }
 });
 
+// ─── GET /stats — aggregated stats for live streams ──────────────────────────
+router.get('/stats', async (_req, res, next) => {
+  try {
+    const rows = await prisma.$queryRawUnsafe<Array<{
+      total: bigint;
+      live_now: bigint;
+      scheduled: bigint;
+      ended: bigint;
+      total_viewers: bigint;
+      total_views: bigint;
+      total_likes: bigint;
+    }>>(`
+      SELECT
+        COUNT(*)::bigint AS total,
+        COUNT(*) FILTER (WHERE status = 'live')::bigint AS live_now,
+        COUNT(*) FILTER (WHERE status = 'scheduled')::bigint AS scheduled,
+        COUNT(*) FILTER (WHERE status = 'ended')::bigint AS ended,
+        COALESCE(SUM(viewer_count), 0)::bigint AS total_viewers,
+        COALESCE(SUM(total_views), 0)::bigint AS total_views,
+        COALESCE(SUM(like_count), 0)::bigint AS total_likes
+      FROM "lives"
+    `);
+
+    const topLive = await prisma.$queryRawUnsafe<any[]>(`
+      ${selectLiveSql} WHERE status = 'live' ORDER BY viewer_count DESC LIMIT 3
+    `);
+
+    const row = rows[0];
+    res.json({
+      success: true,
+      data: {
+        total: Number(row.total),
+        liveNow: Number(row.live_now),
+        scheduled: Number(row.scheduled),
+        ended: Number(row.ended),
+        totalViewers: Number(row.total_viewers),
+        totalViews: Number(row.total_views),
+        totalLikes: Number(row.total_likes),
+        topLive: topLive.map(mapLive),
+        updatedAt: new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get('/live', async (_req, res, next) => {
   try {
     const rows = await prisma.$queryRawUnsafe<any[]>(`${selectLiveSql} WHERE status = 'live' ORDER BY featured DESC, viewer_count DESC`);

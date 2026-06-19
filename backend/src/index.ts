@@ -19,6 +19,8 @@ import dashboardRoutes from './routes/dashboard.routes';
 import categoryRoutes from './routes/category.routes';
 import integrationRoutes from './routes/integration.routes';
 import { ensureRuntimeSchema } from './lib/prisma';
+import { prisma } from './lib/prisma';
+import { structuredLogger, slowRequestWarner } from './middleware/logger.middleware';
 
 dotenv.config();
 
@@ -139,6 +141,10 @@ if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('combined'));
 }
 
+// Custom structured logger for additional context
+app.use(structuredLogger);
+app.use(slowRequestWarner(3000));
+
 // ─── Audit Log Middleware ─────────────────────────────────────────────────────
 // Logs all write operations (POST/PUT/PATCH/DELETE) to console (extend to DB as needed)
 app.use((req: express.Request, res: express.Response, next) => {
@@ -159,13 +165,38 @@ app.use((req: express.Request, res: express.Response, next) => {
 });
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
-app.get('/health', (_req, res) => {
-  res.json({
-    status: 'ok',
+app.get('/health', async (_req, res) => {
+  const startTime = Date.now();
+  let dbStatus: 'ok' | 'error' = 'ok';
+  let dbLatencyMs: number | null = null;
+
+  try {
+    const dbStart = Date.now();
+    await prisma.$queryRaw`SELECT 1`;
+    dbLatencyMs = Date.now() - dbStart;
+  } catch {
+    dbStatus = 'error';
+  }
+
+  const memUsage = process.memoryUsage();
+
+  res.status(dbStatus === 'ok' ? 200 : 503).json({
+    status: dbStatus === 'ok' ? 'ok' : 'degraded',
     timestamp: new Date().toISOString(),
     version: '1.0.0',
     service: 'LiveSports API',
     environment: process.env.NODE_ENV || 'development',
+    uptime: Math.floor(process.uptime()),
+    responseTimeMs: Date.now() - startTime,
+    database: {
+      status: dbStatus,
+      latencyMs: dbLatencyMs,
+    },
+    memory: {
+      heapUsedMb: Math.round(memUsage.heapUsed / 1024 / 1024),
+      heapTotalMb: Math.round(memUsage.heapTotal / 1024 / 1024),
+      rssMb: Math.round(memUsage.rss / 1024 / 1024),
+    },
   });
 });
 

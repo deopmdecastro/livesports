@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Zap, Facebook, Twitter, Instagram, Youtube, Mail, Globe } from "lucide-react";
+import { useState } from "react";
+import { Zap, Facebook, Twitter, Instagram, Youtube, Mail, Globe, Send, CheckCircle } from "lucide-react";
 import { useLang } from "@/lib/lang";
 
 const socialLinks = [
@@ -14,6 +15,18 @@ const socialLinks = [
 
 export default function Footer() {
   const { lang, setLang, t } = useLang();
+  const [email, setEmail] = useState("");
+  const [subscribed, setSubscribed] = useState(false);
+  const [subscribing, setSubscribing] = useState(false);
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) return;
+    setSubscribing(true);
+    await new Promise((r) => setTimeout(r, 800));
+    setSubscribed(true);
+    setSubscribing(false);
+  };
 
   const footerLinks = {
     sports: [
@@ -51,6 +64,55 @@ export default function Footer() {
       {/* Decorative gradient */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[200px] bg-[#E50914]/3 blur-[80px] rounded-full pointer-events-none" />
 
+      {/* Newsletter Banner */}
+      <div className="relative border-b border-[#1E1E2A]">
+        <div className="max-w-[1400px] mx-auto px-4 lg:px-6 py-8">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="text-center md:text-left">
+              <h3 className="text-lg font-black text-white mb-1" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+                {lang === "pt" ? "🔔 Receba alertas de jogos ao vivo" : "🔔 Get live match alerts"}
+              </h3>
+              <p className="text-sm text-gray-500">
+                {lang === "pt"
+                  ? "Notificações dos melhores jogos diretamente no seu email"
+                  : "Get notified about the best games directly in your inbox"}
+              </p>
+            </div>
+            <form onSubmit={handleSubscribe} className="flex gap-2 w-full md:w-auto">
+              {subscribed ? (
+                <div className="flex items-center gap-2 px-5 py-2.5 bg-green-500/10 border border-green-500/20 rounded-xl text-green-400 text-sm font-semibold">
+                  <CheckCircle className="w-4 h-4" />
+                  {lang === "pt" ? "Inscrito com sucesso!" : "Successfully subscribed!"}
+                </div>
+              ) : (
+                <>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder={lang === "pt" ? "Seu email..." : "Your email..."}
+                    required
+                    className="flex-1 md:w-64 bg-[#111118] border border-[#1E1E2A] focus:border-[#E50914]/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 outline-none transition-all"
+                  />
+                  <button
+                    type="submit"
+                    disabled={subscribing}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#E50914] to-[#B00000] text-white text-sm font-bold rounded-xl hover:from-[#FF1A24] hover:to-[#E50914] transition-all shadow-red disabled:opacity-70"
+                  >
+                    {subscribing ? (
+                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <Send className="w-3.5 h-3.5" />
+                    )}
+                    {lang === "pt" ? "Inscrever" : "Subscribe"}
+                  </button>
+                </>
+              )}
+            </form>
+          </div>
+        </div>
+      </div>
+
       <div className="relative max-w-[1400px] mx-auto px-4 lg:px-6 py-14">
         {/* Top section */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8 mb-12">
@@ -79,6 +141,14 @@ export default function Footer() {
             <p className="text-gray-500 text-sm leading-relaxed mb-6 max-w-[280px]">
               {t.footer_tagline}
             </p>
+
+            {/* Live Status Indicator */}
+            <div className="flex items-center gap-2 mb-5 px-3 py-2 rounded-xl bg-[#E50914]/8 border border-[#E50914]/15 w-fit">
+              <span className="live-badge h-2 w-2 rounded-full bg-[#E50914]" />
+              <span className="text-xs font-bold text-[#E50914]">
+                {lang === "pt" ? "Transmissões ao vivo disponíveis" : "Live streams available"}
+              </span>
+            </div>
 
             {/* Social Links */}
             <div className="flex items-center gap-2.5 mb-6">
@@ -186,6 +256,11 @@ export default function Footer() {
           </p>
           <div className="flex items-center gap-4">
             <span className="text-gray-600 text-xs">{t.footer_made_with}</span>
+            {/* App store badges */}
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-gray-700 border border-[#1E1E2A] rounded-lg px-2 py-1 font-medium">App Store</span>
+              <span className="text-[10px] text-gray-700 border border-[#1E1E2A] rounded-lg px-2 py-1 font-medium">Google Play</span>
+            </div>
           </div>
         </div>
       </div>
