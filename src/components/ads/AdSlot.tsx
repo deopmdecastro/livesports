@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import DOMPurify from "dompurify";
 import type { Ad, AdPosition } from "@/types";
-import { publicApiRequest, apiRequest } from "@/lib/api";
+import { publicApiRequest } from "@/lib/api";
 import { cn } from "@/utils";
 import { X, BarChart2 } from "lucide-react";
 
@@ -88,6 +89,32 @@ function AdPlaceholder({
 
 // ─── Ad Content renderer ──────────────────────────────────────────────────────
 
+// HTML ads are sanitized with DOMPurify (strips <script>, event handlers, etc).
+// "script" format ads are never injected into the page DOM directly — they're
+// rendered inside a sandboxed iframe (no allow-same-origin) so that, even if the
+// content is malicious, it cannot read localStorage/cookies or access the parent
+// page's DOM. This prevents stored-XSS from an ad turning into session/token theft.
+const SANITIZE_OPTIONS = {
+  ALLOWED_TAGS: ["a", "img", "div", "span", "p", "b", "i", "strong", "em", "br", "ul", "ol", "li"],
+  ALLOWED_ATTR: ["href", "src", "alt", "class", "style", "target", "rel"],
+  FORBID_TAGS: ["script", "style", "iframe", "object", "embed"],
+  FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover"],
+};
+
+function SandboxedAdFrame({ html }: { html: string }) {
+  const doc = `<!doctype html><html><head><meta charset="utf-8"/><style>html,body{margin:0;padding:0;height:100%;overflow:hidden;background:transparent;}</style></head><body>${html}</body></html>`;
+  return (
+    <iframe
+      title="Anuncio"
+      srcDoc={doc}
+      className="h-full w-full border-0"
+      sandbox="allow-scripts allow-popups"
+      referrerPolicy="no-referrer"
+      loading="lazy"
+    />
+  );
+}
+
 function AdContent({ ad }: { ad: Ad }) {
   if (ad.format === "video" && ad.videoUrl) {
     return (
@@ -103,8 +130,15 @@ function AdContent({ ad }: { ad: Ad }) {
       />
     );
   }
-  if ((ad.format === "html" || ad.format === "script") && ad.content) {
-    return <div className="h-full w-full" dangerouslySetInnerHTML={{ __html: ad.content }} />;
+  if (ad.format === "script" && ad.content) {
+    // Untrusted third-party/script ad markup: isolate in a sandboxed iframe
+    // without "allow-same-origin", so it cannot access this site's cookies,
+    // localStorage (which holds auth tokens), or DOM.
+    return <SandboxedAdFrame html={ad.content} />;
+  }
+  if (ad.format === "html" && ad.content) {
+    const safeHtml = DOMPurify.sanitize(ad.content, SANITIZE_OPTIONS);
+    return <div className="h-full w-full" dangerouslySetInnerHTML={{ __html: safeHtml }} />;
   }
   if (ad.imageUrl) {
     return (

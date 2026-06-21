@@ -30,12 +30,17 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 // ─── Startup Security Checks ──────────────────────────────────────────────────
 const DEFAULT_SECRET = 'livesports-secret-key';
-if (process.env.NODE_ENV === 'production' && (!process.env.JWT_SECRET || process.env.JWT_SECRET === DEFAULT_SECRET)) {
-  console.error('⛔  SECURITY: JWT_SECRET is missing or is the default value in production. Set a strong secret!');
+const DEFAULT_REFRESH_SECRET = 'livesports-refresh-secret';
+if (
+  process.env.NODE_ENV === 'production' &&
+  (!process.env.JWT_SECRET || process.env.JWT_SECRET === DEFAULT_SECRET ||
+   !process.env.JWT_REFRESH_SECRET || process.env.JWT_REFRESH_SECRET === DEFAULT_REFRESH_SECRET)
+) {
+  console.error('⛔  SECURITY: JWT_SECRET/JWT_REFRESH_SECRET is missing or is the default value in production. Set strong secrets!');
   process.exit(1);
 }
-if (!process.env.JWT_SECRET) {
-  console.warn('⚠️  WARNING: JWT_SECRET not set — using insecure default. Do NOT use in production!');
+if (!process.env.JWT_SECRET || !process.env.JWT_REFRESH_SECRET) {
+  console.warn('⚠️  WARNING: JWT_SECRET/JWT_REFRESH_SECRET not set — using insecure defaults. Do NOT use in production!');
 }
 
 const app = express();

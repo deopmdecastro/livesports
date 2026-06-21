@@ -65,6 +65,14 @@ router.get('/', authenticateToken, requireAdmin, async (req, res, next) => {
 
 router.get('/:id', authenticateToken, async (req: AuthRequest, res, next) => {
   try {
+    // Prevent IDOR: only admins/moderators or the user themselves may view this profile.
+    const isSelf = req.user?.id === req.params.id;
+    const isPrivileged = ['admin', 'super_admin', 'moderator'].includes(req.user?.role || '');
+    if (!isSelf && !isPrivileged) {
+      res.status(403).json({ success: false, error: 'Sem permissao para aceder a este utilizador' });
+      return;
+    }
+
     const rows = await prisma.$queryRawUnsafe<any[]>(`${selectUserSql} WHERE id = $1 LIMIT 1`, req.params.id);
     if (!rows[0]) {
       res.status(404).json({ success: false, error: 'Utilizador nao encontrado' });
