@@ -652,7 +652,6 @@ router.post('/rapidapi/all-live-stream', authenticateToken, requireAdmin, async 
             0,
             $14,
             $15::timestamptz,
-            $14,
             '{}'
           )
           ON CONFLICT ("id") DO UPDATE SET
