@@ -7,6 +7,7 @@ import { formatDate, slugify } from "@/utils";
 import type { NewsArticle, SportCategory } from "@/types";
 import AdminSelect from "@/components/admin/AdminSelect";
 import AdminImageField from "@/components/admin/AdminImageField";
+import { IMAGE_SIZE_PRESETS } from "@/lib/image-upload-hints";
 import AdminActionButton from "@/components/admin/AdminActionButton";
 import toast from "react-hot-toast";
 
@@ -164,6 +165,7 @@ export default function NewsPage() {
                   disabled={modalMode === "view"}
                   value={form.thumbnail}
                   onChange={(value) => setForm({ ...form, thumbnail: value })}
+                  sizeHint={IMAGE_SIZE_PRESETS.newsThumbnail}
                 />
               </div>
               <div>

@@ -91,29 +91,139 @@ export interface LiveEngagement {
 }
 
 // ==================== EVENT TYPES ====================
+export type CompetitionStatus = 'active' | 'draft' | 'completed';
+export type CompetitionFormat = 'groups' | 'league' | 'knockout';
+
+export interface CompetitionGroupTeam {
+  id: string;
+  name: string;
+  code: string;
+  flag?: string;
+  group: string;
+  played: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  gf: number;
+  ga: number;
+  points: number;
+}
+
+export interface CompetitionGroup {
+  group: string;
+  teams: CompetitionGroupTeam[];
+}
+
+export interface Competition {
+  id: string;
+  name: string;
+  slug: string;
+  season?: string;
+  sport?: SportCategory;
+  description?: string;
+  thumbnail?: string;
+  banner?: string;
+  startDate?: string;
+  endDate?: string;
+  status: CompetitionStatus;
+  format?: CompetitionFormat;
+  createdAt: string;
+  updatedAt: string;
+  heroBadge?: string;
+  heroBadgeIcon?: string;
+  heroTitleLine1?: string;
+  heroTitleLine2?: string;
+  heroDescription?: string;
+  statTeams?: number;
+  statGames?: number;
+  statHostCountries?: number;
+  statStadiums?: number;
+  hostCountries?: string;
+  sectionTitle?: string;
+  ctaTitle?: string;
+  ctaDescription?: string;
+  ctaButtonText?: string;
+  groupsData?: CompetitionGroup[] | null;
+  themeColor?: string;
+}
+
+export interface PublicCompetitionEvent {
+  id: string;
+  title: string;
+  teamA?: string;
+  teamB?: string;
+  teamACode?: string;
+  teamBCode?: string;
+  teamALogo?: string;
+  teamBLogo?: string;
+  scoreA?: number;
+  scoreB?: number;
+  status: Event['status'];
+  scheduledAt: string;
+  stage?: string | null;
+  groupName?: string | null;
+  venue?: string | null;
+  matchTime?: string | null;
+}
+
+export interface PublicCompetitionPage {
+  competition: Competition;
+  events: PublicCompetitionEvent[];
+  groups: CompetitionGroup[];
+}
+
+export interface PublicCompetitionSummary {
+  id: string;
+  name: string;
+  slug: string;
+  season?: string;
+  format?: CompetitionFormat;
+  sport?: SportCategory;
+  heroBadge?: string;
+  heroBadgeIcon?: string;
+  hostCountries?: string;
+  sectionTitle?: string;
+  thumbnail?: string;
+  themeColor?: string;
+}
+
+// ==================== EVENT TYPES ====================
 export interface Event {
   id: string;
   title: string;
   description?: string;
   thumbnail?: string;
+
   sport: SportCategory;
+
+  competitionId?: string;
+  stage?: string;
+  roundNumber?: number;
+  groupName?: string;
+  matchNumber?: number;
+
   league?: string;
   leagueLogo?: string;
   teamA?: string;
+  teamACode?: string;
   teamALogo?: string;
   teamB?: string;
+  teamBCode?: string;
   teamBLogo?: string;
   scoreA?: number;
   scoreB?: number;
   matchTime?: string;
   viewerCount?: number;
+  venue?: string;
   scheduledAt: string;
   status: 'upcoming' | 'live' | 'finished' | 'cancelled';
   createdAt: string;
+  updatedAt?: string;
 }
 
+
 // ==================== ADS TYPES ====================
-export type AdPosition = 'header' | 'sidebar' | 'footer' | 'in_content' | 'player' | 'popup';
+export type AdPosition = 'header' | 'sidebar' | 'footer' | 'in_content' | 'player' | 'popup' | 'live_preroll';
 export type AdFormat = 'banner' | 'video' | 'html' | 'script';
 export type AdStatus = 'active' | 'paused' | 'expired' | 'draft';
 

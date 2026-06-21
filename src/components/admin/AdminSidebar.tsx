@@ -21,6 +21,7 @@ import {
   LogOut,
   ChevronDown,
   Tv2,
+  Trophy,
 } from "lucide-react";
 import { cn } from "@/utils";
 import { useState } from "react";
@@ -44,6 +45,8 @@ const navGroups: { title: string; items: NavItem[] }[] = [
     items: [
       { label: "Lives", href: "/admin/lives", icon: Radio },
       { label: "Eventos", href: "/admin/events", icon: Calendar },
+      { label: "Competições", href: "/admin/competitions", icon: Trophy },
+
       { label: "Categorias", href: "/admin/categories", icon: Tag },
       { label: "Notícias", href: "/admin/news", icon: Newspaper },
       { label: "Banners", href: "/admin/banners", icon: Image },

@@ -18,13 +18,17 @@ import {
   Signal,
   Server,
   X,
+  RefreshCw,
 } from "lucide-react";
 import { cn, formatDateTime, formatNumber, getSportLabel } from "@/utils";
 import type { Live, LiveStatus, LiveStreamServer, SportCategory, Event } from "@/types";
 import toast from "react-hot-toast";
 import AdminImageField from "@/components/admin/AdminImageField";
+import { IMAGE_SIZE_PRESETS } from "@/lib/image-upload-hints";
 import AdminSelect from "@/components/admin/AdminSelect";
 import AdminActionButton from "@/components/admin/AdminActionButton";
+import AdminLivePreviewModal from "@/components/admin/AdminLivePreviewModal";
+import AdminTeamMark, { isLeagueLogoDisplayable } from "@/components/admin/AdminTeamMark";
 import { apiRequest, type ApiListResponse } from "@/lib/api";
 
 const statusConfig: Record<
@@ -133,11 +137,36 @@ export default function LivesPage() {
   const [sportFilter, setSportFilter] = useState<string>("all");
   const [showModal, setShowModal] = useState(false);
   const [editingLive, setEditingLive] = useState<Live | null>(null);
+  const [viewingLive, setViewingLive] = useState<Live | null>(null);
+  const [syncingStreams, setSyncingStreams] = useState(false);
 
   // Event select/search state (Nova Live)
   const [eventQuery, setEventQuery] = useState("");
   const [eventSearchLoading, setEventSearchLoading] = useState(false);
   const [eventOptions, setEventOptions] = useState<Event[]>([]);
+
+  // Load todos os eventos quando abrir/criar live (sem pesquisar)
+  useEffect(() => {
+    if (!showModal || editingLive) return;
+
+    let cancelled = false;
+
+    // Mantém a UX: mostra todos no select imediatamente
+    apiRequest<Event[]>(`/events?limit=200`)
+      .then((events) => {
+        if (cancelled) return;
+        setEventOptions(events || []);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setEventOptions([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [showModal, editingLive]);
+
 
   const [form, setForm] = useState({
     eventId: "",
@@ -171,9 +200,12 @@ export default function LivesPage() {
 
   useEffect(() => {
     if (!showModal) return;
+
     const q = eventQuery.trim();
+
+    // Sem pesquisa: mantém a lista completa carregada anteriormente.
     if (!q) {
-      setEventOptions([]);
+      setEventSearchLoading(false);
       return;
     }
 
@@ -187,6 +219,7 @@ export default function LivesPage() {
 
     return () => clearTimeout(t);
   }, [eventQuery, showModal, form.sport]);
+
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -252,7 +285,7 @@ export default function LivesPage() {
           : [
               createStreamServer(0, live.hlsUrl || live.m3u8Url || live.streamUrl || DEFAULT_STREAM_URL),
             ],
-      scheduledAt: live.scheduledAt.slice(0, 16),
+      scheduledAt: live.scheduledAt ? live.scheduledAt.slice(0, 16) : new Date().toISOString().slice(0, 16),
       description: live.description || "",
       featured: live.featured,
     });
@@ -316,8 +349,13 @@ export default function LivesPage() {
   };
 
   const handleSave = async () => {
-    if (!form.eventId) {
+    if (!editingLive && !form.eventId) {
       toast.error("Selecione um evento para criar a live.");
+      return;
+    }
+
+    if (editingLive && !form.title.trim()) {
+      toast.error("Informe o titulo da live.");
       return;
     }
 
@@ -337,11 +375,12 @@ export default function LivesPage() {
       return;
     }
 
-    const payload = {
-      eventId: form.eventId,
+      const payload = {
+      ...(form.eventId ? { eventId: form.eventId } : {}),
       sport: form.sport,
-      league: form.league || null,
-      leagueLogo: form.leagueLogo || null,
+      // Na criação com eventId, a liga vem do snapshot do evento no backend
+      league: editingLive ? form.league || null : null,
+      leagueLogo: editingLive ? form.leagueLogo || null : null,
       teamA: form.teamA || null,
       teamALogo: form.teamALogo || null,
       teamB: form.teamB || null,
@@ -383,6 +422,27 @@ export default function LivesPage() {
     }
   };
 
+  const syncRapidApiStreams = async () => {
+    setSyncingStreams(true);
+    try {
+      const result = await apiRequest<{ syncedCount: number; items: Live[]; notice?: string }>(
+        "/integrations/rapidapi/all-live-stream",
+        { method: "POST" }
+      );
+      const refreshed = await apiRequest<ApiListResponse<Live>>("/lives?limit=100");
+      setLives(refreshed.items);
+      toast.success(
+        result.notice
+          ? `${result.syncedCount} streams importados (modo demo).`
+          : `${result.syncedCount} streams ao vivo importados da RapidAPI!`
+      );
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel importar streams da RapidAPI.");
+    } finally {
+      setSyncingStreams(false);
+    }
+  };
+
   return (
     <div className="space-y-5">
       <div className="rounded-xl border border-white/10 bg-[#151515]">
@@ -399,13 +459,23 @@ export default function LivesPage() {
               </p>
             </div>
 
-            <button
-              onClick={handleCreate}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#E50914] px-4 text-sm font-bold text-white shadow-lg shadow-red-950/30 transition-colors hover:bg-[#B00000]"
-            >
-              <Plus className="h-4 w-4" />
-              Nova Live
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={syncRapidApiStreams}
+                disabled={syncingStreams}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-white/10 bg-[#1A1A1A] px-4 text-sm font-bold text-white transition-colors hover:bg-[#2A2A2A] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <RefreshCw className={cn("h-4 w-4", syncingStreams && "animate-spin")} />
+                {syncingStreams ? "Importando..." : "Importar streams"}
+              </button>
+              <button
+                onClick={handleCreate}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#E50914] px-4 text-sm font-bold text-white shadow-lg shadow-red-950/30 transition-colors hover:bg-[#B00000]"
+              >
+                <Plus className="h-4 w-4" />
+                Nova Live
+              </button>
+            </div>
           </div>
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -511,9 +581,9 @@ export default function LivesPage() {
                         <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-400">
                           {live.teamA && live.teamB && (
                             <span className="inline-flex items-center gap-1.5">
-                              {isImageValue(live.teamALogo) && <img src={live.teamALogo} alt="" className="h-4 w-4 rounded-full object-cover" />}
+                              <AdminTeamMark logo={live.teamALogo} name={live.teamA} size={32} className="h-4 w-4 rounded-full object-cover" />
                               {live.teamA} vs {live.teamB}
-                              {isImageValue(live.teamBLogo) && <img src={live.teamBLogo} alt="" className="h-4 w-4 rounded-full object-cover" />}
+                              <AdminTeamMark logo={live.teamBLogo} name={live.teamB} size={32} className="h-4 w-4 rounded-full object-cover" />
                             </span>
                           )}
                           <LiveScore live={live} />
@@ -524,7 +594,9 @@ export default function LivesPage() {
                   </td>
                   <td className="px-4 py-4 text-xs font-medium text-gray-300">
                     <span className="inline-flex items-center gap-2">
-                      {isImageValue(live.leagueLogo) && <img src={live.leagueLogo} alt="" className="h-5 w-5 rounded object-cover" />}
+                      {isLeagueLogoDisplayable(live.leagueLogo) && (
+                        <img src={live.leagueLogo!} alt="" className="h-5 w-5 rounded object-cover" />
+                      )}
                       {live.league || "-"}
                     </span>
                   </td>
@@ -543,7 +615,7 @@ export default function LivesPage() {
                   <td className="whitespace-nowrap px-4 py-4 text-xs text-gray-400">{formatDateTime(live.scheduledAt)}</td>
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-1.5">
-                      <AdminActionButton title="Ver live" tone="view">
+                      <AdminActionButton title="Ver live" onClick={() => setViewingLive(live)} tone="view">
                         <Eye className="h-4 w-4" />
                       </AdminActionButton>
                       <AdminActionButton title="Editar live" onClick={() => handleEdit(live)} tone="edit">
@@ -568,6 +640,10 @@ export default function LivesPage() {
           )}
         </div>
       </div>
+
+      {viewingLive && (
+        <AdminLivePreviewModal live={viewingLive} onClose={() => setViewingLive(null)} />
+      )}
 
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
@@ -623,7 +699,7 @@ export default function LivesPage() {
                             }))
                           : [{ value: "", label: "Selecione um evento" }]
                       }
-                      disabled={eventOptions.length === 0}
+                      disabled={false}
                       ariaLabel="Selecionar evento"
                     />
                   </div>
@@ -646,6 +722,7 @@ export default function LivesPage() {
                 value={form.thumbnail}
                 onChange={(value) => setForm({ ...form, thumbnail: value, banner: value })}
                 aspectClassName="aspect-video"
+                sizeHint={IMAGE_SIZE_PRESETS.liveThumbnail}
               />
 
               <div className="grid gap-4 sm:grid-cols-2">

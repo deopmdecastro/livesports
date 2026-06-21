@@ -3,6 +3,7 @@ import { ArrowLeft, CalendarClock, Flag, Shield, Shirt, Trophy } from "lucide-re
 import { notFound } from "next/navigation";
 import type { Event } from "@/types";
 import { serverApiRequest } from "@/lib/server-api";
+import { resolveCountryFlagUrl } from "@/lib/flags";
 import { getSportLabel } from "@/utils";
 
 interface PageProps {
@@ -112,9 +113,12 @@ function statLabel(type: string) {
   return labels[type] || type;
 }
 
-function TeamLogo({ logo, name }: { logo?: string; name?: string }) {
-  if (isImageValue(logo)) {
-    return <img src={logo} alt="" className="h-20 w-20 rounded-full border border-white/10 bg-black/20 object-contain p-2" />;
+function TeamLogo({ logo, name, code }: { logo?: string; name?: string; code?: string }) {
+  const flagUrl = resolveCountryFlagUrl({ code, name, logo, size: 80 });
+  const src = flagUrl || (isImageValue(logo) ? logo : null);
+
+  if (src) {
+    return <img src={src} alt="" className="h-20 w-20 rounded-full border border-white/10 bg-black/20 object-cover p-1" />;
   }
 
   return (
@@ -297,7 +301,7 @@ export default async function EventDetailPage({ params }: PageProps) {
 
               <div className="grid items-center gap-6 md:grid-cols-[1fr_auto_1fr]">
                 <div className="flex flex-col items-center text-center">
-                  <TeamLogo logo={event.teamALogo} name={event.teamA} />
+                  <TeamLogo logo={event.teamALogo} name={event.teamA} code={event.teamACode} />
                   <h1 className="mt-3 text-xl font-black lg:text-2xl">{event.teamA || event.title}</h1>
                 </div>
 
@@ -309,7 +313,7 @@ export default async function EventDetailPage({ params }: PageProps) {
                 </div>
 
                 <div className="flex flex-col items-center text-center">
-                  <TeamLogo logo={event.teamBLogo} name={event.teamB} />
+                  <TeamLogo logo={event.teamBLogo} name={event.teamB} code={event.teamBCode} />
                   <h2 className="mt-3 text-xl font-black lg:text-2xl">{event.teamB || "Adversario"}</h2>
                 </div>
               </div>

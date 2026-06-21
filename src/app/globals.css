@@ -384,6 +384,11 @@ body {
   position: relative;
   overflow: hidden;
 }
+.ad-container-embedded {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+}
 .ad-label {
   font-size: 9px;
   font-weight: 700;

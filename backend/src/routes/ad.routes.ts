@@ -4,6 +4,14 @@ import { prisma } from '../lib/prisma';
 
 const router = Router();
 
+const AD_POSITIONS = ['header', 'sidebar', 'footer', 'in_content', 'player', 'popup', 'live_preroll'] as const;
+const AD_FORMATS = ['banner', 'video', 'html', 'script'] as const;
+const AD_STATUSES = ['active', 'paused', 'expired', 'draft'] as const;
+
+function isAllowedValue<T extends readonly string[]>(value: unknown, allowed: T): value is T[number] {
+  return typeof value === 'string' && (allowed as readonly string[]).includes(value);
+}
+
 // ─── Mapper ───────────────────────────────────────────────────────────────────
 
 function mapAd(row: any) {
@@ -43,28 +51,45 @@ const selectAdSql = `
 
 // ─── GET /  — list all ads ────────────────────────────────────────────────────
 
-router.get('/', async (_req, res, next) => {
+router.get('/', async (req, res, next) => {
   try {
-    const rows = await prisma.$queryRawUnsafe<any[]>(`${selectAdSql} ORDER BY created_at DESC`);
-    res.json({ success: true, data: rows.map(mapAd) });
-  } catch (error) {
-    next(error);
-  }
-});
+    const where: string[] = [];
+    const params: string[] = [];
+    const { position, status, format } = req.query;
 
-// ─── GET /:id — single ad ─────────────────────────────────────────────────────
-
-router.get('/:id', async (req, res, next) => {
-  try {
-    const rows = await prisma.$queryRawUnsafe<any[]>(
-      `${selectAdSql} WHERE id = $1`,
-      req.params.id,
-    );
-    if (!rows[0]) {
-      res.status(404).json({ success: false, error: 'Anuncio nao encontrado' });
-      return;
+    if (position && position !== 'all') {
+      if (!isAllowedValue(position, AD_POSITIONS)) {
+        res.status(400).json({ success: false, error: 'Posicao de anuncio invalida' });
+        return;
+      }
+      params.push(position);
+      where.push(`position = $${params.length}::ad_position`);
     }
-    res.json({ success: true, data: mapAd(rows[0]) });
+
+    if (status && status !== 'all') {
+      if (!isAllowedValue(status, AD_STATUSES)) {
+        res.status(400).json({ success: false, error: 'Status de anuncio invalido' });
+        return;
+      }
+      params.push(status);
+      where.push(`status = $${params.length}::ad_status`);
+    }
+
+    if (format && format !== 'all') {
+      if (!isAllowedValue(format, AD_FORMATS)) {
+        res.status(400).json({ success: false, error: 'Formato de anuncio invalido' });
+        return;
+      }
+      params.push(format);
+      where.push(`format = $${params.length}::ad_format`);
+    }
+
+    const whereSql = where.length ? ` WHERE ${where.join(' AND ')}` : '';
+    const rows = await prisma.$queryRawUnsafe<any[]>(
+      `${selectAdSql}${whereSql} ORDER BY created_at DESC`,
+      ...params,
+    );
+    res.json({ success: true, data: rows.map(mapAd) });
   } catch (error) {
     next(error);
   }
@@ -103,6 +128,25 @@ router.get('/stats/summary', authenticateToken, requireAdmin, async (_req, res, 
     next(error);
   }
 });
+
+// ─── GET /:id — single ad ─────────────────────────────────────────────────────
+
+router.get('/:id', async (req, res, next) => {
+  try {
+    const rows = await prisma.$queryRawUnsafe<any[]>(
+      `${selectAdSql} WHERE id = $1`,
+      req.params.id,
+    );
+    if (!rows[0]) {
+      res.status(404).json({ success: false, error: 'Anuncio nao encontrado' });
+      return;
+    }
+    res.json({ success: true, data: mapAd(rows[0]) });
+  } catch (error) {
+    next(error);
+  }
+});
+
 
 // ─── POST /:id/impression — increment impression counter ──────────────────────
 
@@ -160,6 +204,21 @@ router.post('/', authenticateToken, requireAdmin, async (req: AuthRequest, res, 
       return;
     }
 
+    if (!isAllowedValue(body.position || 'header', AD_POSITIONS)) {
+      res.status(400).json({ success: false, error: 'Posicao de anuncio invalida' });
+      return;
+    }
+
+    if (!isAllowedValue(body.format || 'banner', AD_FORMATS)) {
+      res.status(400).json({ success: false, error: 'Formato de anuncio invalido' });
+      return;
+    }
+
+    if (!isAllowedValue(body.status || 'active', AD_STATUSES)) {
+      res.status(400).json({ success: false, error: 'Status de anuncio invalido' });
+      return;
+    }
+
     const rows = await prisma.$queryRawUnsafe<any[]>(
       `
         INSERT INTO "ads" (
@@ -196,6 +255,21 @@ router.put('/:id', authenticateToken, requireAdmin, async (req: AuthRequest, res
 
     if (!body.title?.trim()) {
       res.status(400).json({ success: false, error: 'Titulo obrigatorio' });
+      return;
+    }
+
+    if (!isAllowedValue(body.position || 'header', AD_POSITIONS)) {
+      res.status(400).json({ success: false, error: 'Posicao de anuncio invalida' });
+      return;
+    }
+
+    if (!isAllowedValue(body.format || 'banner', AD_FORMATS)) {
+      res.status(400).json({ success: false, error: 'Formato de anuncio invalido' });
+      return;
+    }
+
+    if (!isAllowedValue(body.status || 'active', AD_STATUSES)) {
+      res.status(400).json({ success: false, error: 'Status de anuncio invalido' });
       return;
     }
 
@@ -237,7 +311,7 @@ router.put('/:id', authenticateToken, requireAdmin, async (req: AuthRequest, res
 router.patch('/:id/status', authenticateToken, requireAdmin, async (req: AuthRequest, res, next) => {
   try {
     const { status } = req.body;
-    if (!['active', 'paused', 'expired'].includes(status)) {
+    if (!isAllowedValue(status, AD_STATUSES.filter((item) => item !== 'draft'))) {
       res.status(400).json({ success: false, error: 'Status invalido' });
       return;
     }

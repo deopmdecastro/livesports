@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import type { Live, LiveComment, LiveEngagement, Ad } from "@/types";
 import { cn, formatNumber } from "@/utils";
+import { resolveCountryFlagUrl } from "@/lib/flags";
 import LivePlayer from "@/components/watch/LivePlayer";
 import { apiRequest, publicApiRequest } from "@/lib/api";
 
@@ -50,9 +51,23 @@ function isImageValue(v?: string) {
   return Boolean(v && (/^(https?:|data:|blob:)/.test(v) || v.startsWith("/")));
 }
 
-function TeamCrestSmall({ logo, name }: { logo?: string; name?: string }) {
-  if (isImageValue(logo))
-    return <img src={logo} alt="" className="h-6 w-6 rounded-full border border-white/15 object-contain bg-black/30 p-0.5" />;
+function isAdActive(ad: Ad) {
+  if (ad.status !== "active") return false;
+  const now = Date.now();
+  if (ad.startDate && new Date(ad.startDate).getTime() > now) return false;
+  if (ad.endDate && new Date(ad.endDate).getTime() < now) return false;
+  return true;
+}
+
+function pickActiveAd(ads: Ad[], position: Ad["position"]) {
+  return ads.find((ad) => ad.position === position && isAdActive(ad));
+}
+
+function TeamCrestSmall({ logo, name, code }: { logo?: string; name?: string; code?: string }) {
+  const flagUrl = resolveCountryFlagUrl({ code, name, logo, size: 24 });
+  const src = flagUrl || (isImageValue(logo) ? logo : null);
+  if (src)
+    return <img src={src} alt="" className="h-6 w-6 rounded-full border border-white/15 object-cover bg-black/30 p-0.5" />;
   return (
     <div className="h-6 w-6 flex items-center justify-center rounded-full bg-[#1A1A28] border border-white/10 text-[10px] font-black text-white">
       {(name || "?").slice(0, 2).toUpperCase()}
@@ -62,7 +77,8 @@ function TeamCrestSmall({ logo, name }: { logo?: string; name?: string }) {
 
 // ─── Pre-roll Ad Overlay ──────────────────────────────────────────────────────
 function PrerollAd({ ad, onComplete }: { ad: Ad; onComplete: () => void }) {
-  const [timeLeft, setTimeLeft] = useState(ad.format === "video" ? 15 : 8);
+  const duration = ad.format === "video" ? 15 : 8;
+  const [timeLeft, setTimeLeft] = useState(duration);
   const [canSkip, setCanSkip] = useState(false);
   const SKIP_AFTER = 5;
 
@@ -70,7 +86,7 @@ function PrerollAd({ ad, onComplete }: { ad: Ad; onComplete: () => void }) {
     const t = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) { clearInterval(t); onComplete(); return 0; }
-        if (prev === timeLeft - SKIP_AFTER) setCanSkip(true);
+        if (prev === duration - SKIP_AFTER) setCanSkip(true);
         return prev - 1;
       });
     }, 1000);
@@ -134,7 +150,7 @@ function PrerollAd({ ad, onComplete }: { ad: Ad; onComplete: () => void }) {
           </button>
         ) : (
           <span className="text-xs text-gray-500">
-            Pular em {SKIP_AFTER - (15 - timeLeft)}s...
+            Pular em {Math.max(0, SKIP_AFTER - (duration - timeLeft))}s...
           </span>
         )}
       </div>
@@ -204,7 +220,8 @@ function ServerSelector({
 
 // ─── Mid-roll / Post-roll Ad Overlay ─────────────────────────────────────────
 function MidrollAd({ ad, onComplete, label = "Intervalo" }: { ad: Ad; onComplete: () => void; label?: string }) {
-  const [timeLeft, setTimeLeft] = useState(ad.format === "video" ? 20 : 10);
+  const duration = ad.format === "video" ? 20 : 10;
+  const [timeLeft, setTimeLeft] = useState(duration);
   const [canSkip, setCanSkip] = useState(false);
   const SKIP_AFTER = 8;
 
@@ -213,7 +230,7 @@ function MidrollAd({ ad, onComplete, label = "Intervalo" }: { ad: Ad; onComplete
       setTimeLeft((prev) => {
         const next = prev - 1;
         if (next <= 0) { clearInterval(t); onComplete(); return 0; }
-        if (prev === timeLeft - SKIP_AFTER) setCanSkip(true);
+        if (prev === duration - SKIP_AFTER) setCanSkip(true);
         return next;
       });
     }, 1000);
@@ -253,7 +270,7 @@ function MidrollAd({ ad, onComplete, label = "Intervalo" }: { ad: Ad; onComplete
             <SkipForward className="h-3.5 w-3.5" /> Continuar
           </button>
         ) : (
-          <span className="text-xs text-gray-500">Continuar em {Math.max(0, SKIP_AFTER - (20 - timeLeft))}s...</span>
+          <span className="text-xs text-gray-500">Continuar em {Math.max(0, SKIP_AFTER - (duration - timeLeft))}s...</span>
         )}
       </div>
     </div>
@@ -275,6 +292,7 @@ function chatColor(name: string) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function WatchExperience({ live, liveId }: WatchExperienceProps) {
   const id = liveId || live.id;
+
   const [activeLive, setActiveLive] = useState(live);
   const [liked, setLiked] = useState(false);
   const [viewers, setViewers] = useState(live.viewerCount);
@@ -289,6 +307,7 @@ export default function WatchExperience({ live, liveId }: WatchExperienceProps) 
   const [prerollAd, setPrerollAd] = useState<Ad | null>(null);
   const [midrollAd, setMidrollAd] = useState<Ad | null>(null);
   const [adDone, setAdDone] = useState(false);
+  const [adsChecked, setAdsChecked] = useState(false);
   const [midrollDone, setMidrollDone] = useState(false);
   const [connStatus, setConnStatus] = useState<"ok" | "reconnecting" | "offline">("ok");
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -338,14 +357,25 @@ export default function WatchExperience({ live, liveId }: WatchExperienceProps) 
       .then(setChat)
       .catch(() => setChat([]));
 
-    // Pre-roll ad from /api/ads?position=player
-    publicApiRequest<Ad[]>("/ads")
-      .then((ads) => {
-        const playerAd = ads.find((a) => a.position === "player" && a.status === "active");
-        if (playerAd) setPrerollAd(playerAd);
+    // Pre-roll ad separated from display ads: live_preroll first, player as legacy fallback.
+    void (async () => {
+      try {
+        const prerollAds = await publicApiRequest<Ad[]>("/ads?position=live_preroll");
+        let ad = pickActiveAd(prerollAds, "live_preroll");
+
+        if (!ad) {
+          const legacyPlayerAds = await publicApiRequest<Ad[]>("/ads?position=player");
+          ad = pickActiveAd(legacyPlayerAds, "player");
+        }
+
+        if (ad) setPrerollAd(ad);
         else setAdDone(true);
-      })
-      .catch(() => setAdDone(true));
+      } catch {
+        setAdDone(true);
+      } finally {
+        setAdsChecked(true);
+      }
+    })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -370,9 +400,9 @@ export default function WatchExperience({ live, liveId }: WatchExperienceProps) 
   useEffect(() => {
     if (!adDone || midrollDone) return;
     const t = setTimeout(() => {
-      publicApiRequest<Ad[]>("/ads")
+      publicApiRequest<Ad[]>("/ads?position=player")
         .then((ads) => {
-          const midAd = ads.find((a) => a.position === "player" && a.status === "active" && a.format === "video");
+          const midAd = ads.find((a) => a.position === "player" && isAdActive(a) && a.format === "video");
           if (midAd) setMidrollAd(midAd);
         })
         .catch(() => undefined);
@@ -430,6 +460,16 @@ export default function WatchExperience({ live, liveId }: WatchExperienceProps) 
     ...(currentServer ? { hlsUrl: currentServer.url, streamUrl: currentServer.url } : {}),
   };
 
+  const showPreroll = adsChecked && !adDone && !!prerollAd;
+  const showMidroll = !!midrollAd && !midrollDone;
+  const adOverlay = !adsChecked
+    ? "checking"
+    : showPreroll
+      ? "preroll"
+      : showMidroll
+        ? "midroll"
+        : null;
+
   return (
     <div className="h-screen overflow-hidden bg-[#060609] text-white flex flex-col">
       {/* Top bar */}
@@ -486,12 +526,25 @@ export default function WatchExperience({ live, liveId }: WatchExperienceProps) 
         <section className="flex flex-col flex-1 min-w-0 min-h-0 relative">
           {/* Player area */}
           <div className="flex-1 min-h-0 relative bg-black">
-            {!adDone && prerollAd ? (
-              <PrerollAd ad={prerollAd} onComplete={() => { setAdDone(true); setPrerollAd(null); }} />
-            ) : midrollAd && !midrollDone ? (
-              <MidrollAd ad={midrollAd} onComplete={() => { setMidrollDone(true); setMidrollAd(null); }} label="Intervalo" />
-            ) : (
-              <LivePlayer live={liveToPlay} />
+            <LivePlayer live={liveToPlay} adOverlay={adOverlay} />
+            {showPreroll && (
+              <PrerollAd
+                ad={prerollAd!}
+                onComplete={() => {
+                  setAdDone(true);
+                  setPrerollAd(null);
+                }}
+              />
+            )}
+            {showMidroll && (
+              <MidrollAd
+                ad={midrollAd!}
+                onComplete={() => {
+                  setMidrollDone(true);
+                  setMidrollAd(null);
+                }}
+                label="Intervalo"
+              />
             )}
             <ConnectionBanner status={connStatus} />
 

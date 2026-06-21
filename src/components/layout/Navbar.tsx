@@ -83,6 +83,7 @@ export default function Navbar() {
 
   const navLinks = [
     { label: t.nav_home, href: "/" },
+    { label: t.nav_calendar, href: "/calendario" },
     { label: t.nav_football, href: "/futebol", hot: true },
     { label: t.nav_basketball, href: "/basquete" },
     { label: t.nav_tennis, href: "/tenis" },

@@ -12,6 +12,7 @@ const nextConfig: NextConfig = {
       'i.pravatar.cc',
       'media.api-sports.io',
       'crests.football-data.org',
+      'flagsapi.com',
       'logos-world.net',
     ],
     remotePatterns: [

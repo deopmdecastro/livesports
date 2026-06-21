@@ -108,23 +108,78 @@ enum LiveStatus {
 }
 
 // ==================== EVENTS ====================
-model Event {
-  id          String        @id @default(cuid())
-  title       String
+model Competition {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  season      String?
+  sport       SportCategory?
+
   description String?
   thumbnail   String?
-  sport       SportCategory
-  league      String?
-  teamA       String?
-  teamALogo   String?
-  teamB       String?
-  teamBLogo   String?
-  scheduledAt DateTime
-  status      EventStatus   @default(upcoming)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  banner      String?
+
+  startDate   DateTime?
+  endDate     DateTime?
+
+  status      CompetitionStatus @default(active)
+  format      CompetitionFormat @default(groups)
+  themeColor  String?  @map("theme_color")
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  events      Event[]
+
+  @@map("competitions")
+}
+
+enum CompetitionStatus {
+  active
+  draft
+  completed
+  @@map("competition_status")
+}
+
+enum CompetitionFormat {
+  groups
+  league
+  knockout
+  @@map("competition_format")
+}
+
+model Event {
+  id            String        @id @default(cuid())
+  title         String
+  description   String?
+  thumbnail     String?
+
+  sport         SportCategory
+  competitionId String?
+
+  stage         String?
+  roundNumber   Int?
+  groupName     String?
+  matchNumber   Int?
+
+  league        String?
+  teamA         String?
+  teamALogo     String?
+  teamB         String?
+  teamBLogo     String?
+  scoreA        Int?
+  scoreB        Int?
+
+  matchTime     String?
+
+  scheduledAt   DateTime
+  status        EventStatus   @default(upcoming)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
   @@map("events")
+
+  competition   Competition?  @relation(fields: [competitionId], references: [id], onDelete: SetNull)
 }
 
 enum EventStatus {
@@ -134,6 +189,7 @@ enum EventStatus {
   cancelled
   @@map("event_status")
 }
+
 
 // ==================== SPORT CATEGORIES ====================
 enum SportCategory {
@@ -195,6 +251,7 @@ enum AdPosition {
   in_content
   player
   popup
+  live_preroll
   @@map("ad_position")
 }
 

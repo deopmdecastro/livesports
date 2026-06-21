@@ -287,4 +287,270 @@ router.post('/api-football/live-events', authenticateToken, requireAdmin, async 
   }
 });
 
+router.post('/rapidapi/all-live-stream', authenticateToken, requireAdmin, async (req, res, next) => {
+  try {
+    type SourceAudit = {
+      used: string[];
+      ignored: string[];
+      failed: Array<{ source: string; reason: string }>;
+    };
+
+    const audit: SourceAudit = { used: [], ignored: [], failed: [] };
+
+    const apiKey = process.env.RAPIDAPI_KEY?.trim();
+
+    // No RapidAPI key -> fallback instead of failing without context
+    if (!apiKey || apiKey === 'your-rapidapi-key') {
+      audit.ignored.push('rapidapi');
+
+      if (process.env.ALLOW_DEMO_DATA === 'true') {
+        // Use existing dev data from rapidapi-live-stream
+        const {
+          DEV_RAPIDAPI_LIVE_STREAMS,
+          flattenRapidApiLiveStreams,
+        } = await import('../lib/rapidapi-live-stream');
+
+        // Return the mapped demo items (no DB upsert in this minimal router).
+        const items = flattenRapidApiLiveStreams(DEV_RAPIDAPI_LIVE_STREAMS);
+        audit.used.push('dev-sample');
+
+        res.json({
+          success: true,
+          data: {
+            source: 'dev-sample',
+            sources: audit,
+            syncedCount: 0,
+            skippedCount: items.length,
+            items,
+            notice:
+              'RAPIDAPI_KEY nao configurado. Foram devolvidos streams de demonstracao para desenvolvimento.',
+          },
+        });
+        return;
+      }
+
+      // Fallback to what is already in the DB
+      const rows = await prisma.$queryRawUnsafe<any[]>(
+        `
+          SELECT id, title, description, thumbnail, banner,
+                 sport::text as sport, league, league_logo,
+                 team_a, team_a_logo, team_b, team_b_logo,
+                 score_a, score_b,
+                 stream_url, hls_url, m3u8_url,
+                 stream_servers, status,
+                 featured, viewer_count, match_time, scheduled_at
+          FROM "lives"
+          ORDER BY featured DESC, scheduled_at DESC
+          LIMIT 200
+        `
+      );
+
+      if (!rows || rows.length === 0) {
+        audit.failed.push({ source: 'db-fallback', reason: 'Nenhum live existente na base para fallback' });
+
+        res.status(400).json({
+          success: false,
+          data: {
+            source: 'db-fallback',
+            sources: audit,
+            syncedCount: 0,
+            skippedCount: 0,
+            items: [],
+            notice:
+              'RAPIDAPI_KEY nao configurado e a tabela "lives" esta vazia (nenhum stream previo para retornar).',
+          },
+        });
+        return;
+      }
+
+      audit.used.push('db-fallback');
+
+      const items = rows.map((row) => ({
+        id: `db-live-${row.id}`,
+        matchId: Number(row.id),
+        title: row.title,
+        teamA: row.team_a,
+        teamB: row.team_b,
+        league: row.league,
+        sport: row.sport,
+        scoreA: row.score_a,
+        scoreB: row.score_b,
+        m3u8Url: row.m3u8_url,
+        hlsUrl: row.hls_url,
+        streamUrl: row.stream_url,
+        streamServers: row.stream_servers || [],
+        scheduledAt: row.scheduled_at,
+        matchTime: row.match_time,
+        status: 'live' as const,
+        description: row.description,
+      }));
+
+      res.json({
+        success: true,
+        data: {
+          source: 'db-fallback',
+          sources: audit,
+          syncedCount: 0,
+          skippedCount: items.length,
+          items,
+          notice:
+            'RAPIDAPI_KEY nao configurado. Streams retornados a partir de lives ja existentes na base (fallback).',
+        },
+      });
+      return;
+    }
+
+    // RapidAPI key present: full flow (fetch -> map -> upsert -> return)
+    const {
+      fetchRapidApiLiveStreams,
+      flattenRapidApiLiveStreams,
+      isMissingRapidApiKey,
+    } = await import('../lib/rapidapi-live-stream');
+
+    if (isMissingRapidApiKey(apiKey)) {
+      audit.failed.push({ source: 'rapidapi', reason: 'RAPIDAPI_KEY inválida.' });
+      res.status(400).json({ success: false, data: { source: 'rapidapi', sources: audit } });
+      return;
+    }
+
+    audit.used.push('rapidapi-fetch');
+
+    const groups = await fetchRapidApiLiveStreams(apiKey);
+    const items = flattenRapidApiLiveStreams(groups);
+
+    const upserted: any[] = [];
+
+    for (const item of items) {
+      const rows = await prisma.$queryRawUnsafe<any[]>(
+        `
+          INSERT INTO "lives" (
+            "id",
+            "title",
+            "description",
+            "thumbnail",
+            "banner",
+            "sport",
+            "league",
+            "league_logo",
+            "team_a",
+            "team_a_logo",
+            "team_b",
+            "team_b_logo",
+            "score_a",
+            "score_b",
+            "stream_url",
+            "hls_url",
+            "m3u8_url",
+            "stream_servers",
+            "status",
+            "featured",
+            "viewer_count",
+            "match_time",
+            "scheduled_at",
+            "tags"
+          )
+          VALUES (
+            $1,
+            $2,
+            $3,
+            NULL,
+            NULL,
+            $4::sport_category,
+            $5,
+            NULL,
+            $6,
+            NULL,
+            $7,
+            NULL,
+            $8,
+            $9,
+            $10,
+            $11,
+            $12,
+            $13::jsonb,
+            'live'::live_status,
+            FALSE,
+            0,
+            $14,
+            $15::timestamptz,
+            $14,
+            '{}'
+          )
+          ON CONFLICT ("id") DO UPDATE SET
+            "title" = EXCLUDED."title",
+            "description" = EXCLUDED."description",
+            "sport" = EXCLUDED."sport",
+            "league" = EXCLUDED."league",
+            "team_a" = EXCLUDED."team_a",
+            "team_b" = EXCLUDED."team_b",
+            "score_a" = EXCLUDED."score_a",
+            "score_b" = EXCLUDED."score_b",
+            "stream_url" = EXCLUDED."stream_url",
+            "hls_url" = EXCLUDED."hls_url",
+            "m3u8_url" = EXCLUDED."m3u8_url",
+            "stream_servers" = EXCLUDED."stream_servers",
+            "status" = EXCLUDED."status",
+            "match_time" = EXCLUDED."match_time",
+            "scheduled_at" = EXCLUDED."scheduled_at",
+            "updated_at" = NOW()
+          RETURNING id, title, league, team_a, team_b, score_a, score_b, stream_url, hls_url, m3u8_url, stream_servers, status, match_time, scheduled_at, updated_at
+        `,
+        item.id,
+        item.title,
+        item.description,
+        item.sport,
+        item.league,
+        item.teamA,
+        item.teamB,
+        item.scoreA,
+        item.scoreB,
+        item.streamUrl,
+        item.hlsUrl,
+        item.m3u8Url,
+        JSON.stringify(item.streamServers || []),
+        item.matchTime,
+        item.scheduledAt
+      );
+
+      upserted.push(rows[0]);
+    }
+
+    audit.used.push('rapidapi-upsert');
+
+    const mapped = upserted.map((row) => ({
+      id: row.id,
+      matchId: Number(String(row.id).replace('rapidapi-live-', '')),
+      title: row.title,
+      teamA: row.team_a,
+      teamB: row.team_b,
+      league: row.league,
+      sport: row.sport,
+      scoreA: row.score_a,
+      scoreB: row.score_b,
+      m3u8Url: row.m3u8_url,
+      hlsUrl: row.hls_url,
+      streamUrl: row.stream_url,
+      streamServers: row.stream_servers || [],
+      scheduledAt: row.scheduled_at,
+      matchTime: row.match_time,
+      status: 'live' as const,
+      description: row.description,
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        source: 'rapidapi',
+        sources: audit,
+        syncedCount: mapped.length,
+        skippedCount: 0,
+        items: mapped,
+        notice: 'Streams importados e sincronizados via RapidAPI.',
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;

@@ -6,7 +6,10 @@ import { formatDateTime } from "@/utils";
 import type { Event, SportCategory } from "@/types";
 import AdminSelect from "@/components/admin/AdminSelect";
 import AdminImageField from "@/components/admin/AdminImageField";
+import { IMAGE_SIZE_PRESETS } from "@/lib/image-upload-hints";
 import AdminActionButton from "@/components/admin/AdminActionButton";
+import AdminTeamMark, { isLeagueLogoDisplayable } from "@/components/admin/AdminTeamMark";
+import { AdminTeamSearchField } from "@/components/thesportsdb/TeamSearch";
 import toast from "react-hot-toast";
 import { apiRequest } from "@/lib/api";
 
@@ -47,9 +50,6 @@ const emptyForm = {
   thumbnail: "",
 };
 
-function isImageValue(value?: string) {
-  return Boolean(value && (/^(https?:|data:|blob:)/.test(value) || value.startsWith("/")));
-}
 
 export default function EventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
@@ -60,6 +60,7 @@ export default function EventsPage() {
   const [form, setForm] = useState(emptyForm);
   const [importing, setImporting] = useState(false);
   const [syncingLive, setSyncingLive] = useState(false);
+  const [importingCalendar, setImportingCalendar] = useState(false);
 
   const filtered = events.filter((event) =>
     [event.title, event.league || "", event.teamA || "", event.teamB || ""].some((value) => value.toLowerCase().includes(search.toLowerCase()))
@@ -94,7 +95,7 @@ export default function EventsPage() {
       scoreB: typeof event.scoreB === "number" ? String(event.scoreB) : "",
       matchTime: event.matchTime || "",
       viewerCount: typeof event.viewerCount === "number" ? String(event.viewerCount) : "",
-      scheduledAt: event.scheduledAt.slice(0, 16),
+      scheduledAt: event.scheduledAt ? event.scheduledAt.slice(0, 16) : new Date().toISOString().slice(0, 16),
       status: event.status,
       thumbnail: event.thumbnail || "",
     });
@@ -108,11 +109,21 @@ export default function EventsPage() {
     }
 
     const payload = {
-      ...form,
-      scoreA: form.scoreA === "" ? undefined : Number(form.scoreA),
-      scoreB: form.scoreB === "" ? undefined : Number(form.scoreB),
-      viewerCount: form.viewerCount === "" ? undefined : Number(form.viewerCount),
+      title: form.title.trim(),
+      description: form.description || null,
+      thumbnail: form.thumbnail || null,
       sport: form.sport as SportCategory,
+      league: form.league || null,
+      leagueLogo: form.leagueLogo || null,
+      teamA: form.teamA || null,
+      teamALogo: form.teamALogo || null,
+      teamB: form.teamB || null,
+      teamBLogo: form.teamBLogo || null,
+      scoreA: form.scoreA === "" ? null : Number(form.scoreA),
+      scoreB: form.scoreB === "" ? null : Number(form.scoreB),
+      matchTime: form.matchTime || null,
+      viewerCount: form.viewerCount === "" ? 0 : Number(form.viewerCount),
+      scheduledAt: form.scheduledAt ? new Date(form.scheduledAt).toISOString() : new Date().toISOString(),
       status: form.status as Event["status"],
     };
 
@@ -170,6 +181,24 @@ export default function EventsPage() {
     }
   };
 
+  const importSportsDbCalendar = async () => {
+    setImportingCalendar(true);
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const result = await apiRequest<{ importedCount: number; items: Event[] }>(
+        `/integrations/thesportsdb/import-events?date=${today}&s=Soccer`,
+        { method: "POST" },
+      );
+      const refreshed = await apiRequest<Event[]>("/events");
+      setEvents(refreshed);
+      toast.success(`${result.importedCount} eventos importados do calendario TheSportsDB!`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel importar o calendario.");
+    } finally {
+      setImportingCalendar(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -185,6 +214,14 @@ export default function EventsPage() {
           >
             <Download className="h-4 w-4" />
             {importing ? "Importando..." : "Importar Copa"}
+          </button>
+          <button
+            onClick={importSportsDbCalendar}
+            disabled={importingCalendar}
+            className="inline-flex items-center gap-2 rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-4 py-2 text-sm font-bold text-white hover:bg-[#2A2A2A] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Calendar className="h-4 w-4" />
+            {importingCalendar ? "Importando..." : "Importar Calendario"}
           </button>
           <button
             onClick={syncLiveFootballEvents}
@@ -229,15 +266,17 @@ export default function EventsPage() {
                 <tr key={event.id} className="table-row-hover border-b border-[#2A2A2A] last:border-0">
                   <td className="px-4 py-3">
                     <p className="flex items-center gap-2 text-sm font-semibold text-white">
-                      {isImageValue(event.teamALogo) && <img src={event.teamALogo} alt="" className="h-5 w-5 rounded-full object-cover" />}
+                      <AdminTeamMark logo={event.teamALogo} name={event.teamA} code={event.teamACode} size={32} />
                       <span>{event.teamA && event.teamB ? `${event.teamA} vs ${event.teamB}` : event.title}</span>
-                      {isImageValue(event.teamBLogo) && <img src={event.teamBLogo} alt="" className="h-5 w-5 rounded-full object-cover" />}
+                      <AdminTeamMark logo={event.teamBLogo} name={event.teamB} code={event.teamBCode} size={32} />
                     </p>
                     <p className="text-xs text-gray-400">{event.title}</p>
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-300">
                     <span className="inline-flex items-center gap-2">
-                      {isImageValue(event.leagueLogo) && <img src={event.leagueLogo} alt="" className="h-5 w-5 rounded object-cover" />}
+                      {isLeagueLogoDisplayable(event.leagueLogo) && (
+                        <img src={event.leagueLogo!} alt="" className="h-5 w-5 rounded object-cover" />
+                      )}
                       {event.league || "-"}
                     </span>
                   </td>
@@ -266,11 +305,38 @@ export default function EventsPage() {
                 disabled={modalMode === "view"}
                 value={form.thumbnail}
                 onChange={(value) => setForm({ ...form, thumbnail: value })}
+                sizeHint={IMAGE_SIZE_PRESETS.eventThumbnail}
               />
               <div className="grid gap-3 sm:grid-cols-2">
                 <div><label className="mb-1.5 block text-xs font-medium text-gray-300">Equipa A</label><input disabled={modalMode === "view"} value={form.teamA} onChange={(event) => setForm({ ...form, teamA: event.target.value })} className="input-dark w-full px-3 py-2.5 text-sm" /></div>
                 <div><label className="mb-1.5 block text-xs font-medium text-gray-300">Equipa B</label><input disabled={modalMode === "view"} value={form.teamB} onChange={(event) => setForm({ ...form, teamB: event.target.value })} className="input-dark w-full px-3 py-2.5 text-sm" /></div>
               </div>
+              {modalMode !== "view" ? (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <AdminTeamSearchField
+                    label="Pesquisar Equipa A (TheSportsDB)"
+                    onApply={(team) =>
+                      setForm((current) => ({
+                        ...current,
+                        teamA: team.name,
+                        teamALogo: team.badge || current.teamALogo,
+                        league: current.league || team.league,
+                        leagueLogo: current.leagueLogo || team.badge || current.leagueLogo,
+                      }))
+                    }
+                  />
+                  <AdminTeamSearchField
+                    label="Pesquisar Equipa B (TheSportsDB)"
+                    onApply={(team) =>
+                      setForm((current) => ({
+                        ...current,
+                        teamB: team.name,
+                        teamBLogo: team.badge || current.teamBLogo,
+                      }))
+                    }
+                  />
+                </div>
+              ) : null}
               <div className="grid gap-3 sm:grid-cols-2">
                 <AdminImageField
                   label="Escudo da Equipa A"
@@ -278,6 +344,7 @@ export default function EventsPage() {
                   value={form.teamALogo}
                   onChange={(value) => setForm({ ...form, teamALogo: value })}
                   aspectClassName="aspect-square"
+                  sizeHint={IMAGE_SIZE_PRESETS.teamLogo}
                 />
                 <AdminImageField
                   label="Escudo da Equipa B"
@@ -285,6 +352,7 @@ export default function EventsPage() {
                   value={form.teamBLogo}
                   onChange={(value) => setForm({ ...form, teamBLogo: value })}
                   aspectClassName="aspect-square"
+                  sizeHint={IMAGE_SIZE_PRESETS.teamLogo}
                 />
               </div>
               <div className="grid gap-3 sm:grid-cols-4">
@@ -304,6 +372,7 @@ export default function EventsPage() {
                 onChange={(value) => setForm({ ...form, leagueLogo: value })}
                 aspectClassName="aspect-square"
                 className="max-w-[220px]"
+                sizeHint={IMAGE_SIZE_PRESETS.leagueLogo}
               />
               <div className="grid gap-3 sm:grid-cols-2">
                 <div><label className="mb-1.5 block text-xs font-medium text-gray-300">Desporto</label><AdminSelect disabled={modalMode === "view"} value={form.sport} onChange={(value) => setForm({ ...form, sport: value })} options={sportOptions} /></div>

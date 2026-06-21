@@ -11,7 +11,7 @@ import { X, BarChart2 } from "lucide-react";
 interface AdSlotProps {
   position: AdPosition;
   className?: string;
-  variant?: "horizontal" | "box" | "popup" | "overlay" | "lateral";
+  variant?: "horizontal" | "box" | "popup" | "overlay" | "lateral" | "embedded";
   /** Callback fired after the ad impression is tracked */
   onImpression?: (adId: string) => void;
   /** Callback fired when the user clicks the ad */
@@ -51,9 +51,18 @@ async function trackClick(adId: string): Promise<void> {
 function AdPlaceholder({
   variant,
 }: {
-  variant: "horizontal" | "box" | "popup" | "overlay" | "lateral";
+  variant: "horizontal" | "box" | "popup" | "overlay" | "lateral" | "embedded";
 }) {
   if (variant === "popup" || variant === "overlay") return null;
+
+  if (variant === "embedded") {
+    return (
+      <div className="flex h-[72px] w-full items-center justify-center gap-2 opacity-35">
+        <BarChart2 className="h-4 w-4 text-gray-500" />
+        <span className="ad-label">Publicidade · Advertisement</span>
+      </div>
+    );
+  }
 
   const sizeCls =
     variant === "box"
@@ -281,6 +290,26 @@ export default function AdSlot({
         >
           <AdContent ad={ad} />
         </a>
+      </div>
+    );
+  }
+
+  // ── Embedded (flush on page background, no card border) ───────────────────
+  if (variant === "embedded") {
+    return (
+      <div ref={containerRef} className={cn("relative z-10 w-full", className)}>
+        <a
+          href={ad.clickUrl || "#"}
+          target={ad.clickUrl ? "_blank" : undefined}
+          rel="noreferrer"
+          className="block h-[72px] w-full overflow-hidden rounded-lg"
+          onClick={handleClick}
+        >
+          <AdContent ad={ad} />
+        </a>
+        <p className="mt-1 text-center">
+          <span className="ad-label">Publicidade · Advertisement</span>
+        </p>
       </div>
     );
   }

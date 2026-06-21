@@ -1,26 +1,44 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Clock, Play, Eye, Users } from "lucide-react";
-import type { Live } from "@/types";
+import type { Ad, Live } from "@/types";
 import { publicApiRequest, type ApiListResponse } from "@/lib/api";
+import { resolveCountryFlagUrl } from "@/lib/flags";
 import { useLang } from "@/lib/lang";
 
 function isImageValue(value?: string) {
   return Boolean(value && (/^(https?:|data:|blob:)/.test(value) || value.startsWith("/")));
 }
 
-function TeamCrest({ logo, name, size = "md" }: { logo?: string; name?: string; size?: "sm" | "md" | "lg" }) {
+function TeamCrest({
+  logo,
+  name,
+  code,
+  size = "md",
+}: {
+  logo?: string;
+  name?: string;
+  code?: string;
+  size?: "sm" | "md" | "lg";
+}) {
   const sizeClasses = { sm: "h-8 w-8 text-xs", md: "h-12 w-12 text-sm", lg: "h-16 w-16 text-base" };
   const cls = sizeClasses[size];
+  const flagUrl = resolveCountryFlagUrl({
+    code,
+    name,
+    logo,
+    size: size === "sm" ? 32 : size === "lg" ? 64 : 48,
+  });
+  const src = flagUrl || (isImageValue(logo) ? logo : null);
 
-  if (isImageValue(logo)) {
+  if (src) {
     return (
       <img
-        src={logo}
+        src={src}
         alt={name || "team"}
-        className={`${cls} rounded-full border-2 border-white/15 object-contain bg-black/40 p-0.5`}
+        className={`${cls} rounded-full border-2 border-white/15 object-cover bg-black/40 p-0.5`}
       />
     );
   }
@@ -45,17 +63,53 @@ const fallbackImages = [
   "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=1600&q=80",
 ];
 
-function buildSlide(live: Live, index: number, t: ReturnType<typeof useLang>["t"]) {
+function buildLiveSlide(live: Live, index: number, t: ReturnType<typeof useLang>["t"]) {
   const isLive = live.status === "live";
   return {
+    kind: "live" as const,
     id: live.id,
     title: isLive ? live.title : t.hero_next_broadcast,
     highlight: isLive ? t.hero_live_now : t.hero_scheduled,
     subtitle: live.description || `${live.league || "Liga"} ${t.hero_alt_servers}`,
     image: live.banner || live.thumbnail || fallbackImages[index % fallbackImages.length],
     live,
-    cta: isLive ? t.hero_watch : t.hero_watch,
+    cta: t.hero_watch,
     isLive,
+  };
+}
+
+function isAdActive(ad: Ad): boolean {
+  if (ad.status !== "active") return false;
+  const now = Date.now();
+  if (ad.startDate && new Date(ad.startDate).getTime() > now) return false;
+  if (ad.endDate && new Date(ad.endDate).getTime() < now) return false;
+  return true;
+}
+
+type HeroSlide = ReturnType<typeof buildLiveSlide> | {
+  kind: "ad";
+  id: string;
+  title: string;
+  highlight: string;
+  subtitle: string;
+  image: string;
+  ad: Ad;
+  cta: string;
+  isLive: false;
+};
+
+function buildAdSlide(ad: Ad): HeroSlide {
+  const image = ad.imageUrl || fallbackImages[0];
+  return {
+    kind: "ad",
+    id: ad.id,
+    title: ad.title,
+    highlight: "Publicidade",
+    subtitle: ad.campaign ? `Campanha: ${ad.campaign}` : "Anúncio",
+    image,
+    ad,
+    cta: "Ver mais",
+    isLive: false,
   };
 }
 
@@ -63,19 +117,51 @@ export default function HeroSection() {
   const { t } = useLang();
   const [current, setCurrent] = useState(0);
   const [countdown, setCountdown] = useState({ h: 2, m: 30, s: 45 });
-  const [slides, setSlides] = useState<ReturnType<typeof buildSlide>[]>([]);
+  const [slides, setSlides] = useState<HeroSlide[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const HERO_AD_POSITION: Ad["position"] = "live_preroll";
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   useEffect(() => {
-    publicApiRequest<ApiListResponse<Live>>("/lives?limit=6")
-      .then((data) => {
-        const nextSlides = data.items
+    let cancelled = false;
+
+    const load = async () => {
+      try {
+        const livesRes = await publicApiRequest<ApiListResponse<Live>>("/lives?limit=6");
+        if (cancelled) return;
+
+        const liveSlides: HeroSlide[] = livesRes.items
           .filter((live) => live.featured || live.status === "live")
           .slice(0, 3)
-          .map((live, i) => buildSlide(live, i, t));
-        setSlides(nextSlides);
-      })
-      .catch(() => setSlides([]));
+          .map((live, i) => buildLiveSlide(live, i, t));
+
+        if (liveSlides.length > 0) {
+          setSlides(liveSlides);
+          return;
+        }
+
+        const adsRes = await publicApiRequest<Ad[]>("/ads");
+        if (cancelled) return;
+
+        const adSlides: HeroSlide[] = adsRes
+          .filter((ad) => ad.position === HERO_AD_POSITION && isAdActive(ad))
+          .slice(0, 3)
+          .map((ad) => buildAdSlide(ad));
+
+        setSlides(adSlides);
+      } catch {
+        if (!cancelled) setSlides([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -111,8 +197,9 @@ export default function HeroSection() {
 
   const slide = slides[current];
   if (!slide) {
-    // Enhanced Skeleton with content placeholders
-    return (
+    if (loading) {
+      // Enhanced Skeleton with content placeholders
+      return (
       <section className="relative h-[88vh] min-h-[600px] max-h-[950px] overflow-hidden bg-[#060609]">
         <div className="absolute inset-0 grid-bg opacity-20" />
         <div className="absolute inset-0 bg-gradient-to-r from-[#060609] via-[#060609]/80 to-transparent" />
@@ -142,8 +229,18 @@ export default function HeroSection() {
           </div>
         </div>
       </section>
+      );
+    }
+
+    // If we finished loading and still have no slides (lives or ads)
+    return (
+      <section className="relative h-[88vh] min-h-[600px] max-h-[950px] overflow-hidden bg-[#060609]">
+        <div className="absolute inset-0 grid-bg opacity-20" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#060609] via-[#060609]/80 to-transparent" />
+      </section>
     );
   }
+
 
   return (
     <section className="relative h-[88vh] min-h-[620px] max-h-[960px] overflow-hidden">
@@ -186,7 +283,7 @@ export default function HeroSection() {
                 )}
                 {slide.highlight}
               </div>
-              {slide.live.league && (
+              {slide.kind === "live" && slide.live.league && (
                 <span className="flex items-center gap-1.5 rounded-full bg-white/8 border border-white/10 px-3 py-1 text-xs font-semibold text-gray-300">
                   {isImageValue(slide.live.leagueLogo) && (
                     <img src={slide.live.leagueLogo} alt="" className="h-4 w-4 object-contain" />
@@ -194,7 +291,7 @@ export default function HeroSection() {
                   {slide.live.league}
                 </span>
               )}
-              {slide.live.viewerCount > 0 && (
+              {slide.kind === "live" && slide.live.viewerCount > 0 && (
                 <span className="flex items-center gap-1.5 rounded-full bg-white/8 border border-white/10 px-3 py-1 text-xs font-semibold text-gray-300">
                   <Eye className="h-3 w-3" />
                   {formatViewers(slide.live.viewerCount)}
@@ -226,7 +323,7 @@ export default function HeroSection() {
             </p>
 
             {/* Score Board (if live) */}
-            {slide.isLive && (
+            {slide.kind === "live" && slide.isLive && (
               <div className="mb-6 futuristic-border inline-block">
                 <div className="flex items-center gap-5 rounded-xl border border-white/8 bg-black/50 backdrop-blur-sm px-5 py-4">
                   <div className="flex items-center gap-3">
@@ -290,18 +387,30 @@ export default function HeroSection() {
 
             {/* CTAs */}
             <div className="flex flex-wrap items-center gap-3">
-              <Link
-                href={`/watch/${slide.live.id}`}
-                className="group flex items-center gap-2.5 rounded-xl bg-gradient-to-r from-[#E50914] to-[#B00000] px-7 py-3.5 font-bold text-white transition-all hover:from-[#FF1A24] hover:to-[#E50914] shadow-red hover:shadow-red-lg hover:-translate-y-0.5"
-              >
-                <Play className="h-4 w-4 fill-current" />
-                {slide.cta}
-                {slide.isLive && (
-                  <span className="flex h-2 w-2 items-center justify-center">
-                    <span className="live-badge inline-flex rounded-full h-2 w-2 bg-white opacity-80" />
-                  </span>
-                )}
-              </Link>
+              {slide.kind === "live" ? (
+                <Link
+                  href={`/watch/${slide.live.id}`}
+                  className="group flex items-center gap-2.5 rounded-xl bg-gradient-to-r from-[#E50914] to-[#B00000] px-7 py-3.5 font-bold text-white transition-all hover:from-[#FF1A24] hover:to-[#E50914] shadow-red hover:shadow-red-lg hover:-translate-y-0.5"
+                >
+                  <Play className="h-4 w-4 fill-current" />
+                  {slide.cta}
+                  {slide.isLive && (
+                    <span className="flex h-2 w-2 items-center justify-center">
+                      <span className="live-badge inline-flex rounded-full h-2 w-2 bg-white opacity-80" />
+                    </span>
+                  )}
+                </Link>
+              ) : (
+                <a
+                  href={slide.ad.clickUrl || "#"}
+                  target={slide.ad.clickUrl ? "_blank" : undefined}
+                  rel="noreferrer"
+                  className="group flex items-center gap-2.5 rounded-xl bg-gradient-to-r from-[#E50914] to-[#B00000] px-7 py-3.5 font-bold text-white transition-all hover:from-[#FF1A24] hover:to-[#E50914] shadow-red hover:shadow-red-lg hover:-translate-y-0.5"
+                >
+                  <Play className="h-4 w-4 fill-current" />
+                  {slide.cta}
+                </a>
+              )}
               <Link
                 href="/register"
                 className="flex items-center gap-2 rounded-xl border border-white/15 bg-white/8 px-7 py-3.5 font-semibold text-white backdrop-blur-sm transition-all hover:bg-white/15 hover:border-white/25"

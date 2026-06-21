@@ -197,9 +197,9 @@ export function getFlagEmoji(isoCode: string): string {
   return FLAG_EMOJIS[isoCode.toUpperCase()] || '🏳️';
 }
 
-export function getFlagImageUrl(isoCode: string): string {
-  // Uses flagcdn.com — free & fast
-  return `https://flagcdn.com/h60/${isoCode.toLowerCase()}.png`;
+export function getFlagImageUrl(isoCode: string, style: "flat" | "shiny" = "shiny", size = 64): string {
+  const code = isoCode.trim().toUpperCase();
+  return `https://flagsapi.com/${code}/${style}/${size}.png`;
 }
 
 // ─── Known logo overrides (Wikipedia SVG CDN) ─────────────────────────────────

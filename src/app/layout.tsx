@@ -67,9 +67,9 @@ export const metadata: Metadata = {
     },
   },
   icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon-16x16.png",
-    apple: "/apple-touch-icon.png",
+    icon: "/favicon.svg",
+    shortcut: "/favicon-16x16.svg",
+    apple: "/favicon.svg",
   },
   manifest: "/site.webmanifest",
   category: "sports",
@@ -123,7 +123,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://upload.wikimedia.org" />
         <link rel="dns-prefetch" href="https://media.api-sports.io" />
-        <link rel="dns-prefetch" href="https://flagcdn.com" />
+        <link rel="dns-prefetch" href="https://flagsapi.com" />
 
         {/* Fonts — display=swap for CLS optimisation */}
         <link

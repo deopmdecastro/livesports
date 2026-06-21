@@ -11,7 +11,7 @@ CREATE TYPE "user_status" AS ENUM ('active', 'suspended', 'banned', 'pending');
 CREATE TYPE "live_status" AS ENUM ('scheduled', 'live', 'ended', 'cancelled');
 CREATE TYPE "event_status" AS ENUM ('upcoming', 'live', 'finished', 'cancelled');
 CREATE TYPE "sport_category" AS ENUM ('football', 'basketball', 'tennis', 'ufc', 'f1', 'volleyball', 'baseball', 'other');
-CREATE TYPE "ad_position" AS ENUM ('header', 'sidebar', 'footer', 'in_content', 'player', 'popup');
+CREATE TYPE "ad_position" AS ENUM ('header', 'sidebar', 'footer', 'in_content', 'player', 'popup', 'live_preroll');
 CREATE TYPE "ad_format" AS ENUM ('banner', 'video', 'html', 'script');
 CREATE TYPE "ad_status" AS ENUM ('active', 'paused', 'expired', 'draft');
 CREATE TYPE "plan_type" AS ENUM ('free', 'basic', 'premium', 'enterprise');

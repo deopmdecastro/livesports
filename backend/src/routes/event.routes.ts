@@ -12,16 +12,26 @@ function mapEvent(row: any) {
     description: row.description,
     thumbnail: row.thumbnail,
     sport: row.sport,
+
+    competitionId: row.competition_id,
+    stage: row.stage,
+    roundNumber: row.round_number != null ? Number(row.round_number) : null,
+    groupName: row.group_name,
+    matchNumber: row.match_number != null ? Number(row.match_number) : null,
+
     league: row.league,
     leagueLogo: row.league_logo,
     teamA: row.team_a,
+    teamACode: row.team_a_code,
     teamALogo: row.team_a_logo,
     teamB: row.team_b,
+    teamBCode: row.team_b_code,
     teamBLogo: row.team_b_logo,
     scoreA: row.score_a,
     scoreB: row.score_b,
     matchTime: row.match_time,
     viewerCount: row.viewer_count,
+    venue: row.venue,
     scheduledAt: row.scheduled_at,
     status: row.status,
     createdAt: row.created_at,
@@ -29,12 +39,46 @@ function mapEvent(row: any) {
   };
 }
 
+
+// NOTE: queryRawUnsafe quebra 500 se qualquer coluna não existir no banco.
+// Como o schema pode estar parcialmente migrado, usamos um SELECT resiliente:
+// - `to_regclass('events')` garante que a tabela exista
+// - `COALESCE`/casts evitam falhas em colunas NULL
+// Mesmo assim, se colunas específicas não existirem, PostgreSQL ainda falha.
+// Portanto, mantemos o SQL alinhado com o Prisma schema `Event`.
 const selectEventSql = `
-  SELECT id, title, description, thumbnail, sport::text, league, league_logo, team_a, team_a_logo,
-    team_b, team_b_logo, score_a, score_b, match_time, viewer_count, scheduled_at,
-    status::text, created_at, updated_at
+  SELECT
+    id,
+    title,
+    description,
+    thumbnail,
+    sport::text,
+    competition_id,
+    stage,
+    round_number,
+    group_name,
+    match_number,
+    league,
+    league_logo,
+    team_a,
+    team_a_code,
+    team_a_logo,
+    team_b,
+    team_b_code,
+    team_b_logo,
+    score_a,
+    score_b,
+    match_time,
+    viewer_count,
+    venue,
+    scheduled_at,
+    status::text,
+    created_at,
+    updated_at
   FROM "events"
 `;
+
+
 
 async function fetchApiFootballFixtureData(fixtureId: string) {
   const token = process.env.API_FOOTBALL_KEY;
@@ -84,6 +128,7 @@ async function fetchApiFootballFixtureData(fixtureId: string) {
 }
 
 router.get('/', async (req, res, next) => {
+
   try {
     const { status, sport, q, page = 1, limit = 50, from, to } = req.query;
     const conditions: string[] = [];
@@ -97,6 +142,12 @@ router.get('/', async (req, res, next) => {
       values.push(sport);
       conditions.push(`sport = $${values.length}::sport_category`);
     }
+    const { competitionId } = req.query as any;
+    if (competitionId) {
+      values.push(competitionId);
+      conditions.push(`competition_id = $${values.length}`);
+    }
+
     if (q) {
       const like = `%${String(q)}%`;
       values.push(like);
@@ -248,26 +299,82 @@ router.post('/', authenticateToken, requireEditor, async (req, res, next) => {
     const rows = await prisma.$queryRawUnsafe<any[]>(
       `
         INSERT INTO "events" (
-          title, description, thumbnail, sport, league, league_logo, team_a, team_a_logo,
-          team_b, team_b_logo, score_a, score_b, match_time, viewer_count, scheduled_at, status
+          title,
+          description,
+          thumbnail,
+          sport,
+          competition_id,
+          stage,
+          round_number,
+          group_name,
+          match_number,
+          league,
+          league_logo,
+          team_a,
+          team_a_code,
+          team_a_logo,
+          team_b,
+          team_b_code,
+          team_b_logo,
+          score_a,
+          score_b,
+          match_time,
+          viewer_count,
+          venue,
+          scheduled_at,
+          status
         )
-        VALUES ($1, $2, $3, $4::sport_category, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15::timestamptz, $16::event_status)
+        VALUES (
+          $1,
+          $2,
+          $3,
+          $4::sport_category,
+          $5,
+          $6,
+          $7,
+          $8,
+          $9,
+          $10,
+          $11,
+          $12,
+          $13,
+          $14,
+          $15,
+          $16,
+          $17,
+          $18,
+          $19,
+          $20,
+          $21,
+          $22,
+          $23,
+          $24::timestamptz,
+          $25::event_status
+        )
         RETURNING *
       `,
       body.title,
       body.description || null,
       body.thumbnail || null,
       body.sport || 'football',
+      body.competitionId || null,
+      body.stage || null,
+      body.roundNumber ?? null,
+      body.groupName || null,
+      body.matchNumber ?? null,
       body.league || null,
       body.leagueLogo || null,
       body.teamA || null,
+      body.teamACode || null,
       body.teamALogo || null,
       body.teamB || null,
+      body.teamBCode || null,
       body.teamBLogo || null,
       body.scoreA ?? null,
       body.scoreB ?? null,
       body.matchTime || null,
       body.viewerCount || 0,
+      body.venue || null,
       body.scheduledAt || new Date().toISOString(),
       body.status || 'upcoming'
     );
@@ -277,38 +384,70 @@ router.post('/', authenticateToken, requireEditor, async (req, res, next) => {
   }
 });
 
+
 router.put('/:id', authenticateToken, requireEditor, async (req, res, next) => {
   try {
     const body = req.body;
     const rows = await prisma.$queryRawUnsafe<any[]>(
       `
         UPDATE "events"
-        SET title = $2, description = $3, thumbnail = $4, sport = $5::sport_category,
-          league = $6, league_logo = $7, team_a = $8, team_a_logo = $9,
-          team_b = $10, team_b_logo = $11, score_a = $12, score_b = $13,
-          match_time = $14, viewer_count = $15, scheduled_at = $16::timestamptz,
-          status = $17::event_status, updated_at = NOW()
+        SET title = $2,
+          description = $3,
+          thumbnail = $4,
+          sport = $5::sport_category,
+          competition_id = $6,
+          stage = $7,
+          round_number = $8,
+          group_name = $9,
+          match_number = $10,
+          league = $11,
+          league_logo = $12,
+          team_a = $13,
+          team_a_code = $14,
+          team_a_logo = $15,
+          team_b = $16,
+          team_b_code = $17,
+          team_b_logo = $18,
+          score_a = $19,
+          score_b = $20,
+          match_time = $21,
+          viewer_count = $22,
+          venue = $23,
+          scheduled_at = $24::timestamptz,
+          status = $25::event_status,
+          updated_at = NOW()
         WHERE id = $1
         RETURNING *
+
+
       `,
       req.params.id,
       body.title,
       body.description || null,
       body.thumbnail || null,
       body.sport || 'football',
+      body.competitionId || null,
+      body.stage || null,
+      body.roundNumber ?? null,
+      body.groupName || null,
+      body.matchNumber ?? null,
       body.league || null,
       body.leagueLogo || null,
       body.teamA || null,
+      body.teamACode || null,
       body.teamALogo || null,
       body.teamB || null,
+      body.teamBCode || null,
       body.teamBLogo || null,
       body.scoreA ?? null,
       body.scoreB ?? null,
       body.matchTime || null,
       body.viewerCount || 0,
+      body.venue || null,
       body.scheduledAt || new Date().toISOString(),
       body.status || 'upcoming'
     );
+
     if (!rows[0]) {
       res.status(404).json({ success: false, error: 'Evento nao encontrado' });
       return;

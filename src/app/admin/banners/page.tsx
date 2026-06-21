@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Edit2, Eye, Image, Plus, Search, Trash2, X } from "lucide-react";
 import AdminSelect from "@/components/admin/AdminSelect";
 import AdminImageField from "@/components/admin/AdminImageField";
+import { IMAGE_SIZE_PRESETS } from "@/lib/image-upload-hints";
 import AdminActionButton from "@/components/admin/AdminActionButton";
 import type { Banner } from "@/types";
 import toast from "react-hot-toast";
@@ -151,6 +152,7 @@ export default function BannersPage() {
                 value={form.imageUrl}
                 onChange={(value) => setForm({ ...form, imageUrl: value })}
                 aspectClassName="aspect-[16/7]"
+                sizeHint={IMAGE_SIZE_PRESETS.siteBanner}
               />
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-gray-300">Link de destino</label>

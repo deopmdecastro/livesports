@@ -6,20 +6,39 @@ import { ChevronRight, Shield, Eye, Zap, Clock } from "lucide-react";
 import type { Event, Live } from "@/types";
 import type { ApiListResponse } from "@/lib/api";
 import { publicApiRequest } from "@/lib/api";
+import { resolveCountryFlagUrl } from "@/lib/flags";
 import { useLang } from "@/lib/lang";
 
 function isImageValue(value?: string) {
   return Boolean(value && (/^(https?:|data:|blob:)/.test(value) || value.startsWith("/")));
 }
 
-function TeamMark({ logo, name, size = "md" }: { logo?: string; name?: string; size?: "sm" | "md" }) {
+function TeamMark({
+  logo,
+  name,
+  code,
+  size = "md",
+}: {
+  logo?: string;
+  name?: string;
+  code?: string;
+  size?: "sm" | "md";
+}) {
   const sz = size === "sm" ? "h-9 w-9 text-[10px]" : "h-11 w-11 text-xs";
-  if (isImageValue(logo)) {
+  const flagUrl = resolveCountryFlagUrl({
+    code,
+    name,
+    logo,
+    size: size === "sm" ? 36 : 44,
+  });
+  const src = flagUrl || (isImageValue(logo) ? logo : null);
+
+  if (src) {
     return (
       <img
-        src={logo}
+        src={src}
         alt={name || "team"}
-        className={`${sz} rounded-full border border-white/10 bg-black/30 object-contain p-0.5`}
+        className={`${sz} rounded-full border border-white/10 bg-black/30 object-cover p-0.5`}
       />
     );
   }
@@ -119,7 +138,7 @@ function EventCard({ event, live }: { event: Event; live?: Live }) {
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
           {/* Team A */}
           <div className="flex flex-col items-center gap-2">
-            <TeamMark logo={event.teamALogo} name={event.teamA} />
+            <TeamMark logo={event.teamALogo} name={event.teamA} code={event.teamACode} />
             <p className="text-[11px] font-bold text-white text-center leading-tight max-w-full truncate">
               {event.teamA || event.title}
             </p>
@@ -150,7 +169,7 @@ function EventCard({ event, live }: { event: Event; live?: Live }) {
 
           {/* Team B */}
           <div className="flex flex-col items-center gap-2">
-            <TeamMark logo={event.teamBLogo} name={event.teamB} />
+            <TeamMark logo={event.teamBLogo} name={event.teamB} code={event.teamBCode} />
             <p className="text-[11px] font-bold text-white text-center leading-tight max-w-full truncate">
               {event.teamB || "Adversário"}
             </p>

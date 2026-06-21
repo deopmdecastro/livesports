@@ -5,6 +5,7 @@ import compression from 'compression';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
+import path from 'path';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 
@@ -12,6 +13,8 @@ import { Server } from 'socket.io';
 import authRoutes from './routes/auth.routes';
 import liveRoutes from './routes/live.routes';
 import eventRoutes from './routes/event.routes';
+import competitionRoutes from './routes/competition.routes';
+
 import userRoutes from './routes/user.routes';
 import adRoutes from './routes/ad.routes';
 import newsRoutes from './routes/news.routes';
@@ -22,7 +25,8 @@ import { ensureRuntimeSchema } from './lib/prisma';
 import { prisma } from './lib/prisma';
 import { structuredLogger, slowRequestWarner } from './middleware/logger.middleware';
 
-dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 // ─── Startup Security Checks ──────────────────────────────────────────────────
 const DEFAULT_SECRET = 'livesports-secret-key';
@@ -73,36 +77,7 @@ app.use((_req, res, next) => {
 
 app.use(compression() as express.RequestHandler);
 
-// ─── Rate Limiting ────────────────────────────────────────────────────────────
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 200, // increased for public API consumption
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { success: false, error: 'Muitas requisições, tente novamente mais tarde.' },
-  skip: (req) => req.path === '/health', // don't rate-limit health checks
-});
-app.use('/api/', limiter);
-
-// Auth rate limit (stricter — prevent brute force)
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { success: false, error: 'Muitas tentativas de login, aguarde 15 minutos.' },
-});
-
-// Upload/mutation rate limit
-const mutationLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000,
-  max: 30,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { success: false, error: 'Muitas operações de escrita. Aguarde um momento.' },
-});
-
-// ─── CORS ─────────────────────────────────────────────────────────────────────
+// ─── CORS (must run before rate limiting so preflight OPTIONS get headers) ───
 app.use(
   cors({
     origin: (origin, callback) => {
@@ -120,6 +95,37 @@ app.use(
     maxAge: 86400, // 24h preflight cache
   }),
 );
+
+// ─── Rate Limiting ────────────────────────────────────────────────────────────
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200, // increased for public API consumption
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Muitas requisições, tente novamente mais tarde.' },
+  skip: (req) => req.method === 'OPTIONS' || req.path === '/health',
+});
+app.use('/api/', limiter);
+
+// Auth rate limit (stricter — prevent brute force)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Muitas tentativas de login, aguarde 15 minutos.' },
+  skip: (req) => req.method === 'OPTIONS',
+});
+
+// Upload/mutation rate limit
+const mutationLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Muitas operações de escrita. Aguarde um momento.' },
+  skip: (req) => req.method === 'OPTIONS',
+});
 
 // ─── Body Parsing ─────────────────────────────────────────────────────────────
 app.use(express.json({ limit: '5mb' })); // reduced from 10mb for security
@@ -204,6 +210,8 @@ app.get('/health', async (_req, res) => {
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/lives', liveRoutes);
 app.use('/api/events', eventRoutes);
+app.use('/api/competitions', competitionRoutes);
+
 app.use('/api/users', userRoutes);
 app.use('/api/ads', adRoutes);
 app.use('/api/news', newsRoutes);

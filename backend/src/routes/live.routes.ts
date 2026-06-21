@@ -4,6 +4,20 @@ import { prisma } from '../lib/prisma';
 
 const router = Router();
 
+function parseStreamServers(value: unknown) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value;
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
 function mapLive(row: any) {
   return {
     id: row.id,
@@ -23,7 +37,7 @@ function mapLive(row: any) {
     streamUrl: row.stream_url,
     hlsUrl: row.hls_url,
     m3u8Url: row.m3u8_url,
-    streamServers: row.stream_servers || [],
+    streamServers: parseStreamServers(row.stream_servers),
     status: row.status,
     featured: row.featured,
     viewerCount: row.viewer_count,
@@ -431,8 +445,9 @@ router.post('/', authenticateToken, requireEditor, async (req: AuthRequest, res,
       snapshot?.thumbnail ?? body.thumbnail ?? null,
       snapshot?.thumbnail ?? body.banner ?? body.thumbnail ?? null,
       sport,
-      snapshot?.league ?? body.league ?? null,
-      snapshot?.leagueLogo ?? body.leagueLogo ?? null,
+      // Ao criar com eventId, a liga da live deve ser a liga do evento
+      snapshot ? snapshot.league ?? null : body.league ?? null,
+      snapshot ? snapshot.leagueLogo ?? null : body.leagueLogo ?? null,
       streamUrl,
       body.hlsUrl || streamUrl,
       body.m3u8Url || null,

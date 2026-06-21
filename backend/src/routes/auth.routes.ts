@@ -73,8 +73,19 @@ router.post('/login', async (req: Request, res: Response) => {
     await prisma.$executeRawUnsafe(`UPDATE "users" SET "last_login_at" = NOW() WHERE id = $1`, user.id);
     res.json({ success: true, data: { user: publicUser(user), accessToken, refreshToken } });
   } catch (error) {
-    if (error instanceof z.ZodError) res.status(400).json({ success: false, error: error.errors[0].message });
-    else res.status(500).json({ success: false, error: 'Erro interno' });
+    if (error instanceof z.ZodError) {
+      res.status(400).json({ success: false, error: error.errors[0].message });
+      return;
+    }
+
+    // Log real error to help debug 500s on /login
+    console.error('[LOGIN_ERROR]', {
+      message: (error as any)?.message,
+      name: (error as any)?.name,
+      stack: (error as any)?.stack,
+    });
+
+    res.status(500).json({ success: false, error: 'Erro interno' });
   }
 });
 

@@ -14,6 +14,7 @@ interface Translations {
   nav_ufc: string;
   nav_f1: string;
   nav_worldcup: string;
+  nav_calendar: string;
   nav_more: string;
   nav_search_placeholder: string;
   nav_login: string;
@@ -101,6 +102,7 @@ const pt: Translations = {
   nav_ufc: "UFC",
   nav_f1: "F1",
   nav_worldcup: "Copa do Mundo",
+  nav_calendar: "Calendário",
   nav_more: "Mais",
   nav_search_placeholder: "Pesquisar jogos, ligas...",
   nav_login: "Entrar",
@@ -181,6 +183,7 @@ const en: Translations = {
   nav_ufc: "UFC",
   nav_f1: "F1",
   nav_worldcup: "World Cup",
+  nav_calendar: "Calendar",
   nav_more: "More",
   nav_search_placeholder: "Search games, leagues...",
   nav_login: "Login",
