@@ -2,8 +2,10 @@ import { Router } from 'express';
 import axios from 'axios';
 import { authenticateToken, requireAdmin } from '../middleware/auth.middleware';
 import { prisma } from '../lib/prisma';
+import { DEV_CALENDAR_EVENTS, fetchEventsByDay, shouldUseDevCalendar } from '../lib/thesportsdb';
 
 const router = Router();
+
 
 type FootballDataTeam = {
   id?: number;
@@ -287,6 +289,182 @@ router.post('/api-football/live-events', authenticateToken, requireAdmin, async 
   }
 });
 
+router.post('/thesportsdb/import-events', authenticateToken, requireAdmin, async (req, res, next) => {
+  try {
+    const date = String(req.query.date || req.body?.date || new Date().toISOString().slice(0, 10));
+    const sport = String(req.query.s || req.query.sport || req.body?.sport || 'Soccer');
+
+    if (shouldUseDevCalendar()) {
+      // Minimal import for dev mode (no external HTTP requests)
+      const imported = [] as any[];
+      for (const ev of DEV_CALENDAR_EVENTS) {
+        const rows = await prisma.$queryRawUnsafe<any[]>(
+          `
+          INSERT INTO "events" (
+            "id", "title", "description", "thumbnail", "sport", "competition_id",
+            "stage", "round_number", "group_name", "match_number",
+            "league", "league_logo", "team_a", "team_a_code", "team_a_logo",
+            "team_b", "team_b_code", "team_b_logo", "score_a", "score_b",
+            "match_time", "viewer_count", "venue", "scheduled_at", "status"
+          )
+          VALUES (
+            $1, $2, $3, $4, $5::sport_category, $6,
+            $7, $8, $9, $10,
+            $11, $12, $13, NULL, $14,
+            $15, NULL, $16, $17, $18,
+            $19, 0, $20, $21::timestamptz, $22::event_status
+          )
+          ON CONFLICT ("id") DO UPDATE SET
+            "title" = EXCLUDED."title",
+            "description" = EXCLUDED."description",
+            "thumbnail" = EXCLUDED."thumbnail",
+            "sport" = EXCLUDED."sport",
+            "competition_id" = COALESCE(EXCLUDED."competition_id", "events"."competition_id"),
+            "stage" = EXCLUDED."stage",
+            "round_number" = EXCLUDED."round_number",
+            "group_name" = EXCLUDED."group_name",
+            "match_number" = EXCLUDED."match_number",
+            "league" = EXCLUDED."league",
+            "league_logo" = EXCLUDED."league_logo",
+            "team_a" = EXCLUDED."team_a",
+            "team_a_logo" = EXCLUDED."team_a_logo",
+            "team_b" = EXCLUDED."team_b",
+            "team_b_logo" = EXCLUDED."team_b_logo",
+            "score_a" = EXCLUDED."score_a",
+            "score_b" = EXCLUDED."score_b",
+            "match_time" = EXCLUDED."match_time",
+            "venue" = EXCLUDED."venue",
+            "scheduled_at" = EXCLUDED."scheduled_at",
+            "status" = EXCLUDED."status",
+            "updated_at" = NOW()
+          RETURNING id, title, league, team_a, team_b, scheduled_at, status
+        `,
+          ev.id,
+          ev.title,
+          `TheSportsDB (DEV) - ${ev.league}`,
+          ev.thumbnail,
+          ev.sportCategory,
+          null,
+          ev.round ? String(ev.round) : null,
+          null,
+          null,
+          null,
+          ev.league,
+          ev.leagueBadge,
+          ev.homeTeam,
+          ev.homeBadge,
+          ev.awayTeam,
+          ev.awayBadge,
+          ev.homeScore,
+          ev.awayScore,
+          ev.matchTime,
+          ev.venue,
+          ev.timestamp || `${ev.date}T12:00:00.000Z`,
+          ev.status
+        );
+        imported.push(rows[0]);
+      }
+
+      res.json({
+        success: true,
+        data: {
+          source: 'thesportsdb-dev',
+          date,
+          sport,
+          importedCount: imported.length,
+          items: imported,
+        },
+      });
+      return;
+    }
+
+    // Live import
+    const events = await fetchEventsByDay({ date, sport });
+    const imported = [] as any[];
+
+    for (const event of events) {
+      const rows = await prisma.$queryRawUnsafe<any[]>(
+        `
+        INSERT INTO "events" (
+          "id", "title", "description", "thumbnail", "sport", "competition_id",
+          "stage", "round_number", "group_name", "match_number",
+          "league", "league_logo", "team_a", "team_a_code", "team_a_logo",
+          "team_b", "team_b_code", "team_b_logo", "score_a", "score_b",
+          "match_time", "viewer_count", "venue", "scheduled_at", "status"
+        )
+        VALUES (
+          $1, $2, $3, $4, $5::sport_category, $6,
+          $7, $8, $9, $10,
+          $11, $12, $13, NULL, $14,
+          $15, NULL, $16, $17, $18,
+          $19, 0, $20, $21::timestamptz, $22::event_status
+        )
+        ON CONFLICT ("id") DO UPDATE SET
+          "title" = EXCLUDED."title",
+          "description" = EXCLUDED."description",
+          "thumbnail" = EXCLUDED."thumbnail",
+          "sport" = EXCLUDED."sport",
+          "competition_id" = COALESCE(EXCLUDED."competition_id", "events"."competition_id"),
+          "stage" = EXCLUDED."stage",
+          "round_number" = EXCLUDED."round_number",
+          "group_name" = EXCLUDED."group_name",
+          "match_number" = EXCLUDED."match_number",
+          "league" = EXCLUDED."league",
+          "league_logo" = EXCLUDED."league_logo",
+          "team_a" = EXCLUDED."team_a",
+          "team_a_logo" = EXCLUDED."team_a_logo",
+          "team_b" = EXCLUDED."team_b",
+          "team_b_logo" = EXCLUDED."team_b_logo",
+          "score_a" = EXCLUDED."score_a",
+          "score_b" = EXCLUDED."score_b",
+          "match_time" = EXCLUDED."match_time",
+          "venue" = EXCLUDED."venue",
+          "scheduled_at" = EXCLUDED."scheduled_at",
+          "status" = EXCLUDED."status",
+          "updated_at" = NOW()
+        RETURNING id, title, league, team_a, team_b, scheduled_at, status
+      `,
+        event.id,
+        event.title,
+        `TheSportsDB - ${event.league}`,
+        event.thumbnail,
+        event.sportCategory,
+        null,
+        event.round ? `Jornada ${event.round}` : null,
+        null,
+        event.status === 'finished' ? null : null,
+        null,
+        event.league,
+        event.leagueBadge,
+        event.homeTeam,
+        event.homeBadge,
+        event.awayTeam,
+        event.awayBadge,
+        event.homeScore,
+        event.awayScore,
+        event.matchTime,
+        event.venue,
+        event.timestamp || `${event.date}T12:00:00.000Z`,
+        event.status
+      );
+      imported.push(rows[0]);
+    }
+
+    res.json({
+      success: true,
+      data: {
+        source: 'thesportsdb',
+        date,
+        sport,
+        importedCount: imported.length,
+        items: imported,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.post('/rapidapi/all-live-stream', authenticateToken, requireAdmin, async (req, res, next) => {
   try {
     type SourceAudit = {
@@ -328,6 +506,7 @@ router.post('/rapidapi/all-live-stream', authenticateToken, requireAdmin, async 
         });
         return;
       }
+
 
       // Fallback to what is already in the DB
       const rows = await prisma.$queryRawUnsafe<any[]>(
