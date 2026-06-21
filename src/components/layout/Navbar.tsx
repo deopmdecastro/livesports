@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import { Search, Menu, X, Bell, ChevronDown, Zap, Globe, Trophy, User, LogOut, Settings, Shield } from "lucide-react";
 import { cn } from "@/utils";
 import { useLang } from "@/lib/lang";
-import { publicApiRequest, getStoredUser, clearAuthSession } from "@/lib/api";
+import { publicApiRequest, getStoredUser, logout as performLogout } from "@/lib/api";
 import type { ApiListResponse } from "@/lib/api";
 import type { Live } from "@/types";
 
@@ -74,10 +74,10 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const handleLogout = () => {
-    clearAuthSession();
+  const handleLogout = async () => {
     setUser(null);
     setUserMenuOpen(false);
+    await performLogout();
     window.location.href = "/";
   };
 

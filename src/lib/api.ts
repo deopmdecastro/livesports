@@ -38,7 +38,6 @@ function getRefreshToken(): string | null {
   if (typeof window === "undefined") return null;
   return window.localStorage.getItem(STORAGE_KEYS.refreshToken);
 }
-
 export function setAuthSession(data: {
   accessToken: string;
   refreshToken?: string;
@@ -53,6 +52,33 @@ export function setAuthSession(data: {
 export function clearAuthSession(): void {
   if (typeof window === "undefined") return;
   Object.values(STORAGE_KEYS).forEach((key) => window.localStorage.removeItem(key));
+}
+
+/**
+ * Logs the user out: revokes the refresh token server-side (so it can't be
+ * replayed even if it leaked) and then clears the local session. Network
+ * failures are swallowed — the local session is cleared regardless, since a
+ * failed revocation shouldn't trap the user in a logged-in UI state.
+ */
+export async function logout(): Promise<void> {
+  const refreshToken = getRefreshToken();
+  const token = getToken();
+  try {
+    if (token) {
+      await fetch(`${API_URL}/auth/logout`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ refreshToken }),
+      });
+    }
+  } catch {
+    // Best-effort: still clear the local session below.
+  } finally {
+    clearAuthSession();
+  }
 }
 
 export function getStoredUser<T = Record<string, unknown>>(): T | null {
