@@ -1,9 +1,42 @@
 import { Router } from 'express';
 import axios from 'axios';
+import { z } from 'zod';
 import { authenticateToken, requireEditor } from '../middleware/auth.middleware';
 import { prisma } from '../lib/prisma';
+import { parsePagination, buildPaginationMeta } from '../lib/pagination';
 
 const router = Router();
+
+// DTO / validation schema shared by POST and PUT. Coerces empty strings to
+// null for optional text fields so the DB doesn't end up with "" instead of
+// NULL, and validates enum-like fields up front instead of letting Postgres
+// raise an opaque invalid-input-syntax error.
+const eventSchema = z.object({
+  title: z.string().trim().min(1, 'Titulo obrigatorio').max(500),
+  description: z.string().trim().nullish(),
+  thumbnail: z.string().trim().nullish(),
+  sport: z.enum(['football', 'basketball', 'tennis', 'ufc', 'f1', 'volleyball', 'baseball', 'other']).default('football'),
+  competitionId: z.string().trim().nullish(),
+  stage: z.string().trim().nullish(),
+  roundNumber: z.coerce.number().int().nullish(),
+  groupName: z.string().trim().nullish(),
+  matchNumber: z.coerce.number().int().nullish(),
+  league: z.string().trim().nullish(),
+  leagueLogo: z.string().trim().nullish(),
+  teamA: z.string().trim().nullish(),
+  teamACode: z.string().trim().nullish(),
+  teamALogo: z.string().trim().nullish(),
+  teamB: z.string().trim().nullish(),
+  teamBCode: z.string().trim().nullish(),
+  teamBLogo: z.string().trim().nullish(),
+  scoreA: z.coerce.number().int().nullish(),
+  scoreB: z.coerce.number().int().nullish(),
+  matchTime: z.string().trim().nullish(),
+  viewerCount: z.coerce.number().int().min(0).default(0),
+  venue: z.string().trim().nullish(),
+  scheduledAt: z.string().trim().nullish(),
+  status: z.enum(['upcoming', 'live', 'finished', 'cancelled']).default('upcoming'),
+});
 
 function mapEvent(row: any) {
   return {
@@ -46,36 +79,39 @@ function mapEvent(row: any) {
 // - `COALESCE`/casts evitam falhas em colunas NULL
 // Mesmo assim, se colunas específicas não existirem, PostgreSQL ainda falha.
 // Portanto, mantemos o SQL alinhado com o Prisma schema `Event`.
+// Uses an explicit "e" alias so filters that need to JOIN against
+// "competitions" (e.g. season) can be added without string-replacing the
+// FROM clause.
 const selectEventSql = `
   SELECT
-    id,
-    title,
-    description,
-    thumbnail,
-    sport::text,
-    competition_id,
-    stage,
-    round_number,
-    group_name,
-    match_number,
-    league,
-    league_logo,
-    team_a,
-    team_a_code,
-    team_a_logo,
-    team_b,
-    team_b_code,
-    team_b_logo,
-    score_a,
-    score_b,
-    match_time,
-    viewer_count,
-    venue,
-    scheduled_at,
-    status::text,
-    created_at,
-    updated_at
-  FROM "events"
+    e.id,
+    e.title,
+    e.description,
+    e.thumbnail,
+    e.sport::text,
+    e.competition_id,
+    e.stage,
+    e.round_number,
+    e.group_name,
+    e.match_number,
+    e.league,
+    e.league_logo,
+    e.team_a,
+    e.team_a_code,
+    e.team_a_logo,
+    e.team_b,
+    e.team_b_code,
+    e.team_b_logo,
+    e.score_a,
+    e.score_b,
+    e.match_time,
+    e.viewer_count,
+    e.venue,
+    e.scheduled_at,
+    e.status::text,
+    e.created_at,
+    e.updated_at
+  FROM "events" e
 `;
 
 
@@ -128,52 +164,71 @@ async function fetchApiFootballFixtureData(fixtureId: string) {
 }
 
 router.get('/', async (req, res, next) => {
-
+  // NOTE on response shape: this endpoint returns `data` as a flat array with
+  // `pagination` as a sibling key (not nested inside `data` like
+  // live.routes.ts / news.routes.ts do). This looks inconsistent, but it's
+  // intentional: every existing frontend consumer (LiveNowSection,
+  // admin/events, admin/competitions/[id]/games, admin/dashboard) already
+  // calls `apiRequest<Event[]>("/events")` and destructures `data` as an
+  // array directly. Nesting it would silently break all four call sites.
+  // New list endpoints should prefer the nested `{ items, pagination }` shape
+  // (see live.routes.ts) — this one is grandfathered in.
   try {
-    const { status, sport, q, page = 1, limit = 50, from, to } = req.query;
-    const conditions: string[] = [];
+    const { status, sport, q, team, season, from, to } = req.query;
+    const conditions: string[] = ['1=1'];
     const values: unknown[] = [];
 
     if (status) {
       values.push(status);
-      conditions.push(`status = $${values.length}::event_status`);
+      conditions.push(`e.status = $${values.length}::event_status`);
     }
     if (sport) {
       values.push(sport);
-      conditions.push(`sport = $${values.length}::sport_category`);
+      conditions.push(`e.sport = $${values.length}::sport_category`);
     }
     const { competitionId } = req.query as any;
     if (competitionId) {
       values.push(competitionId);
-      conditions.push(`competition_id = $${values.length}`);
+      conditions.push(`e.competition_id = $${values.length}`);
     }
 
     if (q) {
       const like = `%${String(q)}%`;
       values.push(like);
-      conditions.push(`(title ILIKE $${values.length} OR league ILIKE $${values.length} OR team_a ILIKE $${values.length} OR team_b ILIKE $${values.length})`);
+      conditions.push(`(e.title ILIKE $${values.length} OR e.league ILIKE $${values.length} OR e.team_a ILIKE $${values.length} OR e.team_b ILIKE $${values.length})`);
+    }
+    // Filter by team name (either side of the fixture), as requested for the
+    // results API — matches partial names case-insensitively.
+    if (team) {
+      const like = `%${String(team)}%`;
+      values.push(like);
+      conditions.push(`(e.team_a ILIKE $${values.length} OR e.team_b ILIKE $${values.length} OR e.team_a_code ILIKE $${values.length} OR e.team_b_code ILIKE $${values.length})`);
+    }
+    // Filter by season — events don't carry season directly, it lives on the
+    // competition they belong to, so this joins through competition_id.
+    if (season) {
+      values.push(season);
+      conditions.push(`EXISTS (SELECT 1 FROM "competitions" c WHERE c.id = e.competition_id AND c.season = $${values.length})`);
     }
     if (from) {
       values.push(from);
-      conditions.push(`scheduled_at >= $${values.length}::timestamptz`);
+      conditions.push(`e.scheduled_at >= $${values.length}::timestamptz`);
     }
     if (to) {
       values.push(to);
-      conditions.push(`scheduled_at <= $${values.length}::timestamptz`);
+      conditions.push(`e.scheduled_at <= $${values.length}::timestamptz`);
     }
 
-    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
-    const pageNum = Math.max(1, Number(page));
-    const limitNum = Math.min(100, Math.max(1, Number(limit)));
-    const offset = (pageNum - 1) * limitNum;
+    const where = `WHERE ${conditions.join(' AND ')}`;
+    const pagination = parsePagination(req.query as Record<string, unknown>, { limit: 50 });
 
     const [rows, countRows] = await Promise.all([
       prisma.$queryRawUnsafe<any[]>(
-        `${selectEventSql} ${where} ORDER BY status = 'live' DESC, scheduled_at ASC LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
-        ...values, limitNum, offset
+        `${selectEventSql} ${where} ORDER BY e.status = 'live' DESC, e.scheduled_at ASC LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
+        ...values, pagination.limit, pagination.offset
       ),
       prisma.$queryRawUnsafe<Array<{ total: bigint }>>(
-        `SELECT COUNT(*)::bigint AS total FROM "events" ${where}`,
+        `SELECT COUNT(*)::bigint AS total FROM "events" e ${where}`,
         ...values
       ),
     ]);
@@ -182,7 +237,7 @@ router.get('/', async (req, res, next) => {
     res.json({
       success: true,
       data: rows.map(mapEvent),
-      pagination: { page: pageNum, limit: limitNum, total, totalPages: Math.ceil(total / limitNum) },
+      pagination: buildPaginationMeta(pagination, total),
     });
   } catch (error) {
     next(error);
@@ -194,7 +249,7 @@ router.get('/search', async (req, res, next) => {
   try {
     const q = String(req.query.q || '').trim();
     const sport = String(req.query.sport || '').trim();
-    const limit = Math.min(Number(req.query.limit || 20), 50);
+    const pagination = parsePagination(req.query as Record<string, unknown>, { limit: 20, maxLimit: 50 });
 
     const conditions: string[] = [];
     const values: unknown[] = [];
@@ -205,25 +260,25 @@ router.get('/search', async (req, res, next) => {
       // title | league | teams
       conditions.push(
         `(
-          title ILIKE $${values.length}
-          OR league ILIKE $${values.length}
-          OR team_a ILIKE $${values.length}
-          OR team_b ILIKE $${values.length}
+          e.title ILIKE $${values.length}
+          OR e.league ILIKE $${values.length}
+          OR e.team_a ILIKE $${values.length}
+          OR e.team_b ILIKE $${values.length}
         )`
       );
     }
 
     if (sport) {
       values.push(sport);
-      conditions.push(`sport = $${values.length}::sport_category`);
+      conditions.push(`e.sport = $${values.length}::sport_category`);
     }
 
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
     const rows = await prisma.$queryRawUnsafe<any[]>(
-      `${selectEventSql} ${where} ORDER BY status = 'live' DESC, scheduled_at ASC, created_at DESC LIMIT $${values.length + 1}`,
+      `${selectEventSql} ${where} ORDER BY e.status = 'live' DESC, e.scheduled_at ASC, e.created_at DESC LIMIT $${values.length + 1}`,
       ...values,
-      limit
+      pagination.limit
     );
 
     res.json({ success: true, data: rows.map(mapEvent) });
@@ -234,7 +289,7 @@ router.get('/search', async (req, res, next) => {
 
 router.get('/:id', async (req, res, next) => {
   try {
-    const rows = await prisma.$queryRawUnsafe<any[]>(`${selectEventSql} WHERE id = $1 LIMIT 1`, req.params.id);
+    const rows = await prisma.$queryRawUnsafe<any[]>(`${selectEventSql} WHERE e.id = $1 LIMIT 1`, req.params.id);
     if (!rows[0]) {
       res.status(404).json({ success: false, error: 'Evento nao encontrado' });
       return;
@@ -295,7 +350,12 @@ router.get('/:id/summary', async (req, res, next) => {
 
 router.post('/', authenticateToken, requireEditor, async (req, res, next) => {
   try {
-    const body = req.body;
+    const parsed = eventSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ success: false, error: parsed.error.errors[0].message, details: parsed.error.errors });
+      return;
+    }
+    const body = parsed.data;
     const rows = await prisma.$queryRawUnsafe<any[]>(
       `
         INSERT INTO "events" (
@@ -355,28 +415,30 @@ router.post('/', authenticateToken, requireEditor, async (req, res, next) => {
       `,
       body.title,
       body.description || null,
-      body.thumbnail || null,
-      body.sport || 'football',
-      body.competitionId || null,
-      body.stage || null,
+      body.title,
+      body.description ?? null,
+      body.thumbnail ?? null,
+      body.sport,
+      body.competitionId ?? null,
+      body.stage ?? null,
       body.roundNumber ?? null,
-      body.groupName || null,
+      body.groupName ?? null,
       body.matchNumber ?? null,
-      body.league || null,
-      body.leagueLogo || null,
-      body.teamA || null,
-      body.teamACode || null,
-      body.teamALogo || null,
-      body.teamB || null,
-      body.teamBCode || null,
-      body.teamBLogo || null,
+      body.league ?? null,
+      body.leagueLogo ?? null,
+      body.teamA ?? null,
+      body.teamACode ?? null,
+      body.teamALogo ?? null,
+      body.teamB ?? null,
+      body.teamBCode ?? null,
+      body.teamBLogo ?? null,
       body.scoreA ?? null,
       body.scoreB ?? null,
-      body.matchTime || null,
-      body.viewerCount || 0,
-      body.venue || null,
+      body.matchTime ?? null,
+      body.viewerCount,
+      body.venue ?? null,
       body.scheduledAt || new Date().toISOString(),
-      body.status || 'upcoming'
+      body.status
     );
     res.status(201).json({ success: true, data: mapEvent(rows[0]) });
   } catch (error) {
@@ -387,7 +449,12 @@ router.post('/', authenticateToken, requireEditor, async (req, res, next) => {
 
 router.put('/:id', authenticateToken, requireEditor, async (req, res, next) => {
   try {
-    const body = req.body;
+    const parsed = eventSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ success: false, error: parsed.error.errors[0].message, details: parsed.error.errors });
+      return;
+    }
+    const body = parsed.data;
     const rows = await prisma.$queryRawUnsafe<any[]>(
       `
         UPDATE "events"
@@ -418,34 +485,32 @@ router.put('/:id', authenticateToken, requireEditor, async (req, res, next) => {
           updated_at = NOW()
         WHERE id = $1
         RETURNING *
-
-
       `,
       req.params.id,
       body.title,
-      body.description || null,
-      body.thumbnail || null,
-      body.sport || 'football',
-      body.competitionId || null,
-      body.stage || null,
+      body.description ?? null,
+      body.thumbnail ?? null,
+      body.sport,
+      body.competitionId ?? null,
+      body.stage ?? null,
       body.roundNumber ?? null,
-      body.groupName || null,
+      body.groupName ?? null,
       body.matchNumber ?? null,
-      body.league || null,
-      body.leagueLogo || null,
-      body.teamA || null,
-      body.teamACode || null,
-      body.teamALogo || null,
-      body.teamB || null,
-      body.teamBCode || null,
-      body.teamBLogo || null,
+      body.league ?? null,
+      body.leagueLogo ?? null,
+      body.teamA ?? null,
+      body.teamACode ?? null,
+      body.teamALogo ?? null,
+      body.teamB ?? null,
+      body.teamBCode ?? null,
+      body.teamBLogo ?? null,
       body.scoreA ?? null,
       body.scoreB ?? null,
-      body.matchTime || null,
-      body.viewerCount || 0,
-      body.venue || null,
+      body.matchTime ?? null,
+      body.viewerCount,
+      body.venue ?? null,
       body.scheduledAt || new Date().toISOString(),
-      body.status || 'upcoming'
+      body.status
     );
 
     if (!rows[0]) {
@@ -460,8 +525,12 @@ router.put('/:id', authenticateToken, requireEditor, async (req, res, next) => {
 
 router.delete('/:id', authenticateToken, requireEditor, async (req, res, next) => {
   try {
-    await prisma.$executeRawUnsafe(`DELETE FROM "events" WHERE id = $1`, req.params.id);
-    res.json({ success: true });
+    const rows = await prisma.$queryRawUnsafe<any[]>(`DELETE FROM "events" WHERE id = $1 RETURNING id`, req.params.id);
+    if (!rows[0]) {
+      res.status(404).json({ success: false, error: 'Evento nao encontrado' });
+      return;
+    }
+    res.json({ success: true, message: 'Evento removido com sucesso!' });
   } catch (error) {
     next(error);
   }

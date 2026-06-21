@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { authenticateToken, requireAdmin, requireEditor, AuthRequest } from '../middleware/auth.middleware';
 import { prisma } from '../lib/prisma';
+import { parsePagination, buildPaginationMeta } from '../lib/pagination';
+import { cached, invalidateCachePrefix } from '../lib/cache';
 
 const router = Router();
 
@@ -110,7 +112,7 @@ async function getEventSnapshot(eventId: string) {
 
 router.get('/', async (req, res, next) => {
   try {
-    const { status, sport, page = 1, limit = 20 } = req.query;
+    const { status, sport, q, team, league } = req.query;
     const conditions: string[] = [];
     const values: unknown[] = [];
     if (status) {
@@ -121,15 +123,27 @@ router.get('/', async (req, res, next) => {
       values.push(sport);
       conditions.push(`sport = $${values.length}::sport_category`);
     }
+    if (q) {
+      const like = `%${String(q)}%`;
+      values.push(like);
+      conditions.push(`(title ILIKE $${values.length} OR league ILIKE $${values.length} OR team_a ILIKE $${values.length} OR team_b ILIKE $${values.length})`);
+    }
+    if (team) {
+      const like = `%${String(team)}%`;
+      values.push(like);
+      conditions.push(`(team_a ILIKE $${values.length} OR team_b ILIKE $${values.length})`);
+    }
+    if (league) {
+      values.push(String(league));
+      conditions.push(`league ILIKE $${values.length}`);
+    }
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
-    const pageNumber = Number(page);
-    const limitNumber = Number(limit);
-    const offset = (pageNumber - 1) * limitNumber;
+    const pagination = parsePagination(req.query as Record<string, unknown>);
     const rows = await prisma.$queryRawUnsafe<any[]>(
       `${selectLiveSql} ${where} ORDER BY featured DESC, scheduled_at DESC LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
       ...values,
-      limitNumber,
-      offset
+      pagination.limit,
+      pagination.offset
     );
     const countRows = await prisma.$queryRawUnsafe<Array<{ total: bigint }>>(
       `SELECT COUNT(*)::bigint AS total FROM "lives" ${where}`,
@@ -140,7 +154,7 @@ router.get('/', async (req, res, next) => {
       success: true,
       data: {
         items: rows.map(mapLive),
-        pagination: { page: pageNumber, limit: limitNumber, total, totalPages: Math.ceil(total / limitNumber) },
+        pagination: buildPaginationMeta(pagination, total),
       },
     });
   } catch (error) {
@@ -197,8 +211,14 @@ router.get('/stats', async (_req, res, next) => {
 
 router.get('/live', async (_req, res, next) => {
   try {
-    const rows = await prisma.$queryRawUnsafe<any[]>(`${selectLiveSql} WHERE status = 'live' ORDER BY featured DESC, viewer_count DESC`);
-    res.json({ success: true, data: rows.map(mapLive) });
+    // Short TTL cache: this endpoint is the one most likely to be polled
+    // frequently by many concurrent clients watching the "live now" rail.
+    // 5s keeps it feeling real-time while absorbing request bursts.
+    const data = await cached('lives:status=live', 5000, async () => {
+      const rows = await prisma.$queryRawUnsafe<any[]>(`${selectLiveSql} WHERE status = 'live' ORDER BY featured DESC, viewer_count DESC`);
+      return rows.map(mapLive);
+    });
+    res.json({ success: true, data });
   } catch (error) {
     next(error);
   }
@@ -464,6 +484,7 @@ router.post('/', authenticateToken, requireEditor, async (req: AuthRequest, res,
       snapshot?.matchTime ?? body.matchTime ?? null
     );
 
+    invalidateCachePrefix('lives:');
     res.status(201).json({ success: true, data: mapLive(rows[0]), message: 'Live criada com sucesso!' });
   } catch (error) {
     next(error);
@@ -529,6 +550,7 @@ router.put('/:id', authenticateToken, requireEditor, async (req: AuthRequest, re
       res.status(404).json({ success: false, error: 'Live nao encontrada' });
       return;
     }
+    invalidateCachePrefix('lives:');
     res.json({ success: true, data: mapLive(rows[0]) });
   } catch (error) {
     next(error);
@@ -546,6 +568,7 @@ router.patch('/:id/status', authenticateToken, requireEditor, async (req: AuthRe
       res.status(404).json({ success: false, error: 'Live nao encontrada' });
       return;
     }
+    invalidateCachePrefix('lives:');
     res.json({ success: true, data: mapLive(rows[0]) });
   } catch (error) {
     next(error);
@@ -559,6 +582,7 @@ router.delete('/:id', authenticateToken, requireAdmin, async (req: AuthRequest, 
       res.status(404).json({ success: false, error: 'Live nao encontrada' });
       return;
     }
+    invalidateCachePrefix('lives:');
     res.json({ success: true, message: 'Live removida com sucesso!' });
   } catch (error) {
     next(error);
