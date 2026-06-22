@@ -13,6 +13,8 @@ function mapCategory(row: any) {
     icon: row.icon,
     sport: row.sport,
     color: row.color,
+    livesCount: Number(row.lives_count || 0),
+    eventsCount: Number(row.events_count || 0),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -23,9 +25,21 @@ const selectCategorySql = `
   FROM "categories"
 `;
 
+// Lives/events don't carry a categoryId FK — categories map to them by
+// `sport`, the same way the rest of the app filters lives/events by sport.
+// These counts are derived via correlated subqueries rather than stored
+// columns, so they can't drift out of sync with the actual data.
+const selectCategorySqlWithCounts = `
+  SELECT
+    c.id, c.name, c.slug, c.description, c.icon, c.sport::text, c.color, c.created_at, c.updated_at,
+    (SELECT COUNT(*) FROM "lives" l WHERE l.sport = c.sport) AS lives_count,
+    (SELECT COUNT(*) FROM "events" e WHERE e.sport = c.sport) AS events_count
+  FROM "categories" c
+`;
+
 router.get('/', async (_req, res, next) => {
   try {
-    const rows = await prisma.$queryRawUnsafe<any[]>(`${selectCategorySql} ORDER BY name ASC`);
+    const rows = await prisma.$queryRawUnsafe<any[]>(`${selectCategorySqlWithCounts} ORDER BY c.name ASC`);
     res.json({ success: true, data: rows.map(mapCategory) });
   } catch (error) {
     next(error);

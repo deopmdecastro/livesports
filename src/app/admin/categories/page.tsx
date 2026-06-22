@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { Edit2, Eye, Plus, Search, Tag, Trash2, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Edit2, Eye, Plus, Search, Trash2, X } from "lucide-react";
 import AdminSelect from "@/components/admin/AdminSelect";
 import AdminActionButton from "@/components/admin/AdminActionButton";
 import { slugify } from "@/utils";
 import type { Category, SportCategory } from "@/types";
 import toast from "react-hot-toast";
+import { apiRequest } from "@/lib/api";
 
 const sportOptions = [
   { value: "football", label: "Futebol" },
@@ -19,20 +20,23 @@ const sportOptions = [
   { value: "other", label: "Outros" },
 ];
 
-const initialCategories: Category[] = [
-  { id: "1", name: "Futebol", slug: "futebol", description: "Premier League, La Liga e Brasileirao", sport: "football", color: "#22C55E", livesCount: 4, eventsCount: 12, createdAt: "2026-06-01T10:00:00.000Z" },
-  { id: "2", name: "Basquete", slug: "basquete", description: "NBA e torneios internacionais", sport: "basketball", color: "#F59E0B", livesCount: 1, eventsCount: 5, createdAt: "2026-06-02T10:00:00.000Z" },
-  { id: "3", name: "Tenis", slug: "tenis", description: "ATP, WTA e Grand Slams", sport: "tennis", color: "#84CC16", livesCount: 1, eventsCount: 4, createdAt: "2026-06-03T10:00:00.000Z" },
-];
-
 const emptyForm = { name: "", slug: "", description: "", sport: "football", color: "#E50914" };
 
 export default function CategoriesPage() {
-  const [categories, setCategories] = useState<Category[]>(initialCategories);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
   const [modalMode, setModalMode] = useState<"create" | "edit" | "view" | null>(null);
   const [selected, setSelected] = useState<Category | null>(null);
   const [form, setForm] = useState(emptyForm);
+
+  useEffect(() => {
+    apiRequest<Category[]>("/categories")
+      .then(setCategories)
+      .catch((error) => toast.error(error instanceof Error ? error.message : "Nao foi possivel carregar categorias."))
+      .finally(() => setLoading(false));
+  }, []);
 
   const filtered = categories.filter((category) =>
     [category.name, category.slug, category.description || ""].some((value) => value.toLowerCase().includes(search.toLowerCase()))
@@ -56,38 +60,53 @@ export default function CategoriesPage() {
     setModalMode(mode);
   };
 
-  const saveCategory = () => {
+  const saveCategory = async () => {
     if (!form.name.trim()) {
       toast.error("Informe o nome da categoria.");
       return;
     }
 
-    if (modalMode === "edit" && selected) {
-      setCategories((current) =>
-        current.map((category) =>
-          category.id === selected.id
-            ? { ...category, ...form, slug: form.slug || slugify(form.name), sport: form.sport as SportCategory }
-            : category
-        )
-      );
-      toast.success("Categoria atualizada!");
-    } else {
-      setCategories((current) => [
-        {
-          id: Date.now().toString(),
-          ...form,
-          slug: form.slug || slugify(form.name),
-          sport: form.sport as SportCategory,
-          livesCount: 0,
-          eventsCount: 0,
-          createdAt: new Date().toISOString(),
-        },
-        ...current,
-      ]);
-      toast.success("Categoria criada!");
-    }
+    setSaving(true);
+    try {
+      const payload = {
+        name: form.name.trim(),
+        slug: form.slug || slugify(form.name),
+        description: form.description || null,
+        sport: form.sport as SportCategory,
+        color: form.color,
+      };
 
-    setModalMode(null);
+      if (modalMode === "edit" && selected) {
+        const updated = await apiRequest<Category>(`/categories/${selected.id}`, {
+          method: "PUT",
+          body: JSON.stringify(payload),
+        });
+        setCategories((current) => current.map((category) => (category.id === selected.id ? updated : category)));
+        toast.success("Categoria atualizada!");
+      } else {
+        const created = await apiRequest<Category>("/categories", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+        setCategories((current) => [created, ...current]);
+        toast.success("Categoria criada!");
+      }
+      setModalMode(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel guardar a categoria.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteCategory = async (category: Category) => {
+    try {
+      await apiRequest(`/categories/${category.id}`, { method: "DELETE" });
+      setCategories((current) => current.filter((item) => item.id !== category.id));
+      toast.success("Categoria removida!");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel remover a categoria.");
+    }
   };
 
   return (
@@ -95,7 +114,7 @@ export default function CategoriesPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-lg font-bold text-white">Categorias</h2>
-          <p className="text-xs text-gray-400">{categories.length} categorias cadastradas</p>
+          <p className="text-xs text-gray-400">{loading ? "A carregar categorias..." : `${categories.length} categorias cadastradas`}</p>
         </div>
         <button onClick={openCreate} className="inline-flex items-center gap-2 rounded-lg bg-[#E50914] px-4 py-2 text-sm font-bold text-white hover:bg-[#B00000]">
           <Plus className="h-4 w-4" />
@@ -133,30 +152,42 @@ export default function CategoriesPage() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((category) => (
-              <tr key={category.id} className="table-row-hover border-b border-[#2A2A2A] last:border-0">
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <span className="h-3 w-3 rounded-full" style={{ backgroundColor: category.color }} />
-                    <div>
-                      <p className="text-sm font-semibold text-white">{category.name}</p>
-                      <p className="text-xs text-gray-400">{category.description}</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-xs text-gray-300">/{category.slug}</td>
-                <td className="px-4 py-3 text-xs text-gray-300">{sportOptions.find((sport) => sport.value === category.sport)?.label}</td>
-                <td className="px-4 py-3 text-xs text-gray-300">{category.livesCount}</td>
-                <td className="px-4 py-3 text-xs text-gray-300">{category.eventsCount}</td>
-                <td className="px-4 py-3">
-                  <div className="flex gap-1.5">
-                    <AdminActionButton title="Visualizar" onClick={() => openModal("view", category)} tone="view"><Eye className="h-3.5 w-3.5" /></AdminActionButton>
-                    <AdminActionButton title="Editar" onClick={() => openModal("edit", category)} tone="edit"><Edit2 className="h-3.5 w-3.5" /></AdminActionButton>
-                    <AdminActionButton title="Remover" onClick={() => { setCategories((current) => current.filter((item) => item.id !== category.id)); toast.success("Categoria removida!"); }} tone="danger"><Trash2 className="h-3.5 w-3.5" /></AdminActionButton>
-                  </div>
+            {loading ? (
+              <tr>
+                <td colSpan={6} className="px-4 py-10 text-center text-sm text-gray-400">A carregar categorias...</td>
+              </tr>
+            ) : filtered.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-4 py-10 text-center text-sm text-gray-400">
+                  {categories.length === 0 ? "Nenhuma categoria cadastrada ainda." : "Nenhuma categoria encontrada para esta pesquisa."}
                 </td>
               </tr>
-            ))}
+            ) : (
+              filtered.map((category) => (
+                <tr key={category.id} className="table-row-hover border-b border-[#2A2A2A] last:border-0">
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <span className="h-3 w-3 rounded-full" style={{ backgroundColor: category.color }} />
+                      <div>
+                        <p className="text-sm font-semibold text-white">{category.name}</p>
+                        <p className="text-xs text-gray-400">{category.description}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-xs text-gray-300">/{category.slug}</td>
+                  <td className="px-4 py-3 text-xs text-gray-300">{sportOptions.find((sport) => sport.value === category.sport)?.label}</td>
+                  <td className="px-4 py-3 text-xs text-gray-300">{category.livesCount}</td>
+                  <td className="px-4 py-3 text-xs text-gray-300">{category.eventsCount}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex gap-1.5">
+                      <AdminActionButton title="Visualizar" onClick={() => openModal("view", category)} tone="view"><Eye className="h-3.5 w-3.5" /></AdminActionButton>
+                      <AdminActionButton title="Editar" onClick={() => openModal("edit", category)} tone="edit"><Edit2 className="h-3.5 w-3.5" /></AdminActionButton>
+                      <AdminActionButton title="Remover" onClick={() => deleteCategory(category)} tone="danger"><Trash2 className="h-3.5 w-3.5" /></AdminActionButton>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
@@ -194,7 +225,11 @@ export default function CategoriesPage() {
             </div>
             <div className="flex justify-end gap-3 border-t border-[#2A2A2A] p-5">
               <button onClick={() => setModalMode(null)} className="rounded-lg bg-[#2A2A2A] px-4 py-2 text-sm text-gray-300 hover:bg-[#3A3A3A]">Fechar</button>
-              {modalMode !== "view" && <button onClick={saveCategory} className="rounded-lg bg-[#E50914] px-4 py-2 text-sm font-bold text-white hover:bg-[#B00000]">Salvar</button>}
+              {modalMode !== "view" && (
+                <button onClick={saveCategory} disabled={saving} className="rounded-lg bg-[#E50914] px-4 py-2 text-sm font-bold text-white hover:bg-[#B00000] disabled:opacity-50">
+                  {saving ? "A guardar..." : "Salvar"}
+                </button>
+              )}
             </div>
           </div>
         </div>

@@ -14,7 +14,7 @@ function mapNews(row: any) {
     thumbnail: row.thumbnail,
     sport: row.sport,
     tags: row.tags || [],
-    authorId: row.author_id,
+    author: { id: row.author_id, name: row.author_name || 'Equipa LiveSports' },
     published: row.published,
     featured: row.featured,
     views: Number(row.views || 0),
@@ -28,9 +28,11 @@ function mapNews(row: any) {
 }
 
 const selectNewsSql = `
-  SELECT id, title, slug, excerpt, content, thumbnail, sport::text, tags, author_id,
-    published, featured, views, published_at, meta_title, meta_desc, og_image, created_at, updated_at
-  FROM "news_articles"
+  SELECT n.id, n.title, n.slug, n.excerpt, n.content, n.thumbnail, n.sport::text, n.tags, n.author_id,
+    u.name AS author_name,
+    n.published, n.featured, n.views, n.published_at, n.meta_title, n.meta_desc, n.og_image, n.created_at, n.updated_at
+  FROM "news_articles" n
+  LEFT JOIN "users" u ON u.id = n.author_id
 `;
 
 // ─── GET / — list articles (public sees only published unless authenticated editor+) ──
@@ -45,15 +47,15 @@ router.get('/', async (req: AuthRequest, res, next) => {
 
     // Public/unauthenticated callers only ever see published articles.
     if (!isEditorOrAbove) {
-      conditions.push('published = TRUE');
+      conditions.push('n.published = TRUE');
     } else if (published !== undefined) {
       values.push(published === 'true');
-      conditions.push(`published = $${values.length}`);
+      conditions.push(`n.published = $${values.length}`);
     }
 
     if (sport) {
       values.push(sport);
-      conditions.push(`sport = $${values.length}::sport_category`);
+      conditions.push(`n.sport = $${values.length}::sport_category`);
     }
 
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -62,13 +64,13 @@ router.get('/', async (req: AuthRequest, res, next) => {
     const offset = (pageNumber - 1) * limitNumber;
 
     const rows = await prisma.$queryRawUnsafe<any[]>(
-      `${selectNewsSql} ${where} ORDER BY featured DESC, created_at DESC LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
+      `${selectNewsSql} ${where} ORDER BY n.featured DESC, n.created_at DESC LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
       ...values,
       limitNumber,
       offset
     );
     const countRows = await prisma.$queryRawUnsafe<Array<{ total: bigint }>>(
-      `SELECT COUNT(*)::bigint AS total FROM "news_articles" ${where}`,
+      `SELECT COUNT(*)::bigint AS total FROM "news_articles" n ${where}`,
       ...values
     );
     const total = Number(countRows[0]?.total || 0);
@@ -87,7 +89,7 @@ router.get('/', async (req: AuthRequest, res, next) => {
 
 router.get('/:id', async (req, res, next) => {
   try {
-    const rows = await prisma.$queryRawUnsafe<any[]>(`${selectNewsSql} WHERE id = $1 OR slug = $1 LIMIT 1`, req.params.id);
+    const rows = await prisma.$queryRawUnsafe<any[]>(`${selectNewsSql} WHERE n.id = $1 OR n.slug = $1 LIMIT 1`, req.params.id);
     if (!rows[0]) {
       res.status(404).json({ success: false, error: 'Noticia nao encontrada' });
       return;
@@ -117,7 +119,7 @@ router.post('/', authenticateToken, requireEditor, async (req: AuthRequest, res,
 
     const published = Boolean(body.published);
 
-    const rows = await prisma.$queryRawUnsafe<any[]>(
+    const inserted = await prisma.$queryRawUnsafe<any[]>(
       `
         INSERT INTO "news_articles" (
           title, slug, excerpt, content, thumbnail, sport, tags, author_id,
@@ -127,7 +129,7 @@ router.post('/', authenticateToken, requireEditor, async (req: AuthRequest, res,
           $1, $2, $3, $4, $5, $6::sport_category, $7, $8,
           $9, $10, $11::timestamptz, $12, $13, $14
         )
-        RETURNING *
+        RETURNING id
       `,
       body.title.trim(),
       slug,
@@ -145,6 +147,7 @@ router.post('/', authenticateToken, requireEditor, async (req: AuthRequest, res,
       body.ogImage || null
     );
 
+    const rows = await prisma.$queryRawUnsafe<any[]>(`${selectNewsSql} WHERE n.id = $1`, inserted[0].id);
     res.status(201).json({ success: true, data: mapNews(rows[0]) });
   } catch (error: any) {
     if (error?.code === '23505') {
@@ -162,7 +165,7 @@ router.put('/:id', authenticateToken, requireEditor, async (req: AuthRequest, re
       .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
       .replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : null;
 
-    const rows = await prisma.$queryRawUnsafe<any[]>(
+    const updated = await prisma.$queryRawUnsafe<any[]>(
       `
         UPDATE "news_articles"
         SET
@@ -181,7 +184,7 @@ router.put('/:id', authenticateToken, requireEditor, async (req: AuthRequest, re
           og_image = COALESCE($13, og_image),
           updated_at = NOW()
         WHERE id = $1
-        RETURNING *
+        RETURNING id
       `,
       req.params.id,
       body.title ?? null,
@@ -198,10 +201,11 @@ router.put('/:id', authenticateToken, requireEditor, async (req: AuthRequest, re
       body.ogImage ?? null
     );
 
-    if (!rows[0]) {
+    if (!updated[0]) {
       res.status(404).json({ success: false, error: 'Noticia nao encontrada' });
       return;
     }
+    const rows = await prisma.$queryRawUnsafe<any[]>(`${selectNewsSql} WHERE n.id = $1`, updated[0].id);
     res.json({ success: true, data: mapNews(rows[0]) });
   } catch (error) {
     next(error);
