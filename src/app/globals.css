@@ -458,3 +458,34 @@ input[type="checkbox"] {
 @media (max-width: 640px) {
   .score-display { font-size: 1.25rem; }
 }
+
+/* ─── MARQUEE INFINITE SCROLL ─── */
+.animate-marquee {
+  display: inline-flex;
+  animation: marquee 40s linear infinite;
+}
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* ─── ADMIN SIDEBAR ENHANCEMENTS ─── */
+.admin-live-dot {
+  animation: livePulse 1.5s ease-in-out infinite;
+}
+
+/* ─── LEAGUE LOGO GLOW ON HOVER ─── */
+.league-logo-hover:hover img {
+  filter: drop-shadow(0 0 8px rgba(229,9,20,0.4));
+}
+
+/* ─── LINE CLAMP UTILITY ─── */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

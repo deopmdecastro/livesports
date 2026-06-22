@@ -63,6 +63,7 @@ const config: Config = {
         "spin-slow": "spin 3s linear infinite",
         shimmer: "shimmer 2s infinite",
         ticker: "ticker 30s linear infinite",
+        marquee: "marquee 35s linear infinite",
         float: "float 6s ease-in-out infinite",
       },
       keyframes: {
@@ -95,6 +96,10 @@ const config: Config = {
           "100%": { backgroundPosition: "200% 0" },
         },
         ticker: {
+          "0%": { transform: "translateX(0)" },
+          "100%": { transform: "translateX(-50%)" },
+        },
+        marquee: {
           "0%": { transform: "translateX(0)" },
           "100%": { transform: "translateX(-50%)" },
         },

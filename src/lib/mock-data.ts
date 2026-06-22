@@ -507,10 +507,98 @@ export const mockNews: NewsArticle[] = [
 export const sportCategories = [
   { id: 'football',   label: 'Futebol',   icon: '⚽', color: '#22C55E' },
   { id: 'basketball', label: 'Basquete',  icon: '🏀', color: '#F59E0B' },
-  { id: 'tennis',     label: 'Tenis',     icon: '🎾', color: '#84CC16' },
-  { id: 'volleyball', label: 'Volei',     icon: '🏐', color: '#3B82F6' },
-  { id: 'ufc',        label: 'UFC',       icon: '🥊', color: '#E50914' },
-  { id: 'f1',         label: 'Formula 1', icon: '🏎️', color: '#EF4444' },
+  { id: 'tennis',     label: 'Tênis',     icon: '🎾', color: '#84CC16' },
+  { id: 'volleyball', label: 'Vôlei',     icon: '🏐', color: '#3B82F6' },
+  { id: 'ufc',        label: 'UFC / MMA', icon: '🥊', color: '#E50914' },
+  { id: 'f1',         label: 'Fórmula 1', icon: '🏎️', color: '#EF4444' },
   { id: 'baseball',   label: 'Beisebol',  icon: '⚾', color: '#8B5CF6' },
   { id: 'other',      label: 'Mais',      icon: '🏅', color: '#6B7280' },
 ];
+
+// ─── Real league logos (CDN-served SVGs / PNGs) ───────────────────────────────
+export const LEAGUE_LOGOS: Record<string, { name: string; logo: string; country: string; color: string }> = {
+  premierleague: {
+    name: 'Premier League',
+    logo: 'https://upload.wikimedia.org/wikipedia/en/f/f2/Premier_League_Logo.svg',
+    country: 'Inglaterra',
+    color: '#3D195B',
+  },
+  laliga: {
+    name: 'La Liga',
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/1/13/LaLiga.svg',
+    country: 'Espanha',
+    color: '#FF4B00',
+  },
+  bundesliga: {
+    name: 'Bundesliga',
+    logo: 'https://upload.wikimedia.org/wikipedia/en/d/df/Bundesliga_logo_%282017%29.svg',
+    country: 'Alemanha',
+    color: '#D3010C',
+  },
+  seriea: {
+    name: 'Serie A',
+    logo: 'https://upload.wikimedia.org/wikipedia/en/e/e1/Serie_A_logo_%282019%29.svg',
+    country: 'Itália',
+    color: '#1A56DB',
+  },
+  ligue1: {
+    name: 'Ligue 1',
+    logo: 'https://upload.wikimedia.org/wikipedia/en/b/ba/Ligue_1_Uber_Eats_logo.svg',
+    country: 'França',
+    color: '#FFFFFF',
+  },
+  championsleague: {
+    name: 'Champions League',
+    logo: 'https://upload.wikimedia.org/wikipedia/en/b/bf/UEFA_Champions_League_logo_2.svg',
+    country: 'Europa',
+    color: '#0B1F6B',
+  },
+  brasileirao: {
+    name: 'Brasileirão Série A',
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/0/0a/Campeonato_Brasileiro_-_S%C3%A9rie_A_logo.svg',
+    country: 'Brasil',
+    color: '#009C3B',
+  },
+  nba: {
+    name: 'NBA',
+    logo: 'https://upload.wikimedia.org/wikipedia/en/0/03/National_Basketball_Association_logo.svg',
+    country: 'EUA',
+    color: '#1D428A',
+  },
+  atp: {
+    name: 'ATP Tour',
+    logo: 'https://upload.wikimedia.org/wikipedia/en/3/3f/ATP_Tour_logo.svg',
+    country: 'Mundial',
+    color: '#012169',
+  },
+  ufc: {
+    name: 'UFC',
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/9/92/UFC_Logo.svg',
+    country: 'EUA',
+    color: '#D20A0A',
+  },
+  f1: {
+    name: 'Fórmula 1',
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/3/33/F1_logo_2.svg',
+    country: 'Mundial',
+    color: '#E10600',
+  },
+  copaamerica: {
+    name: 'Copa América',
+    logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/9/9e/Copa_America_logo.svg/200px-Copa_America_logo.svg.png',
+    country: 'América do Sul',
+    color: '#003087',
+  },
+  wnba: {
+    name: 'WNBA',
+    logo: 'https://upload.wikimedia.org/wikipedia/en/f/f8/WNBA_Official_Logo.svg',
+    country: 'EUA',
+    color: '#FF6900',
+  },
+  mlb: {
+    name: 'MLB',
+    logo: 'https://upload.wikimedia.org/wikipedia/en/a/a6/Major_League_Baseball_logo.svg',
+    country: 'EUA',
+    color: '#002D72',
+  },
+};

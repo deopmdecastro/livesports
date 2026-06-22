@@ -4,6 +4,7 @@ import LiveNowSection from "@/components/landing/LiveNowSection";
 import SportCategoriesSection from "@/components/landing/SportCategoriesSection";
 import BenefitsSection from "@/components/landing/BenefitsSection";
 import WorldCupSection from "@/components/landing/WorldCupSection";
+import LeaguesSection from "@/components/landing/LeaguesSection";
 import AdSlot from "@/components/ads/AdSlot";
 
 export const metadata: Metadata = {
@@ -22,6 +23,7 @@ export default function HomePage() {
         <AdSlot position="sidebar" variant="box" />
       </section>
       <WorldCupSection />
+      <LeaguesSection />
       <SportCategoriesSection />
       <BenefitsSection />
     </>

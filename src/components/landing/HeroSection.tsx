@@ -286,7 +286,11 @@ export default function HeroSection() {
               {slide.kind === "live" && slide.live.league && (
                 <span className="flex items-center gap-1.5 rounded-full bg-white/8 border border-white/10 px-3 py-1 text-xs font-semibold text-gray-300">
                   {isImageValue(slide.live.leagueLogo) && (
-                    <img src={slide.live.leagueLogo} alt="" className="h-4 w-4 object-contain" />
+                    <img
+                      src={slide.live.leagueLogo}
+                      alt=""
+                      className="h-4 w-4 object-contain drop-shadow-sm"
+                    />
                   )}
                   {slide.live.league}
                 </span>

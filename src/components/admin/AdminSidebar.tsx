@@ -22,6 +22,9 @@ import {
   ChevronDown,
   Tv2,
   Trophy,
+  Zap,
+  Globe,
+  Bell,
 } from "lucide-react";
 import { cn } from "@/utils";
 import { useState } from "react";
@@ -30,7 +33,8 @@ interface NavItem {
   label: string;
   href?: string;
   icon: React.ElementType;
-  children?: NavItem[];
+  badge?: string;
+  badgeColor?: string;
 }
 
 const navGroups: { title: string; items: NavItem[] }[] = [
@@ -43,10 +47,9 @@ const navGroups: { title: string; items: NavItem[] }[] = [
   {
     title: "Conteúdos",
     items: [
-      { label: "Lives", href: "/admin/lives", icon: Radio },
+      { label: "Lives", href: "/admin/lives", icon: Radio, badge: "AO VIVO", badgeColor: "#E50914" },
       { label: "Eventos", href: "/admin/events", icon: Calendar },
       { label: "Competições", href: "/admin/competitions", icon: Trophy },
-
       { label: "Categorias", href: "/admin/categories", icon: Tag },
       { label: "Notícias", href: "/admin/news", icon: Newspaper },
       { label: "Banners", href: "/admin/banners", icon: Image },
@@ -72,6 +75,7 @@ const navGroups: { title: string; items: NavItem[] }[] = [
     title: "Sistema",
     items: [
       { label: "Configurações", href: "/admin/settings", icon: Settings },
+      { label: "Notificações", href: "/admin/notifications", icon: Bell },
       { label: "Logs", href: "/admin/logs", icon: ScrollText },
       { label: "Suporte", href: "/admin/support", icon: HeadphonesIcon },
     ],
@@ -89,18 +93,41 @@ export default function AdminSidebar() {
   };
 
   return (
-    <aside className="w-60 min-h-screen bg-[#0F0F0F] border-r border-[#1A1A1A] flex flex-col">
+    <aside className="w-60 min-h-screen bg-[#0A0A0F] border-r border-[#1A1A24] flex flex-col">
       {/* Logo */}
-      <div className="p-4 border-b border-[#1A1A1A]">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="bg-[#E50914] rounded p-1">
-            <Tv2 className="w-5 h-5 text-white" />
+      <div className="p-4 border-b border-[#1A1A24]">
+        <Link href="/" className="flex items-center gap-3 group">
+          <div className="relative">
+            <div className="bg-gradient-to-br from-[#E50914] to-[#B00000] rounded-xl p-2 shadow-[0_0_16px_rgba(229,9,20,0.35)] group-hover:shadow-[0_0_24px_rgba(229,9,20,0.5)] transition-all">
+              <Tv2 className="w-4 h-4 text-white" />
+            </div>
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[#E50914] border-2 border-[#0A0A0F] live-badge" />
           </div>
           <div>
-            <span className="text-[#E50914] font-black text-sm leading-none block font-heading">LIVE</span>
-            <span className="text-white font-black text-sm leading-none block font-heading">SPORTS</span>
+            <div className="flex items-center gap-1">
+              <span className="text-white font-black text-base leading-none tracking-tight font-heading">LIVE</span>
+              <span className="text-[#E50914] font-black text-base leading-none tracking-tight font-heading">SPORTS</span>
+            </div>
+            <span className="text-[9px] text-gray-600 font-semibold uppercase tracking-widest leading-none mt-0.5 block">
+              Admin Panel
+            </span>
           </div>
         </Link>
+      </div>
+
+      {/* Quick stats strip */}
+      <div className="grid grid-cols-3 gap-px bg-[#1A1A24] border-b border-[#1A1A24]">
+        {[
+          { icon: Zap, label: "Lives", value: "3", color: "#E50914" },
+          { icon: Users, label: "Online", value: "1.2K", color: "#22C55E" },
+          { icon: Globe, label: "Países", value: "47", color: "#3B82F6" },
+        ].map(({ icon: Icon, label, value, color }) => (
+          <div key={label} className="flex flex-col items-center py-2.5 bg-[#0A0A0F] hover:bg-[#111118] transition-colors">
+            <Icon className="w-3 h-3 mb-1" style={{ color }} />
+            <span className="text-[11px] font-black text-white leading-none">{value}</span>
+            <span className="text-[9px] text-gray-600 mt-0.5">{label}</span>
+          </div>
+        ))}
       </div>
 
       {/* Navigation */}
@@ -109,7 +136,7 @@ export default function AdminSidebar() {
           <div key={group.title} className="mb-1">
             <button
               onClick={() => toggleGroup(group.title)}
-              className="w-full flex items-center justify-between px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-gray-500 hover:text-gray-400 transition-colors"
+              className="w-full flex items-center justify-between px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-gray-600 hover:text-gray-400 transition-colors"
             >
               {group.title}
               <ChevronDown
@@ -132,14 +159,30 @@ export default function AdminSidebar() {
                       key={item.label}
                       href={item.href || "#"}
                       className={cn(
-                        "sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium",
+                        "group flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
                         isActive
-                          ? "bg-[#E50914]/15 text-[#E50914] border-l-[#E50914]"
-                          : "text-gray-400 hover:text-white"
+                          ? "bg-gradient-to-r from-[#E50914]/15 to-transparent text-[#E50914] border-l-2 border-[#E50914] pl-[10px]"
+                          : "text-gray-400 hover:text-white hover:bg-[#111118]"
                       )}
                     >
-                      <item.icon className="w-4 h-4 flex-shrink-0" />
-                      <span className="truncate">{item.label}</span>
+                      <div className="flex items-center gap-3">
+                        <item.icon
+                          className={cn("w-4 h-4 flex-shrink-0 transition-transform group-hover:scale-110", isActive && "text-[#E50914]")}
+                        />
+                        <span className="truncate">{item.label}</span>
+                      </div>
+                      {item.badge && (
+                        <span
+                          className="text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wide flex-shrink-0"
+                          style={{
+                            backgroundColor: `${item.badgeColor}20`,
+                            color: item.badgeColor,
+                            border: `1px solid ${item.badgeColor}30`,
+                          }}
+                        >
+                          {item.badge}
+                        </span>
+                      )}
                     </Link>
                   );
                 })}
@@ -150,10 +193,17 @@ export default function AdminSidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="p-3 border-t border-[#1A1A1A]">
+      <div className="p-3 border-t border-[#1A1A24] space-y-1">
+        <Link
+          href="/"
+          className="flex items-center gap-3 px-3 py-2 text-xs font-medium text-gray-500 hover:text-blue-400 hover:bg-[#111118] rounded-lg transition-all"
+        >
+          <Globe className="w-4 h-4" />
+          <span>Ver Site</span>
+        </Link>
         <Link
           href="/login"
-          className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-400 hover:text-red-400 hover:bg-[#1A1A1A] rounded-lg transition-all"
+          className="flex items-center gap-3 px-3 py-2 text-xs font-medium text-gray-500 hover:text-red-400 hover:bg-[#1A1A1A] rounded-lg transition-all"
         >
           <LogOut className="w-4 h-4" />
           <span>Sair</span>

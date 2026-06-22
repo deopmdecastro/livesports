@@ -532,7 +532,17 @@ export default function DashboardPage() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-xs font-semibold text-white">{live.title}</p>
-                  <p className="text-[10px] text-gray-600">{live.league || live.sport}</p>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    {live.leagueLogo && (
+                      <img
+                        src={live.leagueLogo}
+                        alt=""
+                        className="h-3 w-3 object-contain opacity-80 flex-shrink-0"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                      />
+                    )}
+                    <p className="text-[10px] text-gray-600 truncate">{live.league || live.sport}</p>
+                  </div>
                 </div>
                 <div className="flex flex-col items-end gap-0.5">
                   <StatusBadge status={live.status} />
