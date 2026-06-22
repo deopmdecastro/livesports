@@ -1,10 +1,13 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { CalendarClock, Play, Users } from "lucide-react";
 import { notFound } from "next/navigation";
 import type { Live, SportCategory } from "@/types";
 import { formatNumber, getSportLabel } from "@/utils";
 import { serverApiRequest } from "@/lib/server-api";
 import type { ApiListResponse } from "@/lib/api";
+import StaticPageClient from "@/components/static/StaticPageClient";
+import { getStaticPageContent, type StaticPageSlug } from "@/lib/static-pages-content";
 
 const slugToSport: Record<string, SportCategory | "all-live" | "empty" | "blank"> = {
   "ao-vivo": "all-live",
@@ -122,6 +125,35 @@ export function generateStaticParams() {
   return Object.keys(slugToSport).map((slug) => ({ slug }));
 }
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const category = slugToSport[slug];
+  if (!category) return {};
+
+  if (category === "blank") {
+    // Server-rendered metadata can't read the client-side language preference
+    // (localStorage), so it defaults to Portuguese — matching the default
+    // language used elsewhere (LangProvider defaults to "pt").
+    const content = getStaticPageContent(slug as StaticPageSlug, "pt");
+    return {
+      title: `${content.title} | LiveSports`,
+      description: content.subtitle || content.sections?.[0]?.body?.[0]?.slice(0, 160),
+    };
+  }
+
+  const label = slugLabels[slug];
+  return {
+    title: label ? `${label} ao Vivo | LiveSports` : undefined,
+    description: label
+      ? `Acompanhe transmissoes ao vivo e jogos agendados de ${label} na LiveSports.`
+      : undefined,
+  };
+}
+
 export default async function PublicSlugPage({
   params,
 }: {
@@ -132,7 +164,7 @@ export default async function PublicSlugPage({
   if (!category) notFound();
 
   if (category === "blank") {
-    return <section className="min-h-[70vh]" aria-label={slugLabels[slug]} />;
+    return <StaticPageClient slug={slug as StaticPageSlug} />;
   }
 
   const liveData =
