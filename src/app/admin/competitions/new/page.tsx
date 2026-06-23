@@ -74,7 +74,7 @@ export default function CompetitionNewPage() {
       ...prev,
       slug: prev.slug && prev.slug !== "" ? prev.slug : name.toLowerCase().replace(/\s+/g, "-"),
     }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [form.name]);
 
   useEffect(() => {

@@ -158,7 +158,7 @@ export default function LivePlayer({ live, adOverlay = null, autoPlayMuted = fal
         setError("Clique em play para iniciar a transmissao.");
       }
     });
-  }, [adOverlay, streamReady, muted, volume, autoPlayMuted]);
+  }, [adOverlay, streamReady, muted, volume, autoPlayMuted, playing]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -167,6 +167,30 @@ export default function LivePlayer({ live, adOverlay = null, autoPlayMuted = fal
     video.muted = muted || volume === 0;
   }, [adOverlay, muted, volume]);
 
+  const playContent = async () => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    try {
+      await video.play();
+      setPlaying(true);
+      setError("");
+    } catch {
+      setError("Clique em play para iniciar a transmissao.");
+    }
+  };
+
+  const togglePlayback = async () => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (video.paused) {
+      await playContent();
+    } else {
+      video.pause();
+      setPlaying(false);
+    }
+  };
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
@@ -201,30 +225,6 @@ export default function LivePlayer({ live, adOverlay = null, autoPlayMuted = fal
     return () => window.removeEventListener("keydown", handleKeyDown);
   });
 
-  const playContent = async () => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    try {
-      await video.play();
-      setPlaying(true);
-      setError("");
-    } catch {
-      setError("Clique em play para iniciar a transmissao.");
-    }
-  };
-
-  const togglePlayback = async () => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    if (video.paused) {
-      await playContent();
-    } else {
-      video.pause();
-      setPlaying(false);
-    }
-  };
 
   const seek = (value: string) => {
     const video = videoRef.current;
@@ -396,7 +396,7 @@ export default function LivePlayer({ live, adOverlay = null, autoPlayMuted = fal
         </div>
 
         <div className="mt-2 flex items-center justify-between gap-3 text-xs text-gray-500">
-          <span>Espaco: play/pause · M: silenciar · ↑/↓: volume</span>
+          <span>Espaço: play/pause · M: silenciar · ↑/↓: volume</span>
           <span>{formatNumber(live.viewerCount)} espectadores base</span>
         </div>
       </div>
