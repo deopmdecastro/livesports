@@ -3,12 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Search, Eye, Edit2, Trash2 } from "lucide-react";
+import { Plus, Search, Eye, Edit2, Trash2, RefreshCw, Trophy } from "lucide-react";
 import type { Competition } from "@/types";
 import toast from "react-hot-toast";
 import { apiRequest } from "@/lib/api";
 import { formatDateTime, getSportLabel } from "@/utils";
 import AdminActionButton from "@/components/admin/AdminActionButton";
+import SyncCompetitionsModal from "@/components/admin/SyncCompetitionsModal";
 
 const statusLabels: Record<string, string> = {
   active: "Ativa",
@@ -27,6 +28,8 @@ export default function CompetitionsPage() {
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
+  const [showSyncModal, setShowSyncModal] = useState(false);
+  const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
 
   useEffect(() => {
     apiRequest<Competition[]>("/competitions")
@@ -59,19 +62,42 @@ export default function CompetitionsPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-lg font-bold text-white">Competições</h2>
-          <p className="text-xs text-gray-500">
-            Gestão reaproveitável para torneios como Copa do Mundo, Eliminatórias, etc.
-          </p>
+      {/* Page header */}
+      <div className="rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] p-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-[#E50914]/20 bg-[#E50914]/10 px-3 py-1 text-xs font-semibold text-[#E50914]">
+              <Trophy className="h-3.5 w-3.5" />
+              Gestão de Competições
+            </div>
+            <h2 className="text-2xl font-black text-white" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Competições</h2>
+            <p className="text-sm text-gray-400 mt-1">
+              Torneios, ligas e campeonatos — Copa do Mundo, Eliminatórias, Champions League e mais.
+            </p>
+            {lastSyncAt && (
+              <p className="text-[10px] text-gray-600 mt-1.5 flex items-center gap-1">
+                <RefreshCw className="h-2.5 w-2.5" />
+                Última sincronização: {new Date(lastSyncAt).toLocaleString("pt-PT")}
+              </p>
+            )}
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Sync button */}
+            <button
+              onClick={() => setShowSyncModal(true)}
+              className="inline-flex items-center gap-2 rounded-xl border border-[#E50914]/30 bg-[#E50914]/10 px-4 py-2.5 text-sm font-bold text-[#E50914] hover:bg-[#E50914]/20 hover:border-[#E50914]/50 transition-all"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Sincronizar
+            </button>
+            <Link
+              href="/admin/competitions/new"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#E50914] to-[#B00000] px-4 py-2.5 text-sm font-bold text-white shadow-[0_4px_16px_rgba(229,9,20,0.3)] hover:from-[#FF1A24] hover:to-[#E50914] transition-all"
+            >
+              <Plus className="h-4 w-4" /> Nova Competição
+            </Link>
+          </div>
         </div>
-        <Link
-          href="/admin/competitions/new"
-          className="inline-flex items-center gap-2 rounded-lg bg-[#E50914] px-4 py-2 text-sm font-bold text-white hover:bg-[#B00000]"
-        >
-          <Plus className="h-4 w-4" /> Nova Competição
-        </Link>
       </div>
 
       <div className="rounded-xl border border-white/10 bg-[#171717] p-4">
@@ -170,6 +196,18 @@ export default function CompetitionsPage() {
           <div className="p-10 text-center text-sm text-gray-400">Nenhuma competição encontrada.</div>
         )}
       </div>
+
+      {/* Sync Modal */}
+      {showSyncModal && (
+        <SyncCompetitionsModal
+          onClose={() => setShowSyncModal(false)}
+          onSyncComplete={(results) => {
+            const total = results.reduce((acc, r) => acc + r.added + r.updated, 0);
+            setLastSyncAt(new Date().toISOString());
+            toast.success(`Sincronização concluída! ${total} competições processadas.`);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -309,6 +309,8 @@ export default function WatchExperience({ live, liveId }: WatchExperienceProps) 
   const [adDone, setAdDone] = useState(false);
   const [adsChecked, setAdsChecked] = useState(false);
   const [midrollDone, setMidrollDone] = useState(false);
+  // Recurring mid-roll: interval ref for 30-min recurring ads
+  const midrollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [connStatus, setConnStatus] = useState<"ok" | "reconnecting" | "offline">("ok");
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -396,19 +398,42 @@ export default function WatchExperience({ live, liveId }: WatchExperienceProps) 
     return () => clearInterval(t);
   }, [id, clientId]);
 
-  // Mid-roll ad: trigger after 5 minutes of watching (if not done)
+  // Mid-roll ads: show every 30 minutes while live is playing
+  // First ad triggers after 30 min, then repeats every 30 min
   useEffect(() => {
-    if (!adDone || midrollDone) return;
-    const t = setTimeout(() => {
+    if (!adDone) return;
+
+    const fetchAndShowMidroll = () => {
       publicApiRequest<Ad[]>("/ads?position=player")
         .then((ads) => {
-          const midAd = ads.find((a) => a.position === "player" && isAdActive(a) && a.format === "video");
-          if (midAd) setMidrollAd(midAd);
+          const midAd = ads.find(
+            (a) => a.position === "player" && isAdActive(a)
+          );
+          if (midAd) {
+            setMidrollDone(false);
+            setMidrollAd(midAd);
+          }
         })
         .catch(() => undefined);
-    }, 5 * 60 * 1000); // 5 minutes
-    return () => clearTimeout(t);
-  }, [adDone, midrollDone]);
+    };
+
+    // Clear any existing interval
+    if (midrollIntervalRef.current) clearInterval(midrollIntervalRef.current);
+
+    // First midroll after 30 minutes, then every 30 minutes
+    const MIDROLL_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
+    const firstTimer = setTimeout(() => {
+      fetchAndShowMidroll();
+      // After first, set repeating interval
+      midrollIntervalRef.current = setInterval(fetchAndShowMidroll, MIDROLL_INTERVAL_MS);
+    }, MIDROLL_INTERVAL_MS);
+
+    return () => {
+      clearTimeout(firstTimer);
+      if (midrollIntervalRef.current) clearInterval(midrollIntervalRef.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [adDone]);
 
   const sendMessage = async () => {
     const text = message.trim();
@@ -540,10 +565,11 @@ export default function WatchExperience({ live, liveId }: WatchExperienceProps) 
               <MidrollAd
                 ad={midrollAd!}
                 onComplete={() => {
-                  setMidrollDone(true);
+                  // Clear current ad but keep interval running for next 30-min cycle
                   setMidrollAd(null);
+                  setMidrollDone(true);
                 }}
-                label="Intervalo"
+                label="Intervalo publicitário"
               />
             )}
             <ConnectionBanner status={connStatus} />

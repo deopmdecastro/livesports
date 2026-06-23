@@ -61,6 +61,7 @@ export default function EventsPage() {
   const [importing, setImporting] = useState(false);
   const [syncingLive, setSyncingLive] = useState(false);
   const [importingCalendar, setImportingCalendar] = useState(false);
+  const [eventModalTab, setEventModalTab] = useState<"Geral" | "Equipas" | "Detalhes">("Geral");
 
   const filtered = events.filter((event) =>
     [event.title, event.league || "", event.teamA || "", event.teamB || ""].some((value) => value.toLowerCase().includes(search.toLowerCase()))
@@ -292,97 +293,143 @@ export default function EventsPage() {
       </div>
 
       {modalMode && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-[#2A2A2A] bg-[#1A1A1A]">
-            <div className="flex items-center justify-between border-b border-[#2A2A2A] p-5">
-              <h3 className="font-bold text-white">{modalMode === "create" ? "Novo Evento" : modalMode === "edit" ? "Editar Evento" : "Visualizar Evento"}</h3>
-              <button onClick={() => setModalMode(null)} className="text-gray-400 hover:text-white"><X className="h-4 w-4" /></button>
-            </div>
-            <div className="space-y-4 p-5">
-              <div><label className="mb-1.5 block text-xs font-medium text-gray-300">Titulo *</label><input disabled={modalMode === "view"} value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} className="input-dark w-full px-3 py-2.5 text-sm" /></div>
-              <AdminImageField
-                label="Imagem do evento"
-                disabled={modalMode === "view"}
-                value={form.thumbnail}
-                onChange={(value) => setForm({ ...form, thumbnail: value })}
-                sizeHint={IMAGE_SIZE_PRESETS.eventThumbnail}
-              />
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div><label className="mb-1.5 block text-xs font-medium text-gray-300">Equipa A</label><input disabled={modalMode === "view"} value={form.teamA} onChange={(event) => setForm({ ...form, teamA: event.target.value })} className="input-dark w-full px-3 py-2.5 text-sm" /></div>
-                <div><label className="mb-1.5 block text-xs font-medium text-gray-300">Equipa B</label><input disabled={modalMode === "view"} value={form.teamB} onChange={(event) => setForm({ ...form, teamB: event.target.value })} className="input-dark w-full px-3 py-2.5 text-sm" /></div>
-              </div>
-              {modalMode !== "view" ? (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <AdminTeamSearchField
-                    label="Pesquisar Equipa A (TheSportsDB)"
-                    onApply={(team) =>
-                      setForm((current) => ({
-                        ...current,
-                        teamA: team.name,
-                        teamALogo: team.badge || current.teamALogo,
-                        league: current.league || team.league,
-                        leagueLogo: current.leagueLogo || team.badge || current.leagueLogo,
-                      }))
-                    }
-                  />
-                  <AdminTeamSearchField
-                    label="Pesquisar Equipa B (TheSportsDB)"
-                    onApply={(team) =>
-                      setForm((current) => ({
-                        ...current,
-                        teamB: team.name,
-                        teamBLogo: team.badge || current.teamBLogo,
-                      }))
-                    }
-                  />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+          <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] shadow-2xl">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-[#1E1E2A] p-5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10 border border-blue-500/20">
+                  <Calendar className="h-4 w-4 text-blue-400" />
                 </div>
-              ) : null}
-              <div className="grid gap-3 sm:grid-cols-2">
-                <AdminImageField
-                  label="Escudo da Equipa A"
-                  disabled={modalMode === "view"}
-                  value={form.teamALogo}
-                  onChange={(value) => setForm({ ...form, teamALogo: value })}
-                  aspectClassName="aspect-square"
-                  sizeHint={IMAGE_SIZE_PRESETS.teamLogo}
-                />
-                <AdminImageField
-                  label="Escudo da Equipa B"
-                  disabled={modalMode === "view"}
-                  value={form.teamBLogo}
-                  onChange={(value) => setForm({ ...form, teamBLogo: value })}
-                  aspectClassName="aspect-square"
-                  sizeHint={IMAGE_SIZE_PRESETS.teamLogo}
-                />
+                <div>
+                  <h3 className="font-black text-white">
+                    {modalMode === "create" ? "Novo Evento" : modalMode === "edit" ? "Editar Evento" : "Visualizar Evento"}
+                  </h3>
+                  <p className="text-[11px] text-gray-500">
+                    {modalMode === "view" ? `ID: ${selected?.id}` : "Preencha os dados do evento desportivo"}
+                  </p>
+                </div>
               </div>
-              <div className="grid gap-3 sm:grid-cols-4">
-                <div><label className="mb-1.5 block text-xs font-medium text-gray-300">Placar A</label><input disabled={modalMode === "view"} type="number" value={form.scoreA} onChange={(event) => setForm({ ...form, scoreA: event.target.value })} className="input-dark w-full px-3 py-2.5 text-sm" placeholder="0" /></div>
-                <div><label className="mb-1.5 block text-xs font-medium text-gray-300">Placar B</label><input disabled={modalMode === "view"} type="number" value={form.scoreB} onChange={(event) => setForm({ ...form, scoreB: event.target.value })} className="input-dark w-full px-3 py-2.5 text-sm" placeholder="0" /></div>
-                <div><label className="mb-1.5 block text-xs font-medium text-gray-300">Tempo</label><input disabled={modalMode === "view"} value={form.matchTime} onChange={(event) => setForm({ ...form, matchTime: event.target.value })} className="input-dark w-full px-3 py-2.5 text-sm" placeholder="75' / Q4" /></div>
-                <div><label className="mb-1.5 block text-xs font-medium text-gray-300">Espectadores</label><input disabled={modalMode === "view"} type="number" value={form.viewerCount} onChange={(event) => setForm({ ...form, viewerCount: event.target.value })} className="input-dark w-full px-3 py-2.5 text-sm" placeholder="125400" /></div>
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div><label className="mb-1.5 block text-xs font-medium text-gray-300">Liga</label><input disabled={modalMode === "view"} value={form.league} onChange={(event) => setForm({ ...form, league: event.target.value })} className="input-dark w-full px-3 py-2.5 text-sm" /></div>
-                <div><label className="mb-1.5 block text-xs font-medium text-gray-300">Data e hora</label><input disabled={modalMode === "view"} type="datetime-local" value={form.scheduledAt} onChange={(event) => setForm({ ...form, scheduledAt: event.target.value })} className="input-dark w-full px-3 py-2.5 text-sm" /></div>
-              </div>
-              <AdminImageField
-                label="Logo da liga"
-                disabled={modalMode === "view"}
-                value={form.leagueLogo}
-                onChange={(value) => setForm({ ...form, leagueLogo: value })}
-                aspectClassName="aspect-square"
-                className="max-w-[220px]"
-                sizeHint={IMAGE_SIZE_PRESETS.leagueLogo}
-              />
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div><label className="mb-1.5 block text-xs font-medium text-gray-300">Desporto</label><AdminSelect disabled={modalMode === "view"} value={form.sport} onChange={(value) => setForm({ ...form, sport: value })} options={sportOptions} /></div>
-                <div><label className="mb-1.5 block text-xs font-medium text-gray-300">Status</label><AdminSelect disabled={modalMode === "view"} value={form.status} onChange={(value) => setForm({ ...form, status: value })} options={statusOptions} /></div>
-              </div>
+              <button onClick={() => setModalMode(null)} className="rounded-xl p-2 text-gray-400 hover:bg-white/5 hover:text-white"><X className="h-4 w-4" /></button>
+            </div>
+            {/* Tabs */}
+            <div className="flex gap-1 border-b border-[#1E1E2A] px-5 pt-3">
+              {(["Geral", "Equipas", "Detalhes"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setEventModalTab(tab)}
+                  className={`rounded-t-lg px-4 py-2.5 text-xs font-bold transition-all ${
+                    eventModalTab === tab ? "bg-blue-600 text-white shadow" : "text-gray-500 hover:text-gray-300 hover:bg-white/5"
+                  }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+            <div className="p-5 space-y-4">
+              {/* ── TAB: GERAL ── */}
+              {eventModalTab === "Geral" && (
+                <>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold text-gray-300">Título <span className="text-[#E50914]">*</span></label>
+                    <input disabled={modalMode === "view"} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="input-dark w-full px-3 py-2.5 text-sm" placeholder="Ex: Manchester United vs Liverpool" />
+                  </div>
+                  <AdminImageField label="Imagem do evento" disabled={modalMode === "view"} value={form.thumbnail} onChange={(v) => setForm({ ...form, thumbnail: v })} sizeHint={IMAGE_SIZE_PRESETS.eventThumbnail} />
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="mb-1.5 block text-xs font-semibold text-gray-300">Liga / Competição</label>
+                      <input disabled={modalMode === "view"} value={form.league} onChange={(e) => setForm({ ...form, league: e.target.value })} className="input-dark w-full px-3 py-2.5 text-sm" placeholder="Premier League" />
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-xs font-semibold text-gray-300">Data e hora <span className="text-[#E50914]">*</span></label>
+                      <input disabled={modalMode === "view"} type="datetime-local" value={form.scheduledAt} onChange={(e) => setForm({ ...form, scheduledAt: e.target.value })} className="input-dark w-full px-3 py-2.5 text-sm" />
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-xs font-semibold text-gray-300">Desporto</label>
+                      <AdminSelect disabled={modalMode === "view"} value={form.sport} onChange={(v) => setForm({ ...form, sport: v })} options={sportOptions} />
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-xs font-semibold text-gray-300">Status</label>
+                      <AdminSelect disabled={modalMode === "view"} value={form.status} onChange={(v) => setForm({ ...form, status: v })} options={statusOptions} />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* ── TAB: EQUIPAS ── */}
+              {eventModalTab === "Equipas" && (
+                <>
+                  {/* VS block */}
+                  <div className="rounded-xl border border-white/8 bg-black/20 p-4">
+                    <p className="mb-3 text-xs font-bold text-gray-400 uppercase tracking-widest">Confronto</p>
+                    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+                      <div>
+                        <label className="mb-1 block text-[10px] font-semibold text-gray-500 uppercase">Equipa A</label>
+                        <input disabled={modalMode === "view"} value={form.teamA} onChange={(e) => setForm({ ...form, teamA: e.target.value })} className="input-dark w-full px-3 py-2 text-sm" placeholder="Nome da equipa A" />
+                      </div>
+                      <div className="text-center">
+                        <span className="text-lg font-black text-gray-600">VS</span>
+                        <div className="flex gap-1 mt-1 justify-center">
+                          <input disabled={modalMode === "view"} type="number" min={0} value={form.scoreA} onChange={(e) => setForm({ ...form, scoreA: e.target.value })} className="input-dark w-10 px-1 py-1 text-sm text-center font-black" placeholder="0" />
+                          <span className="text-gray-600 self-center">:</span>
+                          <input disabled={modalMode === "view"} type="number" min={0} value={form.scoreB} onChange={(e) => setForm({ ...form, scoreB: e.target.value })} className="input-dark w-10 px-1 py-1 text-sm text-center font-black" placeholder="0" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-[10px] font-semibold text-gray-500 uppercase">Equipa B</label>
+                        <input disabled={modalMode === "view"} value={form.teamB} onChange={(e) => setForm({ ...form, teamB: e.target.value })} className="input-dark w-full px-3 py-2 text-sm" placeholder="Nome da equipa B" />
+                      </div>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2 mt-3">
+                      <div>
+                        <label className="mb-1 block text-[10px] font-semibold text-gray-500 uppercase">Tempo de jogo</label>
+                        <input disabled={modalMode === "view"} value={form.matchTime} onChange={(e) => setForm({ ...form, matchTime: e.target.value })} className="input-dark w-full px-3 py-2 text-sm" placeholder="75' / Q4 / Set 2" />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-[10px] font-semibold text-gray-500 uppercase">Espectadores</label>
+                        <input disabled={modalMode === "view"} type="number" value={form.viewerCount} onChange={(e) => setForm({ ...form, viewerCount: e.target.value })} className="input-dark w-full px-3 py-2 text-sm" placeholder="125400" />
+                      </div>
+                    </div>
+                  </div>
+                  {/* Team search */}
+                  {modalMode !== "view" && (
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <AdminTeamSearchField label="Pesquisar Equipa A (TheSportsDB)" onApply={(team) => setForm((c) => ({ ...c, teamA: team.name, teamALogo: team.badge || c.teamALogo, league: c.league || team.league, leagueLogo: c.leagueLogo || team.badge || c.leagueLogo }))} />
+                      <AdminTeamSearchField label="Pesquisar Equipa B (TheSportsDB)" onApply={(team) => setForm((c) => ({ ...c, teamB: team.name, teamBLogo: team.badge || c.teamBLogo }))} />
+                    </div>
+                  )}
+                  {/* Logos */}
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <AdminImageField label="Escudo Equipa A" disabled={modalMode === "view"} value={form.teamALogo} onChange={(v) => setForm({ ...form, teamALogo: v })} aspectClassName="aspect-square" sizeHint={IMAGE_SIZE_PRESETS.teamLogo} />
+                    <AdminImageField label="Escudo Equipa B" disabled={modalMode === "view"} value={form.teamBLogo} onChange={(v) => setForm({ ...form, teamBLogo: v })} aspectClassName="aspect-square" sizeHint={IMAGE_SIZE_PRESETS.teamLogo} />
+                  </div>
+                  <AdminImageField label="Logo da Liga" disabled={modalMode === "view"} value={form.leagueLogo} onChange={(v) => setForm({ ...form, leagueLogo: v })} aspectClassName="aspect-square" className="max-w-[180px]" sizeHint={IMAGE_SIZE_PRESETS.leagueLogo} />
+                </>
+              )}
+
+              {/* ── TAB: DETALHES ── */}
+              {eventModalTab === "Detalhes" && (
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold text-gray-300">Descrição</label>
+                  <textarea disabled={modalMode === "view"} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={5} className="input-dark w-full resize-none px-3 py-2.5 text-sm" placeholder="Informações sobre o evento, contexto, fase da competição..." />
+                </div>
+              )}
               <div><label className="mb-1.5 block text-xs font-medium text-gray-300">Descricao</label><textarea disabled={modalMode === "view"} value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} rows={3} className="input-dark w-full resize-none px-3 py-2.5 text-sm" /></div>
             </div>
-            <div className="flex justify-end gap-3 border-t border-[#2A2A2A] p-5">
-              <button onClick={() => setModalMode(null)} className="rounded-lg bg-[#2A2A2A] px-4 py-2 text-sm text-gray-300 hover:bg-[#3A3A3A]">Fechar</button>
-              {modalMode !== "view" && <button onClick={saveEvent} className="rounded-lg bg-[#E50914] px-4 py-2 text-sm font-bold text-white hover:bg-[#B00000]">Salvar</button>}
+            <div className="flex items-center justify-between gap-3 border-t border-[#1E1E2A] p-5">
+              <div className="flex gap-1">
+                {(["Geral", "Equipas", "Detalhes"] as const).map((tab) => (
+                  <button key={tab} onClick={() => setEventModalTab(tab)} className={`h-1.5 rounded-full transition-all ${eventModalTab === tab ? "w-6 bg-blue-500" : "w-1.5 bg-white/20"}`} />
+                ))}
+              </div>
+              <div className="flex gap-3">
+                <button onClick={() => setModalMode(null)} className="rounded-xl border border-[#1E1E2A] bg-[#111118] px-4 py-2.5 text-sm text-gray-300 hover:text-white transition-colors">{modalMode === "view" ? "Fechar" : "Cancelar"}</button>
+                {modalMode !== "view" && (
+                  <button onClick={saveEvent} className="rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-5 py-2.5 text-sm font-bold text-white shadow-[0_4px_16px_rgba(59,130,246,0.3)] hover:from-blue-500 hover:to-blue-600 transition-all">
+                    {modalMode === "edit" ? "Guardar Evento" : "Criar Evento"}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>

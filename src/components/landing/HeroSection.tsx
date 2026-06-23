@@ -113,6 +113,53 @@ function buildAdSlide(ad: Ad): HeroSlide {
   };
 }
 
+// Banner slide type (from /banners endpoint - hero position)
+interface BannerSlideData {
+  id: string;
+  title: string;
+  subtitle?: string;
+  badge?: string;
+  imageUrl: string;
+  linkUrl?: string;
+  ctaText?: string;
+  active: boolean;
+  position: string;
+}
+
+function buildBannerSlide(banner: BannerSlideData, index: number): HeroSlide {
+  const image = banner.imageUrl || fallbackImages[index % fallbackImages.length];
+  // Create a synthetic Ad object so we can reuse the ad slide type
+  const syntheticAd: Ad = {
+    id: banner.id,
+    title: banner.title,
+    campaign: "",
+    imageUrl: banner.imageUrl,
+    clickUrl: banner.linkUrl || "",
+    position: "live_preroll" as Ad["position"],
+    status: "active",
+    format: "image",
+    videoUrl: "",
+    startDate: "",
+    endDate: "",
+    impressions: 0,
+    clicks: 0,
+    ctr: 0,
+    revenue: 0,
+    createdAt: new Date().toISOString(),
+  };
+  return {
+    kind: "ad",
+    id: banner.id,
+    title: banner.title,
+    highlight: (banner as BannerSlideData & { badge?: string }).badge || "Em destaque",
+    subtitle: (banner as BannerSlideData & { subtitle?: string }).subtitle || "",
+    image,
+    ad: syntheticAd,
+    cta: (banner as BannerSlideData & { ctaText?: string }).ctaText || "Ver mais",
+    isLive: false,
+  };
+}
+
 export default function HeroSection() {
   const { t } = useLang();
   const [current, setCurrent] = useState(0);
@@ -141,6 +188,22 @@ export default function HeroSection() {
           return;
         }
 
+        // 1st fallback: hero banners configured in admin (Banners & Hero tab)
+        try {
+          const bannersRes = await publicApiRequest<BannerSlideData[]>("/banners?position=hero");
+          if (!cancelled && bannersRes && bannersRes.length > 0) {
+            const bannerSlides = bannersRes
+              .filter((b) => b.active && b.position === "hero")
+              .slice(0, 5)
+              .map((b, i) => buildBannerSlide(b, i));
+            if (bannerSlides.length > 0) {
+              setSlides(bannerSlides);
+              return;
+            }
+          }
+        } catch { /* fall through to ads */ }
+
+        // 2nd fallback: ads with live_preroll position
         const adsRes = await publicApiRequest<Ad[]>("/ads");
         if (cancelled) return;
 
