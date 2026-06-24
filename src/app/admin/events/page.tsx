@@ -273,24 +273,29 @@ export default function EventsPage() {
         </div>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-2">
-        {/* Tabela Normal (archived=false) */}
-        <div className="overflow-hidden rounded-xl border border-[#2A2A2A] bg-[#1A1A1A]">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[820px]">
-              <thead>
-                <tr className="border-b border-[#2A2A2A]">
-                  {["Evento", "Liga", "Desporto", "Data", "Status", "Acoes"].map((heading) => (
-                    <th key={heading} className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-gray-500">{heading}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filteredNormalEvents.map((event) => (
-                  <tr key={event.id} className="table-row-hover border-b border-[#2A2A2A] last:border-0">
-                    <td className="px-4 py-3">
-                      <p className="flex items-center gap-2 text-sm font-semibold text-white">
-
+      {/* ── Active Events Table ── */}
+      <div className="overflow-hidden rounded-xl border border-[#2A2A2A] bg-[#1A1A1A]">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[#2A2A2A]">
+          <h3 className="text-sm font-bold text-white">Eventos Ativos <span className="ml-1 rounded-full bg-blue-500/20 px-2 py-0.5 text-[10px] text-blue-400">{filteredNormalEvents.length}</span></h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[820px]">
+            <thead>
+              <tr className="border-b border-[#2A2A2A]">
+                {["Evento", "Liga", "Desporto", "Data", "Status", "Ações"].map((heading) => (
+                  <th key={heading} className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-gray-500">{heading}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">A carregar...</td></tr>
+              ) : filteredNormalEvents.length === 0 ? (
+                <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-500">Nenhum evento ativo</td></tr>
+              ) : filteredNormalEvents.map((event) => (
+                <tr key={event.id} className="table-row-hover border-b border-[#2A2A2A] last:border-0">
+                  <td className="px-4 py-3">
+                    <p className="flex items-center gap-2 text-sm font-semibold text-white">
                       <AdminTeamMark logo={event.teamALogo} name={event.teamA} code={event.teamACode} size={32} />
                       <span>{event.teamA && event.teamB ? `${event.teamA} vs ${event.teamB}` : event.title}</span>
                       <AdminTeamMark logo={event.teamBLogo} name={event.teamB} code={event.teamBCode} size={32} />
@@ -311,7 +316,7 @@ export default function EventsPage() {
                   <td className="px-4 py-3"><div className="flex gap-1.5">
                     <AdminActionButton title="Visualizar" onClick={() => openModal("view", event)} tone="view"><Eye className="h-3.5 w-3.5" /></AdminActionButton>
                     <AdminActionButton title="Editar" onClick={() => openModal("edit", event)} tone="edit"><Edit2 className="h-3.5 w-3.5" /></AdminActionButton>
-                    <AdminActionButton title="Arquivar" onClick={async () => { try { await apiRequest(`/events/${event.id}/archive`, { method: "PATCH", body: JSON.stringify({ archived: true }) }); setEvents((prev) => prev.filter((e) => e.id !== event.id)); toast.success("Evento arquivado!"); } catch { toast.error("Erro ao arquivar"); } }} tone="view"><Archive className="h-3.5 w-3.5 text-gray-400" /></AdminActionButton>
+                    <AdminActionButton title="Arquivar" onClick={() => handleArchiveToggle(event, true)} tone="view"><Archive className="h-3.5 w-3.5 text-amber-400" /></AdminActionButton>
                     <AdminActionButton title="Remover" onClick={async () => { if (!confirm("Remover este evento?")) return; try { await apiRequest(`/events/${event.id}`, { method: "DELETE" }); setEvents((current) => current.filter((item) => item.id !== event.id)); toast.success("Evento removido!"); } catch (error) { toast.error(error instanceof Error ? error.message : "Nao foi possivel remover."); } }} tone="danger"><Trash2 className="h-3.5 w-3.5" /></AdminActionButton>
                   </div></td>
                 </tr>
@@ -320,6 +325,54 @@ export default function EventsPage() {
           </table>
         </div>
       </div>
+
+      {/* ── Archived Events Table ── */}
+      {archivedEvents.length > 0 && (
+        <div className="overflow-hidden rounded-xl border border-amber-500/20 bg-[#1A1A1A]">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-amber-500/20 bg-amber-500/5">
+            <div className="flex items-center gap-2">
+              <Archive className="h-4 w-4 text-amber-400" />
+              <h3 className="text-sm font-bold text-amber-400">Eventos Arquivados <span className="ml-1 rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] text-amber-300">{filteredArchivedEvents.length}</span></h3>
+            </div>
+            <p className="text-xs text-gray-500">Eventos arquivados são ocultados do site mas mantidos na base de dados</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[820px]">
+              <thead>
+                <tr className="border-b border-[#2A2A2A]">
+                  {["Evento", "Liga", "Desporto", "Data", "Status", "Ações"].map((heading) => (
+                    <th key={heading} className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-gray-500">{heading}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredArchivedEvents.map((event) => (
+                  <tr key={event.id} className="border-b border-[#2A2A2A] last:border-0 opacity-60 hover:opacity-90 transition-opacity">
+                    <td className="px-4 py-3">
+                      <p className="flex items-center gap-2 text-sm font-semibold text-white">
+                        <AdminTeamMark logo={event.teamALogo} name={event.teamA} code={event.teamACode} size={32} />
+                        <span>{event.teamA && event.teamB ? `${event.teamA} vs ${event.teamB}` : event.title}</span>
+                        <AdminTeamMark logo={event.teamBLogo} name={event.teamB} code={event.teamBCode} size={32} />
+                      </p>
+                      <p className="text-xs text-gray-400">{event.title}</p>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-gray-300">{event.league || "-"}</td>
+                    <td className="px-4 py-3 text-xs text-gray-300">{sportOptions.find((s) => s.value === event.sport)?.label}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-xs text-gray-300">{formatDateTime(event.scheduledAt)}</td>
+                    <td className="px-4 py-3"><span className="rounded-full px-2 py-0.5 text-[10px] font-bold bg-gray-500/20 text-gray-400">{statusOptions.find((s) => s.value === event.status)?.label}</span></td>
+                    <td className="px-4 py-3"><div className="flex gap-1.5">
+                      <AdminActionButton title="Desarquivar" onClick={() => handleArchiveToggle(event, false)} tone="view">
+                        <span className="text-[10px] font-bold text-green-400 px-1">↩ Restaurar</span>
+                      </AdminActionButton>
+                      <AdminActionButton title="Remover permanentemente" onClick={async () => { if (!confirm("Remover permanentemente? Esta ação é irreversível.")) return; try { await apiRequest(`/events/${event.id}`, { method: "DELETE" }); setEvents((prev) => prev.filter((e) => e.id !== event.id)); toast.success("Evento removido!"); } catch { toast.error("Erro ao remover"); } }} tone="danger"><Trash2 className="h-3.5 w-3.5" /></AdminActionButton>
+                    </div></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {modalMode && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">

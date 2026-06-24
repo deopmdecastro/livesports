@@ -292,16 +292,14 @@ export async function ensureRuntimeSchema() {
     }
   }
 
-  // ─── Migration 003: API Keys table ────────────────────────────────────────────
-  try {
-    const hasApiKeyStatus = await enumHasValue('api_key_status', 'active');
-    if (!hasApiKeyStatus) {
-      await prisma.$executeRawUnsafe(`CREATE TYPE IF NOT EXISTS "api_key_status" AS ENUM ('active', 'inactive', 'expired')`);
-      await prisma.$executeRawUnsafe(`CREATE TYPE IF NOT EXISTS "api_usage_type" AS ENUM ('live_streams','game_events','game_data','statistics','competitions','teams','players','shields','logos','flags','standings','odds','news')`);
-    }
-  } catch { /* enums may already exist */ }
+  // ─── Migrations 003-005: API Keys, Logs, Support, Archive columns ──────────────
+  // These are wrapped in individual try/catch so a single failure doesn't block boot
+  const safeExec = async (sql: string) => {
+    try { await prisma.$executeRawUnsafe(sql); } catch { /* column/table may already exist */ }
+  };
 
-  await prisma.$executeRawUnsafe(`
+  // api_keys table
+  await safeExec(`
     CREATE TABLE IF NOT EXISTS "api_keys" (
       "id" TEXT NOT NULL DEFAULT gen_random_uuid()::TEXT,
       "name" VARCHAR(200) NOT NULL,
@@ -324,16 +322,8 @@ export async function ensureRuntimeSchema() {
     )
   `);
 
-  // ─── Migration 004: System Logs table ──────────────────────────────────────
-  try {
-    const hasLogLevel = await enumHasValue('log_level', 'info');
-    if (!hasLogLevel) {
-      await prisma.$executeRawUnsafe(`CREATE TYPE IF NOT EXISTS "log_level" AS ENUM ('debug','info','warn','error','fatal')`);
-      await prisma.$executeRawUnsafe(`CREATE TYPE IF NOT EXISTS "log_service" AS ENUM ('api','player','sync','auth','admin','database','stream','system')`);
-    }
-  } catch { /* enums may already exist */ }
-
-  await prisma.$executeRawUnsafe(`
+  // system_logs table
+  await safeExec(`
     CREATE TABLE IF NOT EXISTS "system_logs" (
       "id" TEXT NOT NULL DEFAULT gen_random_uuid()::TEXT,
       "level" TEXT NOT NULL DEFAULT 'info',
@@ -348,18 +338,11 @@ export async function ensureRuntimeSchema() {
       CONSTRAINT "system_logs_pkey" PRIMARY KEY ("id")
     )
   `);
+  await safeExec(`CREATE INDEX IF NOT EXISTS "system_logs_created_at_idx" ON "system_logs"("created_at" DESC)`);
+  await safeExec(`CREATE INDEX IF NOT EXISTS "system_logs_level_idx" ON "system_logs"("level")`);
 
-  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "system_logs_created_at_idx" ON "system_logs"("created_at" DESC)`);
-  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "system_logs_level_idx" ON "system_logs"("level")`);
-
-  // ─── Migration 004b: Support Tickets ───────────────────────────────────────
-  try {
-    await prisma.$executeRawUnsafe(`CREATE TYPE IF NOT EXISTS "ticket_status" AS ENUM ('open','pending','resolved','closed')`);
-    await prisma.$executeRawUnsafe(`CREATE TYPE IF NOT EXISTS "ticket_priority" AS ENUM ('low','medium','high','critical')`);
-    await prisma.$executeRawUnsafe(`CREATE TYPE IF NOT EXISTS "ticket_category" AS ENUM ('player','account','billing','stream','content','technical','other')`);
-  } catch { /* enums may already exist */ }
-
-  await prisma.$executeRawUnsafe(`
+  // support_tickets table
+  await safeExec(`
     CREATE TABLE IF NOT EXISTS "support_tickets" (
       "id" TEXT NOT NULL DEFAULT gen_random_uuid()::TEXT,
       "subject" VARCHAR(500) NOT NULL,
@@ -376,8 +359,7 @@ export async function ensureRuntimeSchema() {
       CONSTRAINT "support_tickets_pkey" PRIMARY KEY ("id")
     )
   `);
-
-  await prisma.$executeRawUnsafe(`
+  await safeExec(`
     CREATE TABLE IF NOT EXISTS "support_messages" (
       "id" TEXT NOT NULL DEFAULT gen_random_uuid()::TEXT,
       "ticket_id" TEXT NOT NULL,
@@ -390,98 +372,15 @@ export async function ensureRuntimeSchema() {
     )
   `);
 
-  // ─── Migration 004c: import tracking columns ────────────────────────────────
-  await prisma.$executeRawUnsafe(`
-    ALTER TABLE "events"
-      ADD COLUMN IF NOT EXISTS "import_source" TEXT,
-      ADD COLUMN IF NOT EXISTS "import_date" TIMESTAMPTZ,
-      ADD COLUMN IF NOT EXISTS "archived" BOOLEAN NOT NULL DEFAULT FALSE
-  `);
+  // Archive + import tracking columns for events, lives, competitions
+  await safeExec(`ALTER TABLE "events" ADD COLUMN IF NOT EXISTS "import_source" TEXT`);
+  await safeExec(`ALTER TABLE "events" ADD COLUMN IF NOT EXISTS "import_date" TIMESTAMPTZ`);
+  await safeExec(`ALTER TABLE "events" ADD COLUMN IF NOT EXISTS "archived" BOOLEAN NOT NULL DEFAULT FALSE`);
+  await safeExec(`ALTER TABLE "lives" ADD COLUMN IF NOT EXISTS "import_source" TEXT`);
+  await safeExec(`ALTER TABLE "lives" ADD COLUMN IF NOT EXISTS "import_date" TIMESTAMPTZ`);
+  await safeExec(`ALTER TABLE "lives" ADD COLUMN IF NOT EXISTS "origin_quality" TEXT`);
+  await safeExec(`ALTER TABLE "lives" ADD COLUMN IF NOT EXISTS "origin_language" TEXT`);
+  await safeExec(`ALTER TABLE "lives" ADD COLUMN IF NOT EXISTS "archived" BOOLEAN NOT NULL DEFAULT FALSE`);
+  await safeExec(`ALTER TABLE "competitions" ADD COLUMN IF NOT EXISTS "archived" BOOLEAN NOT NULL DEFAULT FALSE`);
 
-  await prisma.$executeRawUnsafe(`
-    ALTER TABLE "lives"
-      ADD COLUMN IF NOT EXISTS "import_source" TEXT,
-      ADD COLUMN IF NOT EXISTS "import_date" TIMESTAMPTZ,
-      ADD COLUMN IF NOT EXISTS "origin_quality" TEXT,
-      ADD COLUMN IF NOT EXISTS "origin_language" TEXT,
-      ADD COLUMN IF NOT EXISTS "archived" BOOLEAN NOT NULL DEFAULT FALSE
-  `);
-
-  const password = bcrypt.hashSync('admin123', 12);
-  await prisma.$executeRawUnsafe(
-    `
-      INSERT INTO "users" ("id", "name", "email", "email_verified", "password", "role", "status")
-      VALUES ('admin-001', 'Administrador', 'admin@livesports.com', TRUE, $1, 'super_admin', 'active')
-      ON CONFLICT ("email") DO UPDATE
-      SET "password" = EXCLUDED."password", "role" = 'super_admin', "status" = 'active', "email_verified" = TRUE
-    `,
-    password
-  );
-
-  if (process.env.ALLOW_DEMO_DATA === 'true') {
-    await prisma.$executeRawUnsafe(`
-      INSERT INTO "lives" (
-        "id", "title", "description", "thumbnail", "sport", "league", "league_logo",
-        "team_a", "team_a_logo", "team_b", "team_b_logo", "score_a", "score_b",
-        "hls_url", "status", "featured", "viewer_count", "total_views", "like_count", "share_count", "match_time",
-        "stream_servers", "scheduled_at"
-      )
-      SELECT 'live-001', 'Manchester United vs Liverpool', 'Premier League ao vivo.',
-        'https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&w=1200&q=80',
-        'football'::sport_category, 'Premier League', 'https://upload.wikimedia.org/wikipedia/en/f/f2/Premier_League_Logo.svg',
-        'Man. United', 'https://upload.wikimedia.org/wikipedia/en/7/7a/Manchester_United_FC_crest.svg',
-        'Liverpool', 'https://upload.wikimedia.org/wikipedia/en/0/0c/Liverpool_FC.svg',
-        2, 1, 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
-        'live'::live_status, TRUE, 125400, 125400, 0, 0, '75''',
-        '[{"id":"auto","name":"Servidor Auto","quality":"Auto HD","latency":"Baixa","url":"https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"},{"id":"backup","name":"Backup HLS","quality":"HD","latency":"Media","url":"https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"}]'::jsonb,
-        NOW()
-      WHERE NOT EXISTS (SELECT 1 FROM "lives")
-    `);
-
-    await prisma.$executeRawUnsafe(`
-      INSERT INTO "events" (
-        "id", "title", "description", "thumbnail", "sport", "league", "league_logo",
-        "team_a", "team_a_logo", "team_b", "team_b_logo", "score_a", "score_b",
-        "match_time", "viewer_count", "scheduled_at", "status"
-      )
-      SELECT 'live-001', 'Manchester United vs Liverpool', 'Premier League ao vivo.',
-        'https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&w=900&q=80',
-        'football'::sport_category, 'Premier League', 'https://upload.wikimedia.org/wikipedia/en/f/f2/Premier_League_Logo.svg',
-        'Man. United', 'https://upload.wikimedia.org/wikipedia/en/7/7a/Manchester_United_FC_crest.svg',
-        'Liverpool', 'https://upload.wikimedia.org/wikipedia/en/0/0c/Liverpool_FC.svg',
-        2, 1, '75''', 125400, NOW(), 'live'::event_status
-      WHERE NOT EXISTS (SELECT 1 FROM "events")
-    `);
-  }
-
-  if (hasLivePrerollPosition) {
-    await prisma.$executeRawUnsafe(`
-      INSERT INTO "ads" ("id", "title", "campaign", "position", "format", "content", "image_url", "video_url", "click_url", "status")
-      SELECT 'ad-live-preroll-001', 'Pre-roll imagem da live', 'Live antes de reproduzir', 'live_preroll'::ad_position, 'banner'::ad_format,
-        'Anuncio em imagem antes da transmissao ao vivo',
-        'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1600&q=80',
-        NULL,
-        'https://livesports.com/', 'active'::ad_status
-      WHERE NOT EXISTS (SELECT 1 FROM "ads" WHERE "position" = 'live_preroll')
-    `);
-  }
-
-  await prisma.$executeRawUnsafe(`
-    INSERT INTO "ads" ("id", "title", "campaign", "position", "format", "content", "image_url", "video_url", "click_url", "status")
-    SELECT 'ad-player-001', 'Pre-roll principal', 'Big Buck Bunny', 'player'::ad_position, 'video'::ad_format,
-      'Anuncio antes da transmissao',
-      'https://peach.blender.org/wp-content/uploads/title_anouncement.jpg?x11217',
-      'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-      'https://peach.blender.org/', 'active'::ad_status
-    WHERE NOT EXISTS (SELECT 1 FROM "ads" WHERE "position" = 'player')
-  `);
-
-  await prisma.$executeRawUnsafe(`
-    UPDATE "ads"
-    SET "position" = 'player'::ad_position,
-      "format" = 'video'::ad_format,
-      "video_url" = COALESCE("video_url", 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'),
-      "image_url" = COALESCE("image_url", 'https://peach.blender.org/wp-content/uploads/title_anouncement.jpg?x11217')
-    WHERE "id" = 'ad-player-001'
-  `);
-}
+    const password = bcrypt.hashSync('admin123', 12);

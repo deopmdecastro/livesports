@@ -9,6 +9,7 @@ import {
   ChevronDown, Info,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import AdminImageField from "@/components/admin/AdminImageField";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -493,11 +494,27 @@ export default function SettingsPage() {
 
   // Branding / Identity
   const [branding, setBranding] = useState({
-    logoUrl: typeof window !== "undefined" ? JSON.parse(localStorage.getItem("livesports_branding") || "{}").logoUrl || "" : "",
-    faviconUrl: typeof window !== "undefined" ? JSON.parse(localStorage.getItem("livesports_branding") || "{}").faviconUrl || "" : "",
-    ogImageUrl: typeof window !== "undefined" ? JSON.parse(localStorage.getItem("livesports_branding") || "{}").ogImageUrl || "" : "",
+    logoUrl: "",
+    faviconUrl: "",
+    ogImageUrl: "",
     primaryColor: "#E50914",
     siteName: "LiveSports",
+  });
+
+  // Load branding from localStorage on mount (client-only)
+  useState(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const saved = JSON.parse(localStorage.getItem("livesports_branding") || "{}");
+      if (saved.logoUrl || saved.faviconUrl || saved.ogImageUrl) {
+        setBranding((prev) => ({
+          ...prev,
+          logoUrl: saved.logoUrl || "",
+          faviconUrl: saved.faviconUrl || "",
+          ogImageUrl: saved.ogImageUrl || "",
+        }));
+      }
+    } catch { /* ignore */ }
   });
   const [savingBranding, setSavingBranding] = useState(false);
 
@@ -669,67 +686,80 @@ export default function SettingsPage() {
       {activeTab === "Identidade" && (
         <div className="space-y-5">
           <Section title="Logótipo do Site" icon={Tv2}>
-            <div className="space-y-4">
-              <p className="text-xs text-gray-400">Defina o logótipo exibido na barra lateral do admin e na navbar do site.</p>
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-gray-300">URL do Logótipo</label>
-                <input
-                  value={branding.logoUrl}
-                  onChange={(e) => setBranding({ ...branding, logoUrl: e.target.value })}
-                  className="input-dark w-full px-3 py-2.5 text-sm"
-                  placeholder="https://cdn.exemplo.com/logo.svg ou /logo.png"
-                />
-                {branding.logoUrl && (
-                  <div className="mt-3 p-3 rounded-lg border border-[#1E1E2A] bg-[#0A0A0F] inline-block">
-                    <p className="text-[10px] text-gray-500 mb-2">Pré-visualização</p>
-                    <img src={branding.logoUrl} alt="Logo" className="h-10 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-                  </div>
-                )}
-              </div>
+            <div className="space-y-3">
+              <p className="text-xs text-gray-400">
+                Logótipo exibido na navbar e barra lateral. Pode colar um URL ou carregar um ficheiro.
+                Formatos recomendados: SVG, PNG transparente. Altura ideal: 40px.
+              </p>
+              <AdminImageField
+                label="Logótipo"
+                value={branding.logoUrl}
+                onChange={(v) => setBranding({ ...branding, logoUrl: v })}
+                placeholder="https://cdn.exemplo.com/logo.svg"
+                aspectClassName="aspect-[3/1]"
+                sizeHint={{ width: 200, height: 60, maxFileSizeKB: 500, formats: ["SVG", "PNG", "WebP"] }}
+              />
+              {branding.logoUrl && (
+                <div className="rounded-lg border border-green-500/20 bg-green-500/5 p-3">
+                  <p className="text-[11px] text-green-400 font-semibold mb-1">✓ Logótipo definido — será aplicado após guardar</p>
+                  <p className="text-[10px] text-gray-500">O logótipo é guardado localmente e aplicado na sessão atual. Para persistir entre dispositivos, use um URL de CDN.</p>
+                </div>
+              )}
             </div>
           </Section>
 
           <Section title="Favicon" icon={Globe}>
-            <div className="space-y-4">
-              <p className="text-xs text-gray-400">Ícone exibido na tab do browser. Use um arquivo .ico, .png ou .svg (recomendado 32x32px).</p>
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-gray-300">URL do Favicon</label>
-                <input
-                  value={branding.faviconUrl}
-                  onChange={(e) => setBranding({ ...branding, faviconUrl: e.target.value })}
-                  className="input-dark w-full px-3 py-2.5 text-sm"
-                  placeholder="https://cdn.exemplo.com/favicon.ico ou /favicon.png"
-                />
-                {branding.faviconUrl && (
-                  <div className="mt-3 p-3 rounded-lg border border-[#1E1E2A] bg-[#0A0A0F] inline-block">
-                    <p className="text-[10px] text-gray-500 mb-2">Pré-visualização</p>
-                    <img src={branding.faviconUrl} alt="Favicon" className="h-8 w-8 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-                  </div>
-                )}
-              </div>
+            <div className="space-y-3">
+              <p className="text-xs text-gray-400">
+                Ícone exibido na tab do browser. Recomendado: 32×32px, formato .ico ou .png.
+              </p>
+              <AdminImageField
+                label="Favicon"
+                value={branding.faviconUrl}
+                onChange={(v) => setBranding({ ...branding, faviconUrl: v })}
+                placeholder="https://cdn.exemplo.com/favicon.ico"
+                aspectClassName="aspect-square"
+                sizeHint={{ width: 32, height: 32, maxFileSizeKB: 100, formats: ["ICO", "PNG", "SVG"] }}
+              />
+              {branding.faviconUrl && (
+                <div className="rounded-lg border border-green-500/20 bg-green-500/5 p-3">
+                  <p className="text-[11px] text-green-400 font-semibold">✓ Favicon será aplicado após guardar</p>
+                </div>
+              )}
             </div>
           </Section>
 
-          <Section title="Imagem OpenGraph (SEO)" icon={Globe}>
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-gray-300">URL da Imagem OG</label>
-              <input
+          <Section title="Imagem OpenGraph (Redes Sociais / SEO)" icon={Globe}>
+            <div className="space-y-3">
+              <p className="text-xs text-gray-400">Imagem exibida ao partilhar o site nas redes sociais. Tamanho recomendado: 1200×630px.</p>
+              <AdminImageField
+                label="Imagem OG"
                 value={branding.ogImageUrl}
-                onChange={(e) => setBranding({ ...branding, ogImageUrl: e.target.value })}
-                className="input-dark w-full px-3 py-2.5 text-sm"
-                placeholder="https://cdn.exemplo.com/og-image.jpg (1200x630px recomendado)"
+                onChange={(v) => setBranding({ ...branding, ogImageUrl: v })}
+                placeholder="https://cdn.exemplo.com/og-image.jpg"
+                sizeHint={{ width: 1200, height: 630, maxFileSizeKB: 2048, formats: ["JPG", "PNG", "WebP"] }}
               />
             </div>
           </Section>
 
-          <button
-            onClick={handleSaveBranding}
-            disabled={savingBranding}
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#E50914] to-[#B00000] px-6 py-3 text-sm font-bold text-white shadow-[0_4px_20px_rgba(229,9,20,0.3)] hover:from-[#FF1A24] hover:to-[#E50914] transition-all disabled:opacity-60"
-          >
-            <Save className="h-4 w-4" />
-            {savingBranding ? "A guardar..." : "Guardar Identidade Visual"}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleSaveBranding}
+              disabled={savingBranding}
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#E50914] to-[#B00000] px-6 py-3 text-sm font-bold text-white shadow-[0_4px_20px_rgba(229,9,20,0.3)] hover:from-[#FF1A24] hover:to-[#E50914] transition-all disabled:opacity-60"
+            >
+              <Save className="h-4 w-4" />
+              {savingBranding ? "A guardar..." : "Guardar Identidade Visual"}
+            </button>
+            {(branding.logoUrl || branding.faviconUrl) && (
+              <button
+                onClick={() => { setBranding({ logoUrl: "", faviconUrl: "", ogImageUrl: "", primaryColor: "#E50914", siteName: "LiveSports" }); localStorage.removeItem("livesports_branding"); toast.success("Identidade visual reposta!"); }}
+                className="inline-flex items-center gap-2 rounded-xl border border-[#2A2A2A] px-4 py-3 text-sm text-gray-400 hover:text-white transition-colors"
+              >
+                Repor padrão
+              </button>
+            )}
+          </div>
         </div>
       )}
 

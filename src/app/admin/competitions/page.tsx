@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Search, Eye, Edit2, Trash2, RefreshCw, Trophy } from "lucide-react";
+import { Plus, Search, Eye, Edit2, Trash2, RefreshCw, Trophy, Archive } from "lucide-react";
 import type { Competition } from "@/types";
 import toast from "react-hot-toast";
 import { apiRequest } from "@/lib/api";
@@ -38,13 +38,14 @@ export default function CompetitionsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const filtered = useMemo(() => {
+  const filteredAll = useMemo(() => {
     const query = q.trim().toLowerCase();
     if (!query) return competitions;
     return competitions.filter((c) =>
       [c.name, c.slug, c.season || ""].some((v) => (v || "").toLowerCase().includes(query))
     );
   }, [competitions, q]);
+  const filtered = filteredAll.filter((c) => !(c as any).archived);
 
   const handleDelete = async (competition: Competition) => {
     if (!window.confirm(`Remover a competição "${competition.name}"? Esta ação não pode ser desfeita.`)) {
@@ -59,6 +60,24 @@ export default function CompetitionsPage() {
       toast.error(error instanceof Error ? error.message : "Não foi possível remover a competição.");
     }
   };
+
+  const handleArchiveToggle = async (competition: Competition, archived: boolean) => {
+    try {
+      await apiRequest(`/competitions/${competition.id}/archive`, {
+        method: "PATCH",
+        body: JSON.stringify({ archived }),
+      });
+      setCompetitions((prev) =>
+        prev.map((c) => (c.id === competition.id ? { ...c, archived } as Competition : c))
+      );
+      toast.success(archived ? "Competição arquivada!" : "Competição restaurada!");
+    } catch {
+      toast.error(archived ? "Erro ao arquivar" : "Erro ao restaurar");
+    }
+  };
+
+  const activeCompetitions = competitions.filter((c) => !(c as any).archived);
+  const archivedCompetitions = competitions.filter((c) => (c as any).archived);
 
   return (
     <div className="space-y-5">
@@ -178,6 +197,13 @@ export default function CompetitionsPage() {
                         <Edit2 className="h-3.5 w-3.5" />
                       </AdminActionButton>
                       <AdminActionButton
+                        title="Arquivar"
+                        tone="view"
+                        onClick={() => handleArchiveToggle(c, true)}
+                      >
+                        <Archive className="h-3.5 w-3.5 text-amber-400" />
+                      </AdminActionButton>
+                      <AdminActionButton
                         title="Remover competição"
                         tone="danger"
                         onClick={() => handleDelete(c)}
@@ -196,6 +222,52 @@ export default function CompetitionsPage() {
           <div className="p-10 text-center text-sm text-gray-400">Nenhuma competição encontrada.</div>
         )}
       </div>
+
+      {/* Archived Competitions */}
+      {archivedCompetitions.length > 0 && (
+        <div className="overflow-hidden rounded-xl border border-amber-500/20 bg-[#1A1A1A]">
+          <div className="flex items-center gap-2 border-b border-amber-500/20 bg-amber-500/5 px-4 py-3">
+            <Archive className="h-4 w-4 text-amber-400" />
+            <h3 className="text-sm font-bold text-amber-400">Competições Arquivadas</h3>
+            <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] text-amber-300">{archivedCompetitions.length}</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[600px]">
+              <thead>
+                <tr className="border-b border-[#2A2A2A]">
+                  {["Competição", "Temporada", "Status", "Ações"].map((h) => (
+                    <th key={h} className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-gray-500">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {archivedCompetitions.map((c) => (
+                  <tr key={c.id} className="border-b border-[#2A2A2A] last:border-0 opacity-60 hover:opacity-90 transition-opacity">
+                    <td className="px-4 py-3">
+                      <p className="text-sm font-semibold text-white">{c.name}</p>
+                      <p className="text-xs text-gray-500">{c.slug}</p>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-gray-300">{c.season || "—"}</td>
+                    <td className="px-4 py-3">
+                      <span className="rounded-full bg-gray-500/20 px-2 py-0.5 text-[10px] font-bold text-gray-400">{statusLabels[c.status] || c.status}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-1.5">
+                        <AdminActionButton title="Restaurar" tone="view" onClick={() => handleArchiveToggle(c, false)}>
+                          <span className="text-[10px] font-bold text-green-400 px-1">↩ Restaurar</span>
+                        </AdminActionButton>
+                        <AdminActionButton title="Remover" tone="danger" onClick={() => handleDelete(c)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </AdminActionButton>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Sync Modal */}
       {showSyncModal && (

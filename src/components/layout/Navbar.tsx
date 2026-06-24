@@ -25,6 +25,7 @@ export default function Navbar() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [liveCount, setLiveCount] = useState(0);
+  const [totalViewers, setTotalViewers] = useState(0);
   const [user, setUser] = useState<StoredUser | null>(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -41,10 +42,15 @@ export default function Navbar() {
   useEffect(() => {
     const fetchLiveCount = async () => {
       try {
-        const data = await publicApiRequest<ApiListResponse<Live>>("/lives?status=live&limit=1");
-        setLiveCount(data.pagination?.total ?? data.items?.length ?? 0);
+        const data = await publicApiRequest<ApiListResponse<Live>>("/lives?status=live&limit=50");
+        const count = data.pagination?.total ?? data.items?.length ?? 0;
+        setLiveCount(count);
+        // Sum viewer counts from live items
+        const viewers = (data.items || []).reduce((sum, l) => sum + (l.viewerCount || 0), 0);
+        setTotalViewers(viewers);
       } catch {
         setLiveCount(0);
+        setTotalViewers(0);
       }
     };
     fetchLiveCount();
@@ -215,9 +221,14 @@ export default function Navbar() {
             <div className="flex items-center gap-1.5">
               {/* Live count pill — dynamic */}
               {liveCount > 0 && (
-                <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E50914]/10 border border-[#E50914]/20 mr-1">
+                <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-[#E50914]/10 border border-[#E50914]/20 mr-1">
                   <span className="live-badge h-1.5 w-1.5 rounded-full bg-[#E50914]" />
                   <span className="text-[11px] font-bold text-[#E50914]">{liveCount} {t.nav_live_now}</span>
+                  {totalViewers > 0 && (
+                    <span className="text-[10px] text-gray-400 border-l border-[#E50914]/30 pl-2">
+                      {totalViewers >= 1000 ? `${(totalViewers / 1000).toFixed(1)}K` : totalViewers} online
+                    </span>
+                  )}
                 </div>
               )}
 

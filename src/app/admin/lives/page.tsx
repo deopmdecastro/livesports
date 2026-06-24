@@ -19,6 +19,7 @@ import {
   Server,
   X,
   RefreshCw,
+  Archive,
 } from "lucide-react";
 import { cn, formatDateTime, formatNumber, getSportLabel } from "@/utils";
 import type { Live, LiveStatus, LiveStreamServer, SportCategory, Event } from "@/types";
@@ -255,6 +256,19 @@ export default function LivesPage() {
       toast.success("Live removida com sucesso!");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Nao foi possivel remover a live.");
+    }
+  };
+
+  const handleArchiveToggle = async (live: Live, archived: boolean) => {
+    try {
+      await apiRequest(`/lives/${live.id}/archive`, {
+        method: "PATCH",
+        body: JSON.stringify({ archived }),
+      });
+      setLives((prev) => prev.map((l) => (l.id === live.id ? { ...l, archived } as Live : l)));
+      toast.success(archived ? "Live arquivada!" : "Live restaurada!");
+    } catch {
+      toast.error(archived ? "Erro ao arquivar" : "Erro ao restaurar");
     }
   };
 
@@ -622,6 +636,9 @@ export default function LivesPage() {
                       <AdminActionButton title="Editar live" onClick={() => handleEdit(live)} tone="edit">
                         <Edit2 className="h-4 w-4" />
                       </AdminActionButton>
+                      <AdminActionButton title="Arquivar live" onClick={() => handleArchiveToggle(live, true)} tone="view">
+                        <Archive className="h-4 w-4 text-amber-400" />
+                      </AdminActionButton>
                       <AdminActionButton title="Remover live" onClick={() => handleDelete(live.id)} tone="danger">
                         <Trash2 className="h-4 w-4" />
                       </AdminActionButton>
@@ -631,6 +648,55 @@ export default function LivesPage() {
               ))}
             </tbody>
           </table>
+
+      {/* ── Archived Lives ── */}
+      {lives.filter((l) => (l as any).archived).length > 0 && (
+        <div className="mt-4 overflow-hidden rounded-xl border border-amber-500/20 bg-[#1A1A1A]">
+          <div className="flex items-center gap-2 border-b border-amber-500/20 bg-amber-500/5 px-4 py-3">
+            <Archive className="h-4 w-4 text-amber-400" />
+            <h3 className="text-sm font-bold text-amber-400">Lives Arquivadas</h3>
+            <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] text-amber-300">
+              {lives.filter((l) => (l as any).archived).length}
+            </span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[700px]">
+              <thead>
+                <tr className="border-b border-[#2A2A2A]">
+                  {["Live", "Liga", "Status", "Data", "Ações"].map((h) => (
+                    <th key={h} className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-gray-500">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {lives.filter((l) => (l as any).archived).map((live) => (
+                  <tr key={live.id} className="border-b border-[#2A2A2A] last:border-0 opacity-60 hover:opacity-90 transition-opacity">
+                    <td className="px-4 py-3">
+                      <p className="text-sm font-semibold text-white truncate max-w-xs">
+                        {live.teamA && live.teamB ? `${live.teamA} vs ${live.teamB}` : live.title}
+                      </p>
+                      <p className="text-xs text-gray-400">{live.sport}</p>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-gray-300">{live.league || "-"}</td>
+                    <td className="px-4 py-3"><StatusBadge status={live.status} /></td>
+                    <td className="whitespace-nowrap px-4 py-3 text-xs text-gray-400">{formatDateTime(live.scheduledAt)}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-1.5">
+                        <AdminActionButton title="Restaurar" onClick={() => handleArchiveToggle(live, false)} tone="view">
+                          <span className="text-[10px] font-bold text-green-400 px-1">↩ Restaurar</span>
+                        </AdminActionButton>
+                        <AdminActionButton title="Remover" onClick={() => handleDelete(live.id)} tone="danger">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </AdminActionButton>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
           {filtered.length === 0 && (
             <div className="p-10 text-center">
