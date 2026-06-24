@@ -390,10 +390,19 @@ export async function ensureRuntimeSchema() {
 
   if (parseInt((adminExists[0] as { count: string })?.count ?? '0', 10) === 0) {
     const password = bcrypt.hashSync('admin123', 12);
-    await safeExec(`
-      INSERT INTO "users" ("name", "email", "password", "role")
-      VALUES ('Admin', 'admin@livesports.com', '${password}', 'admin')
-      ON CONFLICT ("email") DO NOTHING
-    `);
+    const insertAdmin = async () => {
+      await prisma.$executeRawUnsafe(
+        `
+          INSERT INTO "users" ("name", "email", "password", "role")
+          VALUES ($1, $2, $3, $4)
+          ON CONFLICT ("email") DO NOTHING
+        `,
+        'Admin',
+        'admin@livesports.com',
+        password,
+        'admin'
+      );
+    };
+    try { await insertAdmin(); } catch { /* column/table may already exist */ }
   }
 }
