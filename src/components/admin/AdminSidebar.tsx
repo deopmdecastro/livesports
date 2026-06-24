@@ -75,6 +75,7 @@ const navGroups: { title: string; items: NavItem[] }[] = [
     title: "Sistema",
     items: [
       { label: "Configurações", href: "/admin/settings", icon: Settings },
+      { label: "API Keys", href: "/admin/api-keys", icon: Key },
       { label: "Notificações", href: "/admin/notifications", icon: Bell },
       { label: "Logs", href: "/admin/logs", icon: ScrollText },
       { label: "Suporte", href: "/admin/support", icon: HeadphonesIcon },

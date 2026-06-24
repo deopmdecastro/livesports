@@ -485,11 +485,35 @@ function AddApiKeyModal({ onClose, onAdd }: { onClose: () => void; onAdd: (key: 
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
-const SETTINGS_TABS = ["Geral", "Segurança", "Notificações", "API Keys"] as const;
+const SETTINGS_TABS = ["Geral", "Identidade", "Segurança", "Notificações", "API Keys"] as const;
 type SettingsTab = typeof SETTINGS_TABS[number];
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>("Geral");
+
+  // Branding / Identity
+  const [branding, setBranding] = useState({
+    logoUrl: typeof window !== "undefined" ? JSON.parse(localStorage.getItem("livesports_branding") || "{}").logoUrl || "" : "",
+    faviconUrl: typeof window !== "undefined" ? JSON.parse(localStorage.getItem("livesports_branding") || "{}").faviconUrl || "" : "",
+    ogImageUrl: typeof window !== "undefined" ? JSON.parse(localStorage.getItem("livesports_branding") || "{}").ogImageUrl || "" : "",
+    primaryColor: "#E50914",
+    siteName: "LiveSports",
+  });
+  const [savingBranding, setSavingBranding] = useState(false);
+
+  const handleSaveBranding = async () => {
+    setSavingBranding(true);
+    try {
+      localStorage.setItem("livesports_branding", JSON.stringify(branding));
+      if (branding.faviconUrl) {
+        let link = document.querySelector<HTMLLinkElement>("link[rel~='icon']");
+        if (!link) { link = document.createElement("link"); document.head.appendChild(link); }
+        link.type = "image/x-icon"; link.rel = "shortcut icon"; link.href = branding.faviconUrl;
+      }
+      toast.success("Identidade visual guardada!");
+    } catch { toast.error("Erro ao guardar"); }
+    finally { setSavingBranding(false); }
+  };
 
   // General
   const [general, setGeneral] = useState({
@@ -573,7 +597,7 @@ export default function SettingsPage() {
         {/* Tab bar */}
         <div className="mt-5 flex gap-1 rounded-xl border border-[#1E1E2A] bg-[#0A0A0F] p-1">
           {SETTINGS_TABS.map((tab) => {
-            const icons: Record<SettingsTab, React.ElementType> = { Geral: Globe, Segurança: Shield, Notificações: Bell, "API Keys": Key };
+            const icons: Record<SettingsTab, React.ElementType> = { Geral: Globe, Identidade: Tv2, Segurança: Shield, Notificações: Bell, "API Keys": Key };
             const Icon = icons[tab];
             return (
               <button
@@ -639,6 +663,74 @@ export default function SettingsPage() {
             </div>
           </div>
         </Section>
+      )}
+
+      {/* ── TAB: IDENTIDADE ── */}
+      {activeTab === "Identidade" && (
+        <div className="space-y-5">
+          <Section title="Logótipo do Site" icon={Tv2}>
+            <div className="space-y-4">
+              <p className="text-xs text-gray-400">Defina o logótipo exibido na barra lateral do admin e na navbar do site.</p>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-gray-300">URL do Logótipo</label>
+                <input
+                  value={branding.logoUrl}
+                  onChange={(e) => setBranding({ ...branding, logoUrl: e.target.value })}
+                  className="input-dark w-full px-3 py-2.5 text-sm"
+                  placeholder="https://cdn.exemplo.com/logo.svg ou /logo.png"
+                />
+                {branding.logoUrl && (
+                  <div className="mt-3 p-3 rounded-lg border border-[#1E1E2A] bg-[#0A0A0F] inline-block">
+                    <p className="text-[10px] text-gray-500 mb-2">Pré-visualização</p>
+                    <img src={branding.logoUrl} alt="Logo" className="h-10 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                  </div>
+                )}
+              </div>
+            </div>
+          </Section>
+
+          <Section title="Favicon" icon={Globe}>
+            <div className="space-y-4">
+              <p className="text-xs text-gray-400">Ícone exibido na tab do browser. Use um arquivo .ico, .png ou .svg (recomendado 32x32px).</p>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-gray-300">URL do Favicon</label>
+                <input
+                  value={branding.faviconUrl}
+                  onChange={(e) => setBranding({ ...branding, faviconUrl: e.target.value })}
+                  className="input-dark w-full px-3 py-2.5 text-sm"
+                  placeholder="https://cdn.exemplo.com/favicon.ico ou /favicon.png"
+                />
+                {branding.faviconUrl && (
+                  <div className="mt-3 p-3 rounded-lg border border-[#1E1E2A] bg-[#0A0A0F] inline-block">
+                    <p className="text-[10px] text-gray-500 mb-2">Pré-visualização</p>
+                    <img src={branding.faviconUrl} alt="Favicon" className="h-8 w-8 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                  </div>
+                )}
+              </div>
+            </div>
+          </Section>
+
+          <Section title="Imagem OpenGraph (SEO)" icon={Globe}>
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-gray-300">URL da Imagem OG</label>
+              <input
+                value={branding.ogImageUrl}
+                onChange={(e) => setBranding({ ...branding, ogImageUrl: e.target.value })}
+                className="input-dark w-full px-3 py-2.5 text-sm"
+                placeholder="https://cdn.exemplo.com/og-image.jpg (1200x630px recomendado)"
+              />
+            </div>
+          </Section>
+
+          <button
+            onClick={handleSaveBranding}
+            disabled={savingBranding}
+            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#E50914] to-[#B00000] px-6 py-3 text-sm font-bold text-white shadow-[0_4px_20px_rgba(229,9,20,0.3)] hover:from-[#FF1A24] hover:to-[#E50914] transition-all disabled:opacity-60"
+          >
+            <Save className="h-4 w-4" />
+            {savingBranding ? "A guardar..." : "Guardar Identidade Visual"}
+          </button>
+        </div>
       )}
 
       {/* ── TAB: SEGURANÇA ── */}

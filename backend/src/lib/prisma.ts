@@ -292,6 +292,121 @@ export async function ensureRuntimeSchema() {
     }
   }
 
+  // ─── Migration 003: API Keys table ────────────────────────────────────────────
+  try {
+    const hasApiKeyStatus = await enumHasValue('api_key_status', 'active');
+    if (!hasApiKeyStatus) {
+      await prisma.$executeRawUnsafe(`CREATE TYPE IF NOT EXISTS "api_key_status" AS ENUM ('active', 'inactive', 'expired')`);
+      await prisma.$executeRawUnsafe(`CREATE TYPE IF NOT EXISTS "api_usage_type" AS ENUM ('live_streams','game_events','game_data','statistics','competitions','teams','players','shields','logos','flags','standings','odds','news')`);
+    }
+  } catch { /* enums may already exist */ }
+
+  await prisma.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS "api_keys" (
+      "id" TEXT NOT NULL DEFAULT gen_random_uuid()::TEXT,
+      "name" VARCHAR(200) NOT NULL,
+      "description" TEXT,
+      "provider" VARCHAR(200) NOT NULL,
+      "base_url" TEXT,
+      "key_value" TEXT NOT NULL,
+      "status" TEXT NOT NULL DEFAULT 'active',
+      "priority" INTEGER NOT NULL DEFAULT 1,
+      "request_limit" INTEGER,
+      "requests_used" INTEGER NOT NULL DEFAULT 0,
+      "error_count" INTEGER NOT NULL DEFAULT 0,
+      "last_used_at" TIMESTAMPTZ,
+      "last_synced_at" TIMESTAMPTZ,
+      "expires_at" TIMESTAMPTZ,
+      "usage_types" TEXT[] DEFAULT '{}',
+      "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      "updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      CONSTRAINT "api_keys_pkey" PRIMARY KEY ("id")
+    )
+  `);
+
+  // ─── Migration 004: System Logs table ──────────────────────────────────────
+  try {
+    const hasLogLevel = await enumHasValue('log_level', 'info');
+    if (!hasLogLevel) {
+      await prisma.$executeRawUnsafe(`CREATE TYPE IF NOT EXISTS "log_level" AS ENUM ('debug','info','warn','error','fatal')`);
+      await prisma.$executeRawUnsafe(`CREATE TYPE IF NOT EXISTS "log_service" AS ENUM ('api','player','sync','auth','admin','database','stream','system')`);
+    }
+  } catch { /* enums may already exist */ }
+
+  await prisma.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS "system_logs" (
+      "id" TEXT NOT NULL DEFAULT gen_random_uuid()::TEXT,
+      "level" TEXT NOT NULL DEFAULT 'info',
+      "service" TEXT NOT NULL DEFAULT 'system',
+      "message" TEXT NOT NULL,
+      "details" JSONB,
+      "user_id" TEXT,
+      "request_id" TEXT,
+      "ip" TEXT,
+      "user_agent" TEXT,
+      "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      CONSTRAINT "system_logs_pkey" PRIMARY KEY ("id")
+    )
+  `);
+
+  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "system_logs_created_at_idx" ON "system_logs"("created_at" DESC)`);
+  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "system_logs_level_idx" ON "system_logs"("level")`);
+
+  // ─── Migration 004b: Support Tickets ───────────────────────────────────────
+  try {
+    await prisma.$executeRawUnsafe(`CREATE TYPE IF NOT EXISTS "ticket_status" AS ENUM ('open','pending','resolved','closed')`);
+    await prisma.$executeRawUnsafe(`CREATE TYPE IF NOT EXISTS "ticket_priority" AS ENUM ('low','medium','high','critical')`);
+    await prisma.$executeRawUnsafe(`CREATE TYPE IF NOT EXISTS "ticket_category" AS ENUM ('player','account','billing','stream','content','technical','other')`);
+  } catch { /* enums may already exist */ }
+
+  await prisma.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS "support_tickets" (
+      "id" TEXT NOT NULL DEFAULT gen_random_uuid()::TEXT,
+      "subject" VARCHAR(500) NOT NULL,
+      "description" TEXT NOT NULL,
+      "status" TEXT NOT NULL DEFAULT 'open',
+      "priority" TEXT NOT NULL DEFAULT 'medium',
+      "category" TEXT NOT NULL DEFAULT 'other',
+      "user_id" TEXT,
+      "assigned_to" TEXT,
+      "resolved_at" TIMESTAMPTZ,
+      "closed_at" TIMESTAMPTZ,
+      "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      "updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      CONSTRAINT "support_tickets_pkey" PRIMARY KEY ("id")
+    )
+  `);
+
+  await prisma.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS "support_messages" (
+      "id" TEXT NOT NULL DEFAULT gen_random_uuid()::TEXT,
+      "ticket_id" TEXT NOT NULL,
+      "user_id" TEXT,
+      "message" TEXT NOT NULL,
+      "is_admin" BOOLEAN NOT NULL DEFAULT FALSE,
+      "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      CONSTRAINT "support_messages_pkey" PRIMARY KEY ("id"),
+      CONSTRAINT "support_messages_ticket_fk" FOREIGN KEY ("ticket_id") REFERENCES "support_tickets"("id") ON DELETE CASCADE
+    )
+  `);
+
+  // ─── Migration 004c: import tracking columns ────────────────────────────────
+  await prisma.$executeRawUnsafe(`
+    ALTER TABLE "events"
+      ADD COLUMN IF NOT EXISTS "import_source" TEXT,
+      ADD COLUMN IF NOT EXISTS "import_date" TIMESTAMPTZ,
+      ADD COLUMN IF NOT EXISTS "archived" BOOLEAN NOT NULL DEFAULT FALSE
+  `);
+
+  await prisma.$executeRawUnsafe(`
+    ALTER TABLE "lives"
+      ADD COLUMN IF NOT EXISTS "import_source" TEXT,
+      ADD COLUMN IF NOT EXISTS "import_date" TIMESTAMPTZ,
+      ADD COLUMN IF NOT EXISTS "origin_quality" TEXT,
+      ADD COLUMN IF NOT EXISTS "origin_language" TEXT,
+      ADD COLUMN IF NOT EXISTS "archived" BOOLEAN NOT NULL DEFAULT FALSE
+  `);
+
   const password = bcrypt.hashSync('admin123', 12);
   await prisma.$executeRawUnsafe(
     `

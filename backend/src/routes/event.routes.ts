@@ -414,8 +414,6 @@ router.post('/', authenticateToken, requireEditor, async (req, res, next) => {
         RETURNING *
       `,
       body.title,
-      body.description || null,
-      body.title,
       body.description ?? null,
       body.thumbnail ?? null,
       body.sport,
@@ -534,6 +532,29 @@ router.delete('/:id', authenticateToken, requireEditor, async (req, res, next) =
   } catch (error) {
     next(error);
   }
+});
+
+// ─── Quick Actions ─────────────────────────────────────────────────────────────
+router.patch('/:id/status', authenticateToken, requireEditor, async (req, res, next) => {
+  try {
+    const rows = await prisma.$queryRawUnsafe<any[]>(
+      `UPDATE "events" SET status = $2::event_status, updated_at = NOW() WHERE id = $1 RETURNING *`,
+      req.params.id, req.body.status
+    );
+    if (!rows[0]) { res.status(404).json({ success: false, error: 'Evento nao encontrado' }); return; }
+    res.json({ success: true, data: mapEvent(rows[0]) });
+  } catch (error) { next(error); }
+});
+
+router.patch('/:id/archive', authenticateToken, requireEditor, async (req, res, next) => {
+  try {
+    const rows = await prisma.$queryRawUnsafe<any[]>(
+      `UPDATE "events" SET archived = $2, updated_at = NOW() WHERE id = $1 RETURNING *`,
+      req.params.id, Boolean(req.body.archived ?? true)
+    );
+    if (!rows[0]) { res.status(404).json({ success: false, error: 'Evento nao encontrado' }); return; }
+    res.json({ success: true, data: mapEvent(rows[0]) });
+  } catch (error) { next(error); }
 });
 
 export default router;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Calendar, Download, Edit2, Eye, Plus, RefreshCw, Search, Trash2, X } from "lucide-react";
+import { Calendar, Download, Edit2, Eye, Plus, RefreshCw, Search, Trash2, X, CheckCircle, XCircle, Archive } from "lucide-react";
 import { formatDateTime } from "@/utils";
 import type { Event, SportCategory } from "@/types";
 import AdminSelect from "@/components/admin/AdminSelect";
@@ -284,7 +284,12 @@ export default function EventsPage() {
                   <td className="px-4 py-3 text-xs text-gray-300">{sportOptions.find((sport) => sport.value === event.sport)?.label}</td>
                   <td className="whitespace-nowrap px-4 py-3 text-xs text-gray-300">{formatDateTime(event.scheduledAt)}</td>
                   <td className="px-4 py-3"><span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${event.status === "live" ? "bg-red-500/20 text-red-400" : event.status === "finished" ? "bg-gray-500/20 text-gray-400" : event.status === "cancelled" ? "bg-yellow-500/20 text-yellow-400" : "bg-blue-500/20 text-blue-400"}`}>{statusOptions.find((status) => status.value === event.status)?.label}</span></td>
-                  <td className="px-4 py-3"><div className="flex gap-1.5"><AdminActionButton title="Visualizar" onClick={() => openModal("view", event)} tone="view"><Eye className="h-3.5 w-3.5" /></AdminActionButton><AdminActionButton title="Editar" onClick={() => openModal("edit", event)} tone="edit"><Edit2 className="h-3.5 w-3.5" /></AdminActionButton><AdminActionButton title="Remover" onClick={async () => { try { await apiRequest(`/events/${event.id}`, { method: "DELETE" }); setEvents((current) => current.filter((item) => item.id !== event.id)); toast.success("Evento removido!"); } catch (error) { toast.error(error instanceof Error ? error.message : "Nao foi possivel remover o evento."); } }} tone="danger"><Trash2 className="h-3.5 w-3.5" /></AdminActionButton></div></td>
+                  <td className="px-4 py-3"><div className="flex gap-1.5">
+                    <AdminActionButton title="Visualizar" onClick={() => openModal("view", event)} tone="view"><Eye className="h-3.5 w-3.5" /></AdminActionButton>
+                    <AdminActionButton title="Editar" onClick={() => openModal("edit", event)} tone="edit"><Edit2 className="h-3.5 w-3.5" /></AdminActionButton>
+                    <AdminActionButton title="Arquivar" onClick={async () => { try { await apiRequest(`/events/${event.id}/archive`, { method: "PATCH", body: JSON.stringify({ archived: true }) }); setEvents((prev) => prev.filter((e) => e.id !== event.id)); toast.success("Evento arquivado!"); } catch { toast.error("Erro ao arquivar"); } }} tone="view"><Archive className="h-3.5 w-3.5 text-gray-400" /></AdminActionButton>
+                    <AdminActionButton title="Remover" onClick={async () => { if (!confirm("Remover este evento?")) return; try { await apiRequest(`/events/${event.id}`, { method: "DELETE" }); setEvents((current) => current.filter((item) => item.id !== event.id)); toast.success("Evento removido!"); } catch (error) { toast.error(error instanceof Error ? error.message : "Nao foi possivel remover."); } }} tone="danger"><Trash2 className="h-3.5 w-3.5" /></AdminActionButton>
+                  </div></td>
                 </tr>
               ))}
             </tbody>

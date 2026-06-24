@@ -21,9 +21,14 @@ import newsRoutes from './routes/news.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import categoryRoutes from './routes/category.routes';
 import integrationRoutes from './routes/integration.routes';
+import apiKeysRoutes from './routes/apikeys.routes';
+import logsRoutes from './routes/logs.routes';
+import supportRoutes from './routes/support.routes';
+import reportsRoutes from './routes/reports.routes';
 import { ensureRuntimeSchema } from './lib/prisma';
 import { prisma } from './lib/prisma';
 import { structuredLogger, slowRequestWarner } from './middleware/logger.middleware';
+import { writeLog } from './routes/logs.routes';
 
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
@@ -223,6 +228,10 @@ app.use('/api/news', newsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/integrations', integrationRoutes);
+app.use('/api/api-keys', apiKeysRoutes);
+app.use('/api/logs', logsRoutes);
+app.use('/api/support', supportRoutes);
+app.use('/api/reports', reportsRoutes);
 
 // Apply mutation limiter to write operations on all routes
 app.use('/api/', (req, res, next) => {
@@ -247,6 +256,18 @@ app.use((err: Error & { status?: number; code?: string }, req: express.Request, 
     stack: process.env.NODE_ENV !== 'production' ? err.stack : undefined,
     requestId: (req as any).requestId,
     userId: (req as any).user?.id,
+  });
+
+  // Persist to system_logs table
+  writeLog({
+    level: statusCode >= 500 ? 'error' : 'warn',
+    service: 'api',
+    message: `${req.method} ${req.path} → ${statusCode}: ${err.message}`,
+    details: { method: req.method, path: req.path, status: statusCode },
+    userId: (req as any).user?.id,
+    requestId: (req as any).requestId,
+    ip: req.ip,
+    userAgent: req.headers['user-agent'],
   });
 
   // CORS error

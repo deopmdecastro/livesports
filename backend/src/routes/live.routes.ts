@@ -575,6 +575,30 @@ router.patch('/:id/status', authenticateToken, requireEditor, async (req: AuthRe
   }
 });
 
+router.patch('/:id/archive', authenticateToken, requireEditor, async (req: AuthRequest, res, next) => {
+  try {
+    const rows = await prisma.$queryRawUnsafe<any[]>(
+      `UPDATE "lives" SET archived = $2, updated_at = NOW() WHERE id = $1 RETURNING *`,
+      req.params.id, Boolean(req.body.archived ?? true)
+    );
+    if (!rows[0]) { res.status(404).json({ success: false, error: 'Live nao encontrada' }); return; }
+    invalidateCachePrefix('lives:');
+    res.json({ success: true, data: mapLive(rows[0]) });
+  } catch (error) { next(error); }
+});
+
+router.patch('/:id/featured', authenticateToken, requireEditor, async (req: AuthRequest, res, next) => {
+  try {
+    const rows = await prisma.$queryRawUnsafe<any[]>(
+      `UPDATE "lives" SET featured = $2, updated_at = NOW() WHERE id = $1 RETURNING *`,
+      req.params.id, Boolean(req.body.featured ?? true)
+    );
+    if (!rows[0]) { res.status(404).json({ success: false, error: 'Live nao encontrada' }); return; }
+    invalidateCachePrefix('lives:');
+    res.json({ success: true, data: mapLive(rows[0]) });
+  } catch (error) { next(error); }
+});
+
 router.delete('/:id', authenticateToken, requireAdmin, async (req: AuthRequest, res, next) => {
   try {
     const rows = await prisma.$queryRawUnsafe<any[]>(`DELETE FROM "lives" WHERE id = $1 RETURNING id`, req.params.id);
