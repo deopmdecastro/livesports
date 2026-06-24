@@ -6,152 +6,13 @@ import {
   Key, Eye, EyeOff, Plus, Trash2, RefreshCw,
   CheckCircle2, XCircle, AlertCircle, Copy, Zap,
   Tv2, Trophy, BarChart3, Cloud, ExternalLink,
-  ChevronDown, Info,
+  ChevronDown, Info, ArrowRight,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import AdminImageField from "@/components/admin/AdminImageField";
+import Link from "next/link";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
-
-interface ApiKey {
-  id: string;
-  provider: string;
-  label: string;
-  key: string;
-  secret?: string;
-  baseUrl?: string;
-  category: "sports" | "live" | "results" | "media" | "other";
-  status: "active" | "error" | "untested";
-  lastTestedAt?: string;
-  createdAt: string;
-}
-
-// ─── Providers catalogue ──────────────────────────────────────────────────────
-
-const PROVIDER_CATALOGUE = [
-  {
-    id: "api_football",
-    label: "API-Football (RapidAPI)",
-    category: "sports" as const,
-    url: "https://rapidapi.com/api-sports/api/api-football",
-    description: "Jogos, resultados, classificações, eventos ao vivo de futebol",
-    keyLabel: "X-RapidAPI-Key",
-    secretLabel: "",
-    baseUrl: "https://api-football-v1.p.rapidapi.com/v3",
-    logo: "🏟️",
-  },
-  {
-    id: "sportradar",
-    label: "Sportradar",
-    category: "sports" as const,
-    url: "https://developer.sportradar.com",
-    description: "Dados desportivos em tempo real — futebol, basquete, ténis, NFL, MLB",
-    keyLabel: "API Key",
-    secretLabel: "",
-    baseUrl: "https://api.sportradar.com",
-    logo: "📡",
-  },
-  {
-    id: "thesportsdb",
-    label: "TheSportsDB",
-    category: "sports" as const,
-    url: "https://www.thesportsdb.com/api.php",
-    description: "Base de dados desportiva — ligas, equipas, jogadores, logos",
-    keyLabel: "API Key",
-    secretLabel: "",
-    baseUrl: "https://www.thesportsdb.com/api/v1/json",
-    logo: "🏅",
-  },
-  {
-    id: "football_data",
-    label: "Football-Data.org",
-    category: "sports" as const,
-    url: "https://www.football-data.org",
-    description: "API gratuita de futebol — ligas europeias, Copa do Mundo",
-    keyLabel: "X-Auth-Token",
-    secretLabel: "",
-    baseUrl: "https://api.football-data.org/v4",
-    logo: "⚽",
-  },
-  {
-    id: "livescore",
-    label: "LiveScore API",
-    category: "results" as const,
-    url: "https://rapidapi.com/apidojo/api/livescore6",
-    description: "Resultados em tempo real de múltiplos desportos",
-    keyLabel: "X-RapidAPI-Key",
-    secretLabel: "",
-    baseUrl: "https://livescore6.p.rapidapi.com",
-    logo: "🔴",
-  },
-  {
-    id: "streamm3u",
-    label: "StreamM3U / IPTV Provider",
-    category: "live" as const,
-    url: "",
-    description: "Fornecedor de streams M3U8 para transmissões ao vivo",
-    keyLabel: "Username / Key",
-    secretLabel: "Password / Secret",
-    baseUrl: "",
-    logo: "📺",
-  },
-  {
-    id: "cloudflare_stream",
-    label: "Cloudflare Stream",
-    category: "live" as const,
-    url: "https://developers.cloudflare.com/stream",
-    description: "Hosting e CDN de vídeos e streams ao vivo",
-    keyLabel: "API Token",
-    secretLabel: "Account ID",
-    baseUrl: "https://api.cloudflare.com/client/v4",
-    logo: "☁️",
-  },
-  {
-    id: "mux",
-    label: "Mux Video",
-    category: "live" as const,
-    url: "https://mux.com",
-    description: "Plataforma de vídeo e streaming ao vivo escalável",
-    keyLabel: "Access Token ID",
-    secretLabel: "Secret Key",
-    baseUrl: "https://api.mux.com",
-    logo: "▶️",
-  },
-  {
-    id: "custom",
-    label: "Provedor Personalizado",
-    category: "other" as const,
-    url: "",
-    description: "Configure manualmente qualquer API ou endpoint",
-    keyLabel: "API Key / Token",
-    secretLabel: "Secret (opcional)",
-    baseUrl: "",
-    logo: "🔧",
-  },
-];
-
-const CATEGORY_META = {
-  sports:  { label: "Dados Desportivos", color: "#22C55E", icon: Trophy },
-  live:    { label: "Streaming / Live",  color: "#E50914", icon: Tv2 },
-  results: { label: "Resultados",        color: "#3B82F6", icon: BarChart3 },
-  media:   { label: "Media / CDN",       color: "#8B5CF6", icon: Cloud },
-  other:   { label: "Outros",            color: "#6B7280", icon: Zap },
-};
-
-// ─── Initial mock data ─────────────────────────────────────────────────────────
-
-const INITIAL_KEYS: ApiKey[] = [
-  {
-    id: "k1",
-    provider: "api_football",
-    label: "API-Football (RapidAPI)",
-    key: "••••••••••••••••••••••••••••••••••••",
-    category: "sports",
-    status: "active",
-    lastTestedAt: "2026-06-23T10:00:00Z",
-    createdAt: "2026-06-01T10:00:00Z",
-  },
-];
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -207,279 +68,6 @@ function Toggle({ checked, onChange, label, sub }: { checked: boolean; onChange:
       >
         <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform mt-0.5 ${checked ? "translate-x-4" : "translate-x-0.5"}`} />
       </button>
-    </div>
-  );
-}
-
-function StatusBadge({ status }: { status: ApiKey["status"] }) {
-  const map = {
-    active: { color: "#22C55E", label: "Ativo", Icon: CheckCircle2 },
-    error:  { color: "#E50914", label: "Erro",  Icon: XCircle },
-    untested: { color: "#F59E0B", label: "Não testado", Icon: AlertCircle },
-  };
-  const { color, label, Icon } = map[status];
-  return (
-    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold" style={{ color, background: `${color}15`, border: `1px solid ${color}25` }}>
-      <Icon className="h-2.5 w-2.5" />
-      {label}
-    </span>
-  );
-}
-
-// ─── API Key Card ─────────────────────────────────────────────────────────────
-
-function ApiKeyCard({
-  apiKey, onDelete, onTest, onToggleReveal, revealed,
-}: {
-  apiKey: ApiKey;
-  onDelete: () => void;
-  onTest: () => void;
-  onToggleReveal: () => void;
-  revealed: boolean;
-}) {
-  const catMeta = CATEGORY_META[apiKey.category];
-  const CatIcon = catMeta.icon;
-
-  const copyKey = () => {
-    navigator.clipboard.writeText(apiKey.key).then(() => toast.success("Chave copiada!"));
-  };
-
-  return (
-    <div className="rounded-xl border border-[#1E1E2A] bg-[#111118] p-4 group hover:border-[#2A2A38] transition-colors">
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl text-lg bg-[#1A1A24] border border-[#1E1E2A] flex-shrink-0">
-            {PROVIDER_CATALOGUE.find((p) => p.id === apiKey.provider)?.logo || "🔑"}
-          </div>
-          <div>
-            <p className="text-sm font-bold text-white leading-tight">{apiKey.label}</p>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="inline-flex items-center gap-1 text-[10px] font-semibold" style={{ color: catMeta.color }}>
-                <CatIcon className="h-2.5 w-2.5" />
-                {catMeta.label}
-              </span>
-            </div>
-          </div>
-        </div>
-        <StatusBadge status={apiKey.status} />
-      </div>
-
-      {/* Key display */}
-      <div className="flex items-center gap-2 mb-3">
-        <div className="flex-1 rounded-lg bg-[#0A0A0F] border border-[#1E1E2A] px-3 py-2 font-mono text-xs text-gray-400 truncate">
-          {revealed ? apiKey.key : "••••••••••••••••••••••••••••••••••••"}
-        </div>
-        <button onClick={onToggleReveal} className="p-2 text-gray-500 hover:text-white transition-colors rounded-lg hover:bg-white/5">
-          {revealed ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-        </button>
-        <button onClick={copyKey} className="p-2 text-gray-500 hover:text-blue-400 transition-colors rounded-lg hover:bg-blue-500/5">
-          <Copy className="h-3.5 w-3.5" />
-        </button>
-      </div>
-
-      {apiKey.baseUrl && (
-        <p className="text-[10px] text-gray-600 mb-3 font-mono truncate">Base URL: {apiKey.baseUrl}</p>
-      )}
-
-      {apiKey.lastTestedAt && (
-        <p className="text-[10px] text-gray-600 mb-3">
-          Testado: {new Date(apiKey.lastTestedAt).toLocaleString("pt-PT")}
-        </p>
-      )}
-
-      <div className="flex items-center gap-2">
-        <button
-          onClick={onTest}
-          className="flex items-center gap-1.5 rounded-lg border border-[#1E1E2A] bg-[#0A0A0F] px-3 py-1.5 text-[10px] font-bold text-gray-300 hover:text-white hover:border-[#2A2A38] transition-all"
-        >
-          <Zap className="h-3 w-3" /> Testar conexão
-        </button>
-        <button
-          onClick={onDelete}
-          className="ml-auto flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[10px] font-semibold text-gray-600 hover:text-red-400 hover:bg-red-500/5 transition-colors"
-        >
-          <Trash2 className="h-3 w-3" /> Remover
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ─── Add API Key Modal ────────────────────────────────────────────────────────
-
-function AddApiKeyModal({ onClose, onAdd }: { onClose: () => void; onAdd: (key: ApiKey) => void }) {
-  const [step, setStep] = useState<"provider" | "configure">("provider");
-  const [selectedProvider, setSelectedProvider] = useState<typeof PROVIDER_CATALOGUE[0] | null>(null);
-  const [customLabel, setCustomLabel] = useState("");
-  const [keyValue, setKeyValue] = useState("");
-  const [secretValue, setSecretValue] = useState("");
-  const [baseUrlValue, setBaseUrlValue] = useState("");
-  const [showKey, setShowKey] = useState(false);
-
-  const handleProviderSelect = (provider: typeof PROVIDER_CATALOGUE[0]) => {
-    setSelectedProvider(provider);
-    setCustomLabel(provider.label);
-    setBaseUrlValue(provider.baseUrl);
-    setStep("configure");
-  };
-
-  const handleAdd = () => {
-    if (!selectedProvider || !keyValue.trim()) {
-      toast.error("Preencha a chave de API.");
-      return;
-    }
-    const newKey: ApiKey = {
-      id: Date.now().toString(),
-      provider: selectedProvider.id,
-      label: customLabel || selectedProvider.label,
-      key: keyValue.trim(),
-      secret: secretValue.trim() || undefined,
-      baseUrl: baseUrlValue.trim() || undefined,
-      category: selectedProvider.category,
-      status: "untested",
-      createdAt: new Date().toISOString(),
-    };
-    onAdd(newKey);
-    toast.success("Chave adicionada! Teste a conexão para validar.");
-    onClose();
-  };
-
-  const filterByCategory = (cat: string) =>
-    PROVIDER_CATALOGUE.filter((p) => cat === "all" || p.category === cat);
-
-  const [catFilter, setCatFilter] = useState("all");
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-[#1E1E2A]">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#E50914]/10 border border-[#E50914]/20">
-              <Key className="h-4 w-4 text-[#E50914]" />
-            </div>
-            <div>
-              <h3 className="font-black text-white">
-                {step === "provider" ? "Selecionar Provedor" : `Configurar: ${selectedProvider?.label}`}
-              </h3>
-              <p className="text-[11px] text-gray-500">
-                {step === "provider" ? "Escolha o tipo de API a integrar" : "Insira as credenciais do provedor"}
-              </p>
-            </div>
-          </div>
-          <button onClick={onClose} className="rounded-xl p-2 text-gray-400 hover:bg-white/5 hover:text-white">
-            <XCircle className="h-4 w-4" />
-          </button>
-        </div>
-
-        {/* Step: Select provider */}
-        {step === "provider" && (
-          <div className="p-5 space-y-4">
-            {/* Category filter */}
-            <div className="flex gap-1.5 flex-wrap">
-              {[["all", "Todos"], ...Object.entries(CATEGORY_META).map(([k, v]) => [k, v.label])].map(([k, label]) => (
-                <button
-                  key={k}
-                  onClick={() => setCatFilter(k)}
-                  className={`px-3 py-1 rounded-full text-[10px] font-bold transition-all ${catFilter === k ? "bg-[#E50914] text-white" : "bg-[#111118] text-gray-400 border border-[#1E1E2A] hover:text-white"}`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            <div className="grid gap-2">
-              {filterByCategory(catFilter).map((provider) => {
-                const catMeta = CATEGORY_META[provider.category];
-                const CatIcon = catMeta.icon;
-                return (
-                  <button
-                    key={provider.id}
-                    onClick={() => handleProviderSelect(provider)}
-                    className="flex items-center gap-4 p-4 rounded-xl border border-[#1E1E2A] bg-[#111118] hover:border-[#E50914]/30 hover:bg-[#1A1A24] transition-all text-left group"
-                  >
-                    <span className="text-2xl flex-shrink-0">{provider.logo}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-bold text-white group-hover:text-white">{provider.label}</p>
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ color: catMeta.color, background: `${catMeta.color}15` }}>
-                          <CatIcon className="h-2 w-2 inline mr-0.5" />{catMeta.label}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">{provider.description}</p>
-                    </div>
-                    {provider.url && (
-                      <ExternalLink className="h-3.5 w-3.5 text-gray-600 flex-shrink-0" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Step: Configure */}
-        {step === "configure" && selectedProvider && (
-          <div className="p-5 space-y-4">
-            <button onClick={() => setStep("provider")} className="text-xs text-gray-500 hover:text-white transition-colors flex items-center gap-1">
-              ← Voltar à seleção
-            </button>
-
-            {selectedProvider.url && (
-              <div className="flex items-center gap-2 rounded-xl bg-blue-500/5 border border-blue-500/20 px-4 py-3">
-                <Info className="h-3.5 w-3.5 text-blue-400 flex-shrink-0" />
-                <p className="text-xs text-blue-300">
-                  Obtenha a sua chave em{" "}
-                  <a href={selectedProvider.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-200">
-                    {selectedProvider.url}
-                  </a>
-                </p>
-              </div>
-            )}
-
-            <Field label="Nome / Etiqueta">
-              <Input value={customLabel} onChange={setCustomLabel} placeholder={selectedProvider.label} />
-            </Field>
-
-            <Field label={`${selectedProvider.keyLabel} *`} hint="Nunca partilhe esta chave publicamente">
-              <div className="relative">
-                <input
-                  type={showKey ? "text" : "password"}
-                  value={keyValue}
-                  onChange={(e) => setKeyValue(e.target.value)}
-                  placeholder="sk-••••••••••••••••"
-                  className="input-dark w-full px-3 py-2.5 pr-10 text-sm font-mono"
-                />
-                <button onClick={() => setShowKey(!showKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white">
-                  {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            </Field>
-
-            {selectedProvider.secretLabel && (
-              <Field label={selectedProvider.secretLabel}>
-                <Input value={secretValue} onChange={setSecretValue} placeholder="••••••••••••••••" type="password" mono />
-              </Field>
-            )}
-
-            <Field label="Base URL">
-              <Input value={baseUrlValue} onChange={setBaseUrlValue} placeholder="https://api.example.com/v1" mono />
-            </Field>
-
-            <div className="flex justify-end gap-3 pt-2 border-t border-[#1E1E2A]">
-              <button onClick={onClose} className="rounded-xl border border-[#1E1E2A] bg-[#111118] px-4 py-2.5 text-sm text-gray-300 hover:text-white transition-colors">
-                Cancelar
-              </button>
-              <button
-                onClick={handleAdd}
-                className="rounded-xl bg-gradient-to-r from-[#E50914] to-[#B00000] px-5 py-2.5 text-sm font-bold text-white shadow-[0_4px_16px_rgba(229,9,20,0.3)] hover:from-[#FF1A24] hover:to-[#E50914] transition-all"
-              >
-                Adicionar Chave
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
     </div>
   );
 }
@@ -564,43 +152,7 @@ export default function SettingsPage() {
     telegramChatId: "",
   });
 
-  // API Keys
-  const [apiKeys, setApiKeys] = useState<ApiKey[]>(INITIAL_KEYS);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set());
-  const [testingId, setTestingId] = useState<string | null>(null);
-
-  const toggleReveal = (id: string) => {
-    setRevealedKeys((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  };
-
-  const testKey = async (id: string) => {
-    setTestingId(id);
-    await new Promise((r) => setTimeout(r, 1800));
-    setApiKeys((prev) =>
-      prev.map((k) => k.id === id ? { ...k, status: "active", lastTestedAt: new Date().toISOString() } : k)
-    );
-    setTestingId(null);
-    toast.success("Conexão validada com sucesso!");
-  };
-
-  const deleteKey = (id: string) => {
-    if (!window.confirm("Remover esta chave de API?")) return;
-    setApiKeys((prev) => prev.filter((k) => k.id !== id));
-    toast.success("Chave removida.");
-  };
-
   const handleSave = () => toast.success("Configurações guardadas!");
-
-  const groupedKeys = Object.keys(CATEGORY_META).reduce((acc, cat) => {
-    const keys = apiKeys.filter((k) => k.category === cat);
-    if (keys.length) acc[cat] = keys;
-    return acc;
-  }, {} as Record<string, ApiKey[]>);
 
   return (
     <div className="space-y-5 max-w-4xl">
@@ -816,91 +368,54 @@ export default function SettingsPage() {
       {activeTab === "API Keys" && (
         <div className="space-y-5">
           {/* Info banner */}
-          <div className="flex gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
-            <AlertCircle className="h-4 w-4 text-amber-400 flex-shrink-0 mt-0.5" />
-            <div className="text-xs text-amber-300 leading-relaxed">
-              <strong className="text-amber-200">Segurança:</strong> As chaves de API são armazenadas de forma encriptada e nunca expostas ao frontend público.
-              Apenas administradores com permissão <code className="bg-amber-500/10 px-1 rounded">api:keys</code> podem visualizá-las.
+          <div className="flex gap-3 rounded-xl border border-blue-500/20 bg-blue-500/5 p-4">
+            <Info className="h-4 w-4 text-blue-400 flex-shrink-0 mt-0.5" />
+            <div className="text-xs text-blue-300 leading-relaxed">
+              A gestão de API Keys foi centralizada numa página dedicada com suporte a persistência real na base de dados,
+              gestão de prioridades, limites de requests, tipos de utilização e descoberta automática de APIs configuradas por variáveis de ambiente.
             </div>
           </div>
 
-          {/* Stats */}
-          <div className="grid gap-3 sm:grid-cols-4">
+          {/* Redirect card */}
+          <Link
+            href="/admin/api-keys"
+            className="group flex items-center justify-between gap-4 rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] p-6 hover:border-[#E50914]/40 hover:bg-[#0E0E16]/80 transition-all"
+          >
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#E50914]/10 border border-[#E50914]/20">
+                <Key className="h-6 w-6 text-[#E50914]" />
+              </div>
+              <div>
+                <p className="font-bold text-white text-base">Gestão de API Keys</p>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Adicione, edite e monitorize chaves de API — dados desportivos, streams, resultados e mais.
+                </p>
+              </div>
+            </div>
+            <ArrowRight className="h-5 w-5 text-gray-500 group-hover:text-[#E50914] group-hover:translate-x-1 transition-all flex-shrink-0" />
+          </Link>
+
+          {/* Feature highlights */}
+          <div className="grid gap-3 sm:grid-cols-3">
             {[
-              { label: "Total de Chaves", value: apiKeys.length, color: "text-white" },
-              { label: "Ativas", value: apiKeys.filter((k) => k.status === "active").length, color: "text-emerald-400" },
-              { label: "Com Erros", value: apiKeys.filter((k) => k.status === "error").length, color: "text-red-400" },
-              { label: "Não Testadas", value: apiKeys.filter((k) => k.status === "untested").length, color: "text-amber-400" },
-            ].map(({ label, value, color }) => (
-              <div key={label} className="rounded-xl border border-[#1E1E2A] bg-[#0E0E16] p-4 text-center">
-                <p className={`text-2xl font-black ${color}`}>{value}</p>
-                <p className="text-[10px] text-gray-500 mt-0.5">{label}</p>
+              { icon: Database, color: "#22C55E", label: "Persistência real", desc: "Chaves guardadas na base de dados, não no browser" },
+              { icon: Shield, color: "#3B82F6", label: "Gestão avançada", desc: "Prioridades, limites de requests e status por chave" },
+              { icon: Zap, color: "#F59E0B", label: "Descoberta automática", desc: "Deteta APIs configuradas via variáveis de ambiente" },
+            ].map(({ icon: Icon, color, label, desc }) => (
+              <div key={label} className="rounded-xl border border-[#1E1E2A] bg-[#0A0A0F] p-4">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg mb-3" style={{ background: `${color}15`, border: `1px solid ${color}25` }}>
+                  <Icon className="h-4 w-4" style={{ color }} />
+                </div>
+                <p className="text-sm font-semibold text-white mb-1">{label}</p>
+                <p className="text-[11px] text-gray-500 leading-relaxed">{desc}</p>
               </div>
             ))}
           </div>
-
-          {/* Add button */}
-          <div className="flex justify-end">
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#E50914] to-[#B00000] px-5 py-2.5 text-sm font-bold text-white shadow-[0_4px_20px_rgba(229,9,20,0.3)] hover:from-[#FF1A24] hover:to-[#E50914] transition-all"
-            >
-              <Plus className="h-4 w-4" />
-              Adicionar Chave de API
-            </button>
-          </div>
-
-          {/* Keys grouped by category */}
-          {Object.entries(groupedKeys).map(([cat, keys]) => {
-            const meta = CATEGORY_META[cat as keyof typeof CATEGORY_META];
-            const CatIcon = meta.icon;
-            return (
-              <div key={cat}>
-                <div className="flex items-center gap-2 mb-3">
-                  <CatIcon className="h-4 w-4" style={{ color: meta.color }} />
-                  <h4 className="text-sm font-bold text-white">{meta.label}</h4>
-                  <span className="text-xs text-gray-600">({keys.length})</span>
-                </div>
-                <div className="grid gap-3 md:grid-cols-2">
-                  {keys.map((key) => (
-                    <div key={key.id} className="relative">
-                      {testingId === key.id && (
-                        <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-black/60 backdrop-blur-sm">
-                          <div className="flex items-center gap-2 text-xs text-white font-semibold">
-                            <RefreshCw className="h-4 w-4 animate-spin" />
-                            A testar conexão...
-                          </div>
-                        </div>
-                      )}
-                      <ApiKeyCard
-                        apiKey={key}
-                        onDelete={() => deleteKey(key.id)}
-                        onTest={() => testKey(key.id)}
-                        onToggleReveal={() => toggleReveal(key.id)}
-                        revealed={revealedKeys.has(key.id)}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-
-          {apiKeys.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-16 text-center rounded-2xl border border-dashed border-[#1E1E2A]">
-              <Key className="h-10 w-10 text-gray-700 mb-3" />
-              <p className="text-gray-400 font-medium">Nenhuma chave de API configurada</p>
-              <p className="text-xs text-gray-600 mt-1 mb-4">Adicione chaves para integrar provedores de dados, streams e resultados.</p>
-              <button onClick={() => setShowAddModal(true)} className="text-sm text-[#E50914] hover:underline">
-                + Adicionar primeira chave
-              </button>
-            </div>
-          )}
         </div>
       )}
 
       {/* Save button (not on API Keys tab) */}
-      {activeTab !== "API Keys" && (
+      {activeTab !== "API Keys" && activeTab !== "Identidade" && (
         <button
           onClick={handleSave}
           className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#E50914] to-[#B00000] px-6 py-3 text-sm font-bold text-white shadow-[0_4px_20px_rgba(229,9,20,0.3)] hover:from-[#FF1A24] hover:to-[#E50914] transition-all"
@@ -908,14 +423,6 @@ export default function SettingsPage() {
           <Save className="h-4 w-4" />
           Guardar Configurações
         </button>
-      )}
-
-      {/* Add API Key Modal */}
-      {showAddModal && (
-        <AddApiKeyModal
-          onClose={() => setShowAddModal(false)}
-          onAdd={(key) => setApiKeys((prev) => [...prev, key])}
-        />
       )}
     </div>
   );
