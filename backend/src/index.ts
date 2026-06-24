@@ -56,10 +56,35 @@ const rawOrigins = process.env.ALLOWED_ORIGINS || process.env.FRONTEND_URL || 'h
 const allowedOrigins = rawOrigins.split(',').map((o) => o.trim()).filter(Boolean);
 const isDev = (process.env.NODE_ENV || 'development') !== 'production';
 
+// ─── CORS FIRST — before Helmet and everything else ──────────────────────────
+// Preflight OPTIONS requests must receive CORS headers before any auth or security
+// middleware can block them. Placing cors() here ensures that always happens.
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (server-to-server, curl, mobile apps)
+      if (!origin) return callback(null, true);
+      // In development, allow any localhost origin regardless of port
+      if (isDev && /^https?:\/\/localhost(:\d+)?$/.test(origin)) {
+        return callback(null, true);
+      }
+      if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+        return callback(null, true);
+      }
+      callback(new Error(`CORS: origin '${origin}' not allowed`));
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    exposedHeaders: ['X-Total-Count', 'X-Request-Id'],
+    maxAge: 86400, // 24h preflight cache
+  }),
+);
+
 // Socket.IO for real-time features
 const io = new Server(httpServer, {
   cors: {
-    origin: allowedOrigins,
+    origin: isDev ? true : allowedOrigins,
     methods: ['GET', 'POST'],
     credentials: true,
   },
@@ -87,29 +112,6 @@ app.use((_req, res, next) => {
 });
 
 app.use(compression() as express.RequestHandler);
-
-// ─── CORS (must run before rate limiting so preflight OPTIONS get headers) ───
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (server-to-server, curl, mobile apps)
-      if (!origin) return callback(null, true);
-      // In development, allow any localhost origin regardless of port
-      if (isDev && /^https?:\/\/localhost(:\d+)?$/.test(origin)) {
-        return callback(null, true);
-      }
-      if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
-        return callback(null, true);
-      }
-      callback(new Error(`CORS: origin '${origin}' not allowed`));
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-    exposedHeaders: ['X-Total-Count', 'X-Request-Id'],
-    maxAge: 86400, // 24h preflight cache
-  }),
-);
 
 // ─── Rate Limiting ────────────────────────────────────────────────────────────
 const limiter = rateLimit({
