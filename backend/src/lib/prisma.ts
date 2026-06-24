@@ -383,4 +383,17 @@ export async function ensureRuntimeSchema() {
   await safeExec(`ALTER TABLE "lives" ADD COLUMN IF NOT EXISTS "archived" BOOLEAN NOT NULL DEFAULT FALSE`);
   await safeExec(`ALTER TABLE "competitions" ADD COLUMN IF NOT EXISTS "archived" BOOLEAN NOT NULL DEFAULT FALSE`);
 
+  // Seed default admin user if none exists
+  const adminExists = await prisma.$queryRawUnsafe<Array<{ count: string }>>(
+    `SELECT COUNT(*)::text AS count FROM "users" WHERE "role" = 'admin' LIMIT 1`
+  ).catch(() => [{ count: '0' }]);
+
+  if (parseInt((adminExists[0] as { count: string })?.count ?? '0', 10) === 0) {
     const password = bcrypt.hashSync('admin123', 12);
+    await safeExec(`
+      INSERT INTO "users" ("name", "email", "password", "role")
+      VALUES ('Admin', 'admin@livesports.com', '${password}', 'admin')
+      ON CONFLICT ("email") DO NOTHING
+    `);
+  }
+}
