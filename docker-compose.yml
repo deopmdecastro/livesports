@@ -60,14 +60,24 @@ services:
   postgres:
     image: postgres:16-alpine
     ports:
-      - "5433:5432"
+      # Must match DATABASE_URL in .env.example (port 5432). Previously this was
+      # remapped to 5433 on the host, which silently broke any process running
+      # outside docker-compose (e.g. `npm run dev` for the backend) that connects
+      # to "localhost:5432" per .env.example — causing every DB call, including
+      # login, to fail with a connection error (surfaced as a generic 500).
+      - "5432:5432"
     environment:
       - POSTGRES_USER=livesports
       - POSTGRES_PASSWORD=livesports123
       - POSTGRES_DB=livesports_db
     volumes:
       - postgres-data:/var/lib/postgresql/data
+      # All migration files run in alphabetical order on first container init.
       - ./backend/prisma/migrations/001_initial.sql:/docker-entrypoint-initdb.d/001_initial.sql
+      - ./backend/prisma/migrations/002_live_preroll_ads.sql:/docker-entrypoint-initdb.d/002_live_preroll_ads.sql
+      - ./backend/prisma/migrations/003_api_keys.sql:/docker-entrypoint-initdb.d/003_api_keys.sql
+      - ./backend/prisma/migrations/004_logs_support_history.sql:/docker-entrypoint-initdb.d/004_logs_support_history.sql
+      - ./backend/prisma/migrations/005_combined_new_tables.sql:/docker-entrypoint-initdb.d/005_combined_new_tables.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U livesports -d livesports_db"]
       interval: 10s
