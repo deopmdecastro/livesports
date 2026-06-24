@@ -55,6 +55,10 @@ export default function EventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+
+  const normalEvents = events.filter((e) => !(e as any).archived);
+  const archivedEvents = events.filter((e) => Boolean((e as any).archived));
+
   const [modalMode, setModalMode] = useState<"create" | "edit" | "view" | null>(null);
   const [selected, setSelected] = useState<Event | null>(null);
   const [form, setForm] = useState(emptyForm);
@@ -63,9 +67,26 @@ export default function EventsPage() {
   const [importingCalendar, setImportingCalendar] = useState(false);
   const [eventModalTab, setEventModalTab] = useState<"Geral" | "Equipas" | "Detalhes">("Geral");
 
-  const filtered = events.filter((event) =>
+  const filteredNormalEvents = normalEvents.filter((event) =>
     [event.title, event.league || "", event.teamA || "", event.teamB || ""].some((value) => value.toLowerCase().includes(search.toLowerCase()))
   );
+
+  const filteredArchivedEvents = archivedEvents.filter((event) =>
+    [event.title, event.league || "", event.teamA || "", event.teamB || ""].some((value) => value.toLowerCase().includes(search.toLowerCase()))
+  );
+
+  const handleArchiveToggle = async (event: Event, archived: boolean) => {
+    try {
+      await apiRequest(`/events/${event.id}/archive`, {
+        method: "PATCH",
+        body: JSON.stringify({ archived }),
+      });
+      setEvents((prev) => prev.map((e) => (e.id === event.id ? { ...e, archived } : e)));
+      toast.success(archived ? "Evento arquivado!" : "Evento desarquivado!");
+    } catch {
+      toast.error(archived ? "Erro ao arquivar" : "Erro ao desarquivar");
+    }
+  };
 
   useEffect(() => {
     apiRequest<Event[]>("/events")
@@ -252,21 +273,24 @@ export default function EventsPage() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-[#2A2A2A] bg-[#1A1A1A]">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[820px]">
-            <thead>
-              <tr className="border-b border-[#2A2A2A]">
-                {["Evento", "Liga", "Desporto", "Data", "Status", "Acoes"].map((heading) => (
-                  <th key={heading} className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-gray-500">{heading}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((event) => (
-                <tr key={event.id} className="table-row-hover border-b border-[#2A2A2A] last:border-0">
-                  <td className="px-4 py-3">
-                    <p className="flex items-center gap-2 text-sm font-semibold text-white">
+      <div className="grid gap-5 lg:grid-cols-2">
+        {/* Tabela Normal (archived=false) */}
+        <div className="overflow-hidden rounded-xl border border-[#2A2A2A] bg-[#1A1A1A]">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[820px]">
+              <thead>
+                <tr className="border-b border-[#2A2A2A]">
+                  {["Evento", "Liga", "Desporto", "Data", "Status", "Acoes"].map((heading) => (
+                    <th key={heading} className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-gray-500">{heading}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredNormalEvents.map((event) => (
+                  <tr key={event.id} className="table-row-hover border-b border-[#2A2A2A] last:border-0">
+                    <td className="px-4 py-3">
+                      <p className="flex items-center gap-2 text-sm font-semibold text-white">
+
                       <AdminTeamMark logo={event.teamALogo} name={event.teamA} code={event.teamACode} size={32} />
                       <span>{event.teamA && event.teamB ? `${event.teamA} vs ${event.teamB}` : event.title}</span>
                       <AdminTeamMark logo={event.teamBLogo} name={event.teamB} code={event.teamBCode} size={32} />

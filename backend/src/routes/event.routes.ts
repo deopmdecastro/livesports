@@ -69,6 +69,7 @@ function mapEvent(row: any) {
     status: row.status,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    archived: Boolean(row.archived),
   };
 }
 
@@ -109,6 +110,7 @@ const selectEventSql = `
     e.venue,
     e.scheduled_at,
     e.status::text,
+    e.archived,
     e.created_at,
     e.updated_at
   FROM "events" e
@@ -174,7 +176,7 @@ router.get('/', async (req, res, next) => {
   // New list endpoints should prefer the nested `{ items, pagination }` shape
   // (see live.routes.ts) — this one is grandfathered in.
   try {
-    const { status, sport, q, team, season, from, to } = req.query;
+    const { status, sport, q, team, season, from, to, archived } = req.query;
     const conditions: string[] = ['1=1'];
     const values: unknown[] = [];
 
@@ -182,6 +184,8 @@ router.get('/', async (req, res, next) => {
       values.push(status);
       conditions.push(`e.status = $${values.length}::event_status`);
     }
+    values.push(String(archived ?? 'false') === 'true');
+    conditions.push(`e.archived = $${values.length}`);
     if (sport) {
       values.push(sport);
       conditions.push(`e.sport = $${values.length}::sport_category`);

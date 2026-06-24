@@ -60,7 +60,7 @@ services:
   postgres:
     image: postgres:16-alpine
     ports:
-      - "5432:5432"
+      - "5433:5432"
     environment:
       - POSTGRES_USER=livesports
       - POSTGRES_PASSWORD=livesports123
@@ -86,7 +86,7 @@ services:
     volumes:
       - redis-data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "redis-cli -a $${REDIS_PASSWORD:-livesports-redis-pass} ping"]
       interval: 10s
       timeout: 3s
       retries: 5

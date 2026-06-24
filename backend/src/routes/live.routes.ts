@@ -54,6 +54,7 @@ function mapLive(row: any) {
     endedAt: row.ended_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    archived: Boolean(row.archived),
   };
 }
 
@@ -62,7 +63,7 @@ const selectLiveSql = `
     team_b, team_b_logo, score_a, score_b, stream_url, hls_url, m3u8_url, stream_servers,
     status::text, featured, viewer_count, total_views, like_count, share_count,
     (SELECT COUNT(*)::bigint FROM "live_comments" WHERE "live_id" = "lives"."id") AS comment_count,
-    match_time, tags, scheduled_at, started_at, ended_at, created_at, updated_at
+    match_time, tags, scheduled_at, started_at, ended_at, archived, created_at, updated_at
   FROM "lives"
 `;
 
@@ -112,7 +113,7 @@ async function getEventSnapshot(eventId: string) {
 
 router.get('/', async (req, res, next) => {
   try {
-    const { status, sport, q, team, league } = req.query;
+    const { status, sport, q, team, league, archived } = req.query;
     const conditions: string[] = [];
     const values: unknown[] = [];
     if (status) {
@@ -137,6 +138,8 @@ router.get('/', async (req, res, next) => {
       values.push(String(league));
       conditions.push(`league ILIKE $${values.length}`);
     }
+    values.push(String(archived ?? 'false') === 'true');
+    conditions.push(`archived = $${values.length}`);
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
     const pagination = parsePagination(req.query as Record<string, unknown>);
     const rows = await prisma.$queryRawUnsafe<any[]>(

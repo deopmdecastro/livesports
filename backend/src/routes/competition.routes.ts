@@ -7,7 +7,7 @@ const router = Router();
 
 const COMPETITION_SELECT = `
   id, name, slug, season, sport::text, description, thumbnail, banner,
-  start_date, end_date, status::text, format::text, created_at, updated_at,
+  start_date, end_date, status::text, format::text, archived, created_at, updated_at,
   hero_badge, hero_badge_icon, hero_title_line1, hero_title_line2, hero_description,
   stat_teams, stat_games, stat_host_countries, stat_stadiums,
   host_countries, section_title, cta_title, cta_description, cta_button_text,
@@ -121,7 +121,7 @@ router.get('/public', async (_req, res, next) => {
     const rows = await prisma.$queryRawUnsafe<any[]>(`
       SELECT ${COMPETITION_PUBLIC_LIST_SELECT}
       FROM "competitions"
-      WHERE status = 'active'::competition_status
+      WHERE status = 'active'::competition_status AND COALESCE(archived, FALSE) = FALSE
       ORDER BY
         CASE slug WHEN 'copa-do-mundo' THEN 0 ELSE 1 END,
         host_countries ASC NULLS LAST,
@@ -140,7 +140,7 @@ router.get('/public/:slug', async (req, res, next) => {
       `
         SELECT ${COMPETITION_SELECT}
         FROM "competitions"
-        WHERE slug = $1 AND status = 'active'::competition_status
+        WHERE slug = $1 AND status = 'active'::competition_status AND COALESCE(archived, FALSE) = FALSE
         LIMIT 1
       `,
       req.params.slug
@@ -177,11 +177,17 @@ router.get('/public/:slug', async (req, res, next) => {
 
 router.get('/', authenticateToken, async (req, res, next) => {
   try {
-    const { status } = req.query;
+    const { status, archived } = req.query;
 
-    const where = status ? 'WHERE status = $1' : '';
+    const conditions: string[] = [];
     const values: unknown[] = [];
-    if (status) values.push(status);
+    if (status) {
+      values.push(status);
+      conditions.push(`status = $${values.length}::competition_status`);
+    }
+    values.push(String(archived ?? 'false') === 'true');
+    conditions.push(`archived = $${values.length}`);
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
     const rows = await prisma.$queryRawUnsafe<any[]>(
       `
@@ -381,6 +387,22 @@ router.put('/:id', authenticateToken, requireEditor, async (req, res, next) => {
       return;
     }
 
+    res.json({ success: true, data: mapCompetition(rows[0]) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.patch('/:id/archive', authenticateToken, requireEditor, async (req, res, next) => {
+  try {
+    const rows = await prisma.$queryRawUnsafe<any[]>(
+      `UPDATE "competitions" SET archived = $2, updated_at = NOW() WHERE id = $1 RETURNING ${COMPETITION_SELECT}`,
+      req.params.id, Boolean(req.body.archived ?? true)
+    );
+    if (!rows[0]) {
+      res.status(404).json({ success: false, error: 'Competicao nao encontrada' });
+      return;
+    }
     res.json({ success: true, data: mapCompetition(rows[0]) });
   } catch (error) {
     next(error);
