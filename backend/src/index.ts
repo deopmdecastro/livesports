@@ -52,8 +52,9 @@ const app = express();
 const httpServer = createServer(app);
 
 // ─── CORS configuration (multi-origin support) ────────────────────────────────
-const rawOrigins = process.env.ALLOWED_ORIGINS || process.env.FRONTEND_URL || 'http://localhost:3000';
+const rawOrigins = process.env.ALLOWED_ORIGINS || process.env.FRONTEND_URL || 'http://localhost:3000,http://localhost:3002';
 const allowedOrigins = rawOrigins.split(',').map((o) => o.trim()).filter(Boolean);
+const isDev = (process.env.NODE_ENV || 'development') !== 'production';
 
 // Socket.IO for real-time features
 const io = new Server(httpServer, {
@@ -93,6 +94,10 @@ app.use(
     origin: (origin, callback) => {
       // Allow requests with no origin (server-to-server, curl, mobile apps)
       if (!origin) return callback(null, true);
+      // In development, allow any localhost origin regardless of port
+      if (isDev && /^https?:\/\/localhost(:\d+)?$/.test(origin)) {
+        return callback(null, true);
+      }
       if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
         return callback(null, true);
       }
