@@ -9,6 +9,9 @@ import path from 'path';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 
+// Shared Socket.IO instance (must import before routes that need getIO())
+import { initIO } from './lib/socket';
+
 // Routes
 import authRoutes from './routes/auth.routes';
 import liveRoutes from './routes/live.routes';
@@ -91,6 +94,9 @@ const io = new Server(httpServer, {
     credentials: true,
   },
 });
+
+// Share the io instance so poll.routes.ts (and others) can broadcast
+initIO(io);
 
 // ─── Security Headers (Helmet) ────────────────────────────────────────────────
 app.use(
@@ -357,6 +363,35 @@ io.on('connection', (socket) => {
       message: safeMessage,
       timestamp: new Date().toISOString(),
     });
+  });
+
+  // ── Real-time poll voting ──────────────────────────────────────────────────
+  socket.on('poll-vote', (data: { liveId: string; pollId: string; optionId: string; clientId: string }) => {
+    if (
+      typeof data?.liveId !== 'string' ||
+      typeof data?.pollId !== 'string' ||
+      typeof data?.optionId !== 'string'
+    ) return;
+
+    // Import the in-memory store from poll routes
+    const { pollsStore } = require('./routes/poll.routes');
+    const poll = pollsStore.get(data.pollId);
+    if (!poll) return;
+    if (poll.status === 'ended') return;
+
+    const clientId = String(data.clientId || socket.id).slice(0, 128);
+    if (poll.votedClients.has(clientId)) return; // deduplicate
+
+    const option = poll.options.find((o: { id: string }) => o.id === data.optionId);
+    if (!option) return;
+
+    option.votes += 1;
+    poll.totalVotes += 1;
+    poll.votedClients.add(clientId);
+
+    // Broadcast updated results to everyone in the live room
+    const { votedClients, ...pub } = poll;
+    io.to(`live-${data.liveId}`).emit('poll-update', pub);
   });
 
   socket.on('disconnect', () => {
