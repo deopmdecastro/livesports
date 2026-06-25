@@ -298,25 +298,54 @@ app.use((err: Error & { status?: number; code?: string }, req: express.Request, 
   });
 });
 
+// ─── Socket.IO Viewer Tracking ───────────────────────────────────────────────
+// In-memory map: liveId → Set of connected socketIds
+const viewerRooms = new Map<string, Set<string>>();
+
+function addViewer(liveId: string, socketId: string): number {
+  if (!viewerRooms.has(liveId)) viewerRooms.set(liveId, new Set());
+  viewerRooms.get(liveId)!.add(socketId);
+  return viewerRooms.get(liveId)!.size;
+}
+
+function removeViewer(liveId: string, socketId: string): number {
+  const room = viewerRooms.get(liveId);
+  if (!room) return 0;
+  room.delete(socketId);
+  if (room.size === 0) viewerRooms.delete(liveId);
+  return room.size;
+}
+
+function getViewerCount(liveId: string): number {
+  return viewerRooms.get(liveId)?.size ?? 0;
+}
+
+// Export so REST routes can read live viewer counts
+export { getViewerCount };
+
 // ─── Socket.IO Real-time features ────────────────────────────────────────────
 io.on('connection', (socket) => {
-  console.log(`[WS] Client connected: ${socket.id}`);
+  // Track which live rooms this socket has joined (for disconnect cleanup)
+  const joinedLives = new Set<string>();
 
   socket.on('join-live', (liveId: string) => {
-    // Validate liveId to prevent room spoofing
     if (typeof liveId !== 'string' || liveId.length > 100) return;
     socket.join(`live-${liveId}`);
-    io.to(`live-${liveId}`).emit('viewer-joined', { liveId });
+    const count = addViewer(liveId, socket.id);
+    joinedLives.add(liveId);
+    // Broadcast updated count to everyone in the room (including new joiner)
+    io.to(`live-${liveId}`).emit('viewer-count', { liveId, count });
   });
 
   socket.on('leave-live', (liveId: string) => {
     if (typeof liveId !== 'string' || liveId.length > 100) return;
     socket.leave(`live-${liveId}`);
-    io.to(`live-${liveId}`).emit('viewer-left', { liveId });
+    const count = removeViewer(liveId, socket.id);
+    joinedLives.delete(liveId);
+    io.to(`live-${liveId}`).emit('viewer-count', { liveId, count });
   });
 
   socket.on('chat-message', (data: { liveId: string; message: string; user: string }) => {
-    // Sanitize inputs
     if (typeof data?.liveId !== 'string' || typeof data?.message !== 'string') return;
     const safeMessage = String(data.message).slice(0, 500);
     const safeUser = String(data.user || 'Anônimo').slice(0, 50);
@@ -329,7 +358,12 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    console.log(`[WS] Client disconnected: ${socket.id}`);
+    // Clean up all rooms this socket was in and broadcast updated counts
+    for (const liveId of joinedLives) {
+      const count = removeViewer(liveId, socket.id);
+      io.to(`live-${liveId}`).emit('viewer-count', { liveId, count });
+    }
+    joinedLives.clear();
   });
 });
 

@@ -12,6 +12,7 @@ import { cn, formatNumber } from "@/utils";
 import { resolveCountryFlagUrl } from "@/lib/flags";
 import LivePlayer from "@/components/watch/LivePlayer";
 import { apiRequest, publicApiRequest } from "@/lib/api";
+import { useViewerCount } from "@/hooks/useViewerCount";
 
 interface WatchExperienceProps {
   live: Live;
@@ -296,6 +297,8 @@ export default function WatchExperience({ live, liveId }: WatchExperienceProps) 
   const [activeLive, setActiveLive] = useState(live);
   const [liked, setLiked] = useState(false);
   const [viewers, setViewers] = useState(live.viewerCount);
+  const { count: socketViewers, connected: socketConnected } = useViewerCount(id, viewers);
+  const displayViewers = socketConnected ? socketViewers : viewers;
   const [totalViews, setTotalViews] = useState(live.totalViews);
   const [likeCount, setLikeCount] = useState(live.likeCount || 0);
   const [shareCount, setShareCount] = useState(live.shareCount || 0);
@@ -538,10 +541,13 @@ export default function WatchExperience({ live, liveId }: WatchExperienceProps) 
           <p className="hidden truncate text-[10px] text-gray-500 sm:block">{activeLive.league}</p>
         </div>
 
-        {/* Viewers */}
+        {/* Viewers — real-time via Socket.IO */}
         <div className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#111118] border border-[#1E1E2A] text-sm font-semibold text-gray-300 flex-shrink-0">
           <Users className="h-3.5 w-3.5 text-[#E50914]" />
-          {formatNumber(viewers)}
+          {formatNumber(displayViewers)}
+          {socketConnected && (
+            <span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0 animate-pulse" title="Contagem ao vivo" />
+          )}
         </div>
       </header>
 
@@ -648,10 +654,13 @@ export default function WatchExperience({ live, liveId }: WatchExperienceProps) 
 
             <div className="flex-1" />
 
-            {/* Viewer count */}
+            {/* Viewer count — real-time via Socket.IO */}
             <div className="inline-flex items-center gap-1.5 h-8 px-3 rounded-xl bg-[#E50914]/10 border border-[#E50914]/20">
               <Users className="h-3.5 w-3.5 text-[#E50914]" />
-              <span className="text-xs font-bold text-[#E50914]">{formatNumber(viewers)}</span>
+              <span className="text-xs font-bold text-[#E50914]">{formatNumber(displayViewers)}</span>
+              {socketConnected && (
+                <span className="w-1.5 h-1.5 rounded-full bg-green-400 flex-shrink-0 animate-pulse" title="Ao vivo" />
+              )}
             </div>
           </div>
         </section>
