@@ -219,8 +219,8 @@ export default function LiveNowSection() {
   useEffect(() => {
     setLoading(true);
     Promise.all([
-      publicApiRequest<Event[]>("/events"),
-      publicApiRequest<ApiListResponse<Live>>("/lives?limit=100"),
+      publicApiRequest<Event[]>("/events?limit=20"),
+      publicApiRequest<ApiListResponse<Live>>("/lives?limit=30"),
     ])
       .then(([eventsData, livesData]) => {
         setEvents(eventsData);

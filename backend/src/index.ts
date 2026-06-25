@@ -25,6 +25,7 @@ import apiKeysRoutes from './routes/apikeys.routes';
 import logsRoutes from './routes/logs.routes';
 import supportRoutes from './routes/support.routes';
 import reportsRoutes from './routes/reports.routes';
+import searchRoutes from './routes/search.routes';
 import { ensureRuntimeSchema } from './lib/prisma';
 import { prisma } from './lib/prisma';
 import { structuredLogger, slowRequestWarner } from './middleware/logger.middleware';
@@ -239,6 +240,7 @@ app.use('/api/api-keys', apiKeysRoutes);
 app.use('/api/logs', logsRoutes);
 app.use('/api/support', supportRoutes);
 app.use('/api/reports', reportsRoutes);
+app.use('/api/search', searchRoutes);
 
 // Apply mutation limiter to write operations on all routes
 app.use('/api/', (req, res, next) => {

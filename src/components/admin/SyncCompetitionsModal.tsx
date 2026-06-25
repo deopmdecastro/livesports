@@ -7,6 +7,7 @@ import {
   BarChart3, Shield, Loader2,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { apiRequest } from "@/lib/api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -35,17 +36,15 @@ interface SyncResult {
   errors: number;
 }
 
-// ─── Mock providers (populated from configured API Keys in Settings) ──────────
+// ─── Static provider definitions (status resolved dynamically from API Keys) ──
 
-const MOCK_PROVIDERS: SyncProvider[] = [
+const STATIC_PROVIDERS: Omit<SyncProvider, "status">[] = [
   {
     id: "api_football",
     name: "API-Football",
     logo: "🏟️",
     description: "Champions League, La Liga, Premier League, Brasileirão e mais 800+ ligas",
     sports: ["Futebol"],
-    status: "ready",
-    lastSync: "2026-06-22T18:00:00Z",
   },
   {
     id: "sportradar",
@@ -53,8 +52,6 @@ const MOCK_PROVIDERS: SyncProvider[] = [
     logo: "📡",
     description: "Basquete (NBA/WNBA), Ténis (ATP/WTA), Futebol Americano (NFL), Baseball (MLB)",
     sports: ["Basquete", "Ténis", "NFL", "MLB"],
-    status: "ready",
-    lastSync: "2026-06-21T12:00:00Z",
   },
   {
     id: "thesportsdb",
@@ -62,7 +59,6 @@ const MOCK_PROVIDERS: SyncProvider[] = [
     logo: "🏅",
     description: "Logos de ligas, equipas e eventos de múltiplos desportos",
     sports: ["Múltiplos"],
-    status: "no_key",
   },
   {
     id: "football_data",
@@ -70,7 +66,6 @@ const MOCK_PROVIDERS: SyncProvider[] = [
     logo: "⚽",
     description: "Ligas europeias, Copa do Mundo — API gratuita",
     sports: ["Futebol"],
-    status: "no_key",
   },
 ];
 
@@ -119,15 +114,17 @@ function LogLine({ log }: { log: SyncLog }) {
 interface SyncCompetitionsModalProps {
   onClose: () => void;
   onSyncComplete?: (results: SyncResult[]) => void;
+  onNoApiKey?: () => void;
 }
 
 type Step = "select" | "configure" | "syncing" | "done";
 
-export default function SyncCompetitionsModal({ onClose, onSyncComplete }: SyncCompetitionsModalProps) {
-  const [step, setStep] = useState<Step>("select");
-  const [selectedProviders, setSelectedProviders] = useState<string[]>(
-    MOCK_PROVIDERS.filter((p) => p.status === "ready").map((p) => p.id)
+export default function SyncCompetitionsModal({ onClose, onSyncComplete, onNoApiKey }: SyncCompetitionsModalProps) {
+  const [providers, setProviders] = useState<SyncProvider[]>(
+    STATIC_PROVIDERS.map((p) => ({ ...p, status: "no_key" as const }))
   );
+  const [step, setStep] = useState<Step>("select");
+  const [selectedProviders, setSelectedProviders] = useState<string[]>([]);
   const [selectedSports, setSelectedSports] = useState<string[]>(["Futebol", "Basquete", "Ténis"]);
   const [overwrite, setOverwrite] = useState(false);
   const [fetchLogos, setFetchLogos] = useState(true);
@@ -136,6 +133,27 @@ export default function SyncCompetitionsModal({ onClose, onSyncComplete }: SyncC
   const [results, setResults] = useState<SyncResult[]>([]);
   const [currentTask, setCurrentTask] = useState("");
   const logsEndRef = useRef<HTMLDivElement>(null);
+
+  // Load real API key status to mark providers as ready/no_key
+  useEffect(() => {
+    apiRequest<Array<{ provider: string; status: string; lastUsedAt?: string }>>("/api-keys")
+      .then((keys) => {
+        const activeByProvider = new Map<string, string>();
+        keys.forEach((k) => {
+          if (k.status === "active") activeByProvider.set(k.provider, k.lastUsedAt || "");
+        });
+        const resolved: SyncProvider[] = STATIC_PROVIDERS.map((p) => ({
+          ...p,
+          status: activeByProvider.has(p.id) ? "ready" : "no_key",
+          lastSync: activeByProvider.get(p.id) || undefined,
+        }));
+        setProviders(resolved);
+        setSelectedProviders(resolved.filter((p) => p.status === "ready").map((p) => p.id));
+      })
+      .catch(() => {
+        // Fallback: keep all as no_key
+      });
+  }, []);
 
   useEffect(() => {
     logsEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -147,7 +165,7 @@ export default function SyncCompetitionsModal({ onClose, onSyncComplete }: SyncC
   };
 
   const toggleProvider = (id: string) => {
-    const provider = MOCK_PROVIDERS.find((p) => p.id === id);
+    const provider = providers.find((p) => p.id === id);
     if (provider?.status !== "ready") return;
     setSelectedProviders((prev) =>
       prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
@@ -165,7 +183,7 @@ export default function SyncCompetitionsModal({ onClose, onSyncComplete }: SyncC
 
     for (let i = 0; i < total; i++) {
       const pid = selectedProviders[i];
-      const provider = MOCK_PROVIDERS.find((p) => p.id === pid)!;
+      const provider = providers.find((p) => p.id === pid)!;
 
       addLog("info", `━━━ Iniciando sincronização: ${provider.name} ━━━`);
       setCurrentTask(`A conectar a ${provider.name}...`);
@@ -222,9 +240,9 @@ export default function SyncCompetitionsModal({ onClose, onSyncComplete }: SyncC
 
   const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-  const allSports = [...new Set(MOCK_PROVIDERS.flatMap((p) => p.sports))];
-  const readyProviders = MOCK_PROVIDERS.filter((p) => p.status === "ready");
-  const noKeyProviders = MOCK_PROVIDERS.filter((p) => p.status === "no_key");
+  const allSports = [...new Set(providers.flatMap((p) => p.sports))];
+  const readyProviders = providers.filter((p) => p.status === "ready");
+  const noKeyProviders = providers.filter((p) => p.status === "no_key");
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
@@ -275,7 +293,7 @@ export default function SyncCompetitionsModal({ onClose, onSyncComplete }: SyncC
                   Provedores Disponíveis ({readyProviders.length} com chave configurada)
                 </h4>
                 <div className="space-y-2">
-                  {MOCK_PROVIDERS.map((provider) => {
+                  {providers.map((provider) => {
                     const isSelected = selectedProviders.includes(provider.id);
                     const isReady = provider.status === "ready";
                     return (
@@ -326,9 +344,15 @@ export default function SyncCompetitionsModal({ onClose, onSyncComplete }: SyncC
                   <AlertCircle className="h-4 w-4 text-amber-400 flex-shrink-0" />
                   <p className="text-xs text-amber-300">
                     {noKeyProviders.length} provedor(es) sem chave configurada.{" "}
-                    <a href="/admin/settings" className="underline text-amber-200 hover:text-white">
-                      Adicionar em Configurações → API Keys
-                    </a>
+                    {onNoApiKey ? (
+                      <button onClick={() => { onClose(); onNoApiKey(); }} className="underline text-amber-200 hover:text-white">
+                        Configurar API Key
+                      </button>
+                    ) : (
+                      <a href="/admin/api-keys" className="underline text-amber-200 hover:text-white">
+                        Adicionar em API Keys
+                      </a>
+                    )}
                   </p>
                 </div>
               )}

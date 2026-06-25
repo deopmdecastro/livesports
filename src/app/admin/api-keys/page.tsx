@@ -3,10 +3,13 @@
 import { useEffect, useState } from "react";
 import {
   Key, Plus, Edit2, Trash2, RefreshCw, CheckCircle, XCircle, Eye, EyeOff,
-  Globe, AlertTriangle, Activity, ChevronDown,
+  Globe, AlertTriangle, Activity, Info, ExternalLink, ArrowLeft,
+  Trophy, Tv2, BarChart3, Cloud, Zap, Shield,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { apiRequest } from "@/lib/api";
+
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const USAGE_TYPES = [
   { value: "live_streams", label: "Live Streams" },
@@ -23,6 +26,127 @@ const USAGE_TYPES = [
   { value: "odds", label: "Odds" },
   { value: "news", label: "Notícias" },
 ];
+
+const PROVIDER_CATALOGUE = [
+  {
+    id: "api_football",
+    label: "API-Football (RapidAPI)",
+    logo: "🏟️",
+    category: "sports" as const,
+    url: "https://rapidapi.com/api-sports/api/api-football",
+    description: "Jogos, resultados, classificações, eventos ao vivo de futebol",
+    keyLabel: "X-RapidAPI-Key",
+    secretLabel: "",
+    baseUrl: "https://api-football-v1.p.rapidapi.com/v3",
+    defaultUsageTypes: ["live_streams", "game_events", "game_data", "statistics", "competitions"],
+  },
+  {
+    id: "sportradar",
+    label: "Sportradar",
+    logo: "📡",
+    category: "sports" as const,
+    url: "https://developer.sportradar.com",
+    description: "Dados desportivos em tempo real — futebol, basquete, ténis, NFL, MLB",
+    keyLabel: "API Key",
+    secretLabel: "",
+    baseUrl: "https://api.sportradar.com",
+    defaultUsageTypes: ["live_streams", "game_events", "game_data", "statistics"],
+  },
+  {
+    id: "thesportsdb",
+    label: "TheSportsDB",
+    logo: "🏅",
+    category: "sports" as const,
+    url: "https://www.thesportsdb.com/api.php",
+    description: "Base de dados desportiva — ligas, equipas, jogadores, logos",
+    keyLabel: "API Key",
+    secretLabel: "",
+    baseUrl: "https://www.thesportsdb.com/api/v1/json",
+    defaultUsageTypes: ["competitions", "teams", "players", "shields", "logos"],
+  },
+  {
+    id: "football_data",
+    label: "Football-Data.org",
+    logo: "⚽",
+    category: "sports" as const,
+    url: "https://www.football-data.org",
+    description: "API gratuita de futebol — ligas europeias, Copa do Mundo",
+    keyLabel: "X-Auth-Token",
+    secretLabel: "",
+    baseUrl: "https://api.football-data.org/v4",
+    defaultUsageTypes: ["game_events", "competitions", "standings"],
+  },
+  {
+    id: "livescore",
+    label: "LiveScore API",
+    logo: "🔴",
+    category: "results" as const,
+    url: "https://rapidapi.com/apidojo/api/livescore6",
+    description: "Resultados em tempo real de múltiplos desportos",
+    keyLabel: "X-RapidAPI-Key",
+    secretLabel: "",
+    baseUrl: "https://livescore6.p.rapidapi.com",
+    defaultUsageTypes: ["game_events", "standings"],
+  },
+  {
+    id: "streamm3u",
+    label: "StreamM3U / IPTV Provider",
+    logo: "📺",
+    category: "live" as const,
+    url: "",
+    description: "Fornecedor de streams M3U8 para transmissões ao vivo",
+    keyLabel: "Username / Key",
+    secretLabel: "Password / Secret",
+    baseUrl: "",
+    defaultUsageTypes: ["live_streams"],
+  },
+  {
+    id: "cloudflare_stream",
+    label: "Cloudflare Stream",
+    logo: "☁️",
+    category: "live" as const,
+    url: "https://developers.cloudflare.com/stream",
+    description: "Hosting e CDN de vídeos e streams ao vivo",
+    keyLabel: "API Token",
+    secretLabel: "Account ID",
+    baseUrl: "https://api.cloudflare.com/client/v4",
+    defaultUsageTypes: ["live_streams"],
+  },
+  {
+    id: "mux",
+    label: "Mux Video",
+    logo: "▶️",
+    category: "live" as const,
+    url: "https://mux.com",
+    description: "Plataforma de vídeo e streaming ao vivo escalável",
+    keyLabel: "Access Token ID",
+    secretLabel: "Secret Key",
+    baseUrl: "https://api.mux.com",
+    defaultUsageTypes: ["live_streams"],
+  },
+  {
+    id: "custom",
+    label: "Provedor Personalizado",
+    logo: "🔧",
+    category: "other" as const,
+    url: "",
+    description: "Configure manualmente qualquer API ou endpoint",
+    keyLabel: "API Key / Token",
+    secretLabel: "Secret (opcional)",
+    baseUrl: "",
+    defaultUsageTypes: [],
+  },
+];
+
+const CATEGORY_META = {
+  sports:  { label: "Dados Desportivos", color: "#22C55E", icon: Trophy },
+  live:    { label: "Streaming / Live",  color: "#E50914", icon: Tv2 },
+  results: { label: "Resultados",        color: "#3B82F6", icon: BarChart3 },
+  media:   { label: "Media / CDN",       color: "#8B5CF6", icon: Cloud },
+  other:   { label: "Outros",            color: "#6B7280", icon: Zap },
+};
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ApiKey {
   id: string;
@@ -53,9 +177,15 @@ interface Discovery {
 }
 
 const emptyForm = {
-  name: "", description: "", provider: "", baseUrl: "", keyValue: "",
+  name: "", description: "", provider: "", baseUrl: "", keyValue: "", secretValue: "",
   status: "active", priority: 1, requestLimit: "", expiresAt: "", usageTypes: [] as string[],
 };
+
+// ─── Modal step type ──────────────────────────────────────────────────────────
+
+type ModalStep = "provider" | "configure";
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ApiKeysPage() {
   const [keys, setKeys] = useState<ApiKey[]>([]);
@@ -67,6 +197,11 @@ export default function ApiKeysPage() {
   const [showKeyId, setShowKeyId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"keys" | "discovery">("keys");
   const [saving, setSaving] = useState(false);
+  const [showKeyValue, setShowKeyValue] = useState(false);
+
+  // Provider selection step (only for new keys)
+  const [modalStep, setModalStep] = useState<ModalStep>("provider");
+  const [catFilter, setCatFilter] = useState("all");
 
   const load = async () => {
     try {
@@ -76,7 +211,7 @@ export default function ApiKeysPage() {
       ]);
       setKeys(keysData);
       setDiscovery(discData);
-    } catch (err) {
+    } catch {
       toast.error("Erro ao carregar API Keys");
     } finally {
       setLoading(false);
@@ -88,6 +223,9 @@ export default function ApiKeysPage() {
   const openCreate = () => {
     setEditKey(null);
     setForm({ ...emptyForm });
+    setModalStep("provider");
+    setCatFilter("all");
+    setShowKeyValue(false);
     setModalOpen(true);
   };
 
@@ -95,27 +233,48 @@ export default function ApiKeysPage() {
     setEditKey(key);
     setForm({
       name: key.name, description: key.description || "", provider: key.provider,
-      baseUrl: key.baseUrl || "", keyValue: "", status: key.status,
+      baseUrl: key.baseUrl || "", keyValue: "", secretValue: "", status: key.status,
       priority: key.priority, requestLimit: key.requestLimit ? String(key.requestLimit) : "",
       expiresAt: key.expiresAt ? key.expiresAt.slice(0, 10) : "",
       usageTypes: [...key.usageTypes],
     });
+    setModalStep("configure"); // edit always goes straight to configure
+    setShowKeyValue(false);
     setModalOpen(true);
   };
 
+  const handleProviderSelect = (provider: typeof PROVIDER_CATALOGUE[0]) => {
+    setForm({
+      ...emptyForm,
+      name: provider.label,
+      provider: provider.id,
+      baseUrl: provider.baseUrl,
+      usageTypes: provider.defaultUsageTypes,
+    });
+    setModalStep("configure");
+  };
+
   const save = async () => {
-    if (!form.name || !form.provider || !form.keyValue) {
+    if (!form.name || !form.provider || (!editKey && !form.keyValue)) {
       toast.error("Nome, Provedor e Key são obrigatórios");
       return;
     }
     setSaving(true);
     try {
-      const payload = {
-        ...form,
+      const payload: Record<string, unknown> = {
+        name: form.name,
+        description: form.description,
+        provider: form.provider,
+        baseUrl: form.baseUrl || null,
+        status: form.status,
         priority: Number(form.priority),
         requestLimit: form.requestLimit ? Number(form.requestLimit) : null,
         expiresAt: form.expiresAt || null,
+        usageTypes: form.usageTypes,
       };
+      if (form.keyValue) payload.keyValue = form.keyValue;
+      if (form.secretValue) payload.secretValue = form.secretValue;
+
       if (editKey) {
         await apiRequest(`/api-keys/${editKey.id}`, { method: "PUT", body: JSON.stringify(payload) });
         toast.success("API Key atualizada!");
@@ -169,6 +328,14 @@ export default function ApiKeysPage() {
     return "bg-gray-500/20 text-gray-400";
   };
 
+  const providerLogo = (id: string) => PROVIDER_CATALOGUE.find((p) => p.id === id)?.logo || "🔑";
+
+  const filteredProviders = PROVIDER_CATALOGUE.filter((p) =>
+    catFilter === "all" || p.category === catFilter
+  );
+
+  const selectedProvider = PROVIDER_CATALOGUE.find((p) => p.id === form.provider);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -211,13 +378,19 @@ export default function ApiKeysPage() {
                 {loading ? (
                   <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">A carregar...</td></tr>
                 ) : keys.length === 0 ? (
-                  <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">Nenhuma API Key configurada</td></tr>
+                  <tr>
+                    <td colSpan={6} className="px-4 py-12 text-center">
+                      <Key className="h-8 w-8 text-gray-700 mx-auto mb-2" />
+                      <p className="text-gray-400 font-medium">Nenhuma API Key configurada</p>
+                      <p className="text-xs text-gray-600 mt-1">Clique em "Nova API Key" para começar</p>
+                    </td>
+                  </tr>
                 ) : keys.map((key) => (
                   <tr key={key.id} className="border-b border-[#2A2A2A] last:border-0 hover:bg-white/[0.02]">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10">
-                          <Key className="h-4 w-4 text-blue-400" />
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 text-base">
+                          {providerLogo(key.provider)}
                         </div>
                         <div>
                           <p className="text-sm font-semibold text-white">{key.name}</p>
@@ -357,91 +530,235 @@ export default function ApiKeysPage() {
         </div>
       )}
 
-      {/* Modal */}
+      {/* ── MODAL ── */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] shadow-2xl">
-            <div className="flex items-center justify-between border-b border-[#1E1E2A] p-5">
-              <h3 className="font-black text-white">{editKey ? "Editar API Key" : "Nova API Key"}</h3>
-              <button onClick={() => setModalOpen(false)} className="rounded-xl p-2 text-gray-400 hover:bg-white/5 hover:text-white">✕</button>
+          <div className="max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] shadow-2xl flex flex-col">
+
+            {/* Modal header */}
+            <div className="flex items-center justify-between border-b border-[#1E1E2A] p-5 flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#E50914]/10 border border-[#E50914]/20">
+                  <Key className="h-4 w-4 text-[#E50914]" />
+                </div>
+                <div>
+                  <h3 className="font-black text-white">
+                    {editKey ? "Editar API Key" : modalStep === "provider" ? "Selecionar Provedor" : `Configurar: ${selectedProvider?.label || form.provider}`}
+                  </h3>
+                  <p className="text-[11px] text-gray-500">
+                    {editKey ? "Atualize os dados da chave" : modalStep === "provider" ? "Escolha o tipo de API a integrar" : "Insira as credenciais do provedor"}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                {/* Step indicator (new only) */}
+                {!editKey && (
+                  <div className="hidden sm:flex items-center gap-1 text-[10px] text-gray-500">
+                    {(["provider", "configure"] as ModalStep[]).map((s, i) => (
+                      <span key={s} className="flex items-center gap-1">
+                        <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black border ${modalStep === s ? "bg-[#E50914] border-[#E50914] text-white" : s === "configure" && modalStep === "configure" ? "bg-green-600 border-green-600 text-white" : "border-[#2A2A38] text-gray-600"}`}>
+                          {i + 1}
+                        </span>
+                        {i < 1 && <span className="text-gray-700">›</span>}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <button onClick={() => setModalOpen(false)} className="rounded-xl p-2 text-gray-400 hover:bg-white/5 hover:text-white">✕</button>
+              </div>
             </div>
-            <div className="p-5 space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-gray-300">Nome *</label>
-                  <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    className="input-dark w-full px-3 py-2 text-sm" placeholder="API-Football Live" />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-gray-300">Provedor *</label>
-                  <input value={form.provider} onChange={(e) => setForm({ ...form, provider: e.target.value })}
-                    className="input-dark w-full px-3 py-2 text-sm" placeholder="api-sports.io" />
-                </div>
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-gray-300">API Key *</label>
-                <input value={form.keyValue} onChange={(e) => setForm({ ...form, keyValue: e.target.value })}
-                  className="input-dark w-full px-3 py-2 text-sm font-mono" placeholder="Insira a chave da API" />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-gray-300">URL Base</label>
-                <input value={form.baseUrl} onChange={(e) => setForm({ ...form, baseUrl: e.target.value })}
-                  className="input-dark w-full px-3 py-2 text-sm" placeholder="https://api.example.com" />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-gray-300">Descrição</label>
-                <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  rows={2} className="input-dark w-full resize-none px-3 py-2 text-sm" placeholder="Descrição da API Key..." />
-              </div>
-              <div className="grid gap-4 sm:grid-cols-3">
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-gray-300">Status</label>
-                  <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}
-                    className="input-dark w-full px-3 py-2 text-sm">
-                    <option value="active">Ativa</option>
-                    <option value="inactive">Inativa</option>
-                    <option value="expired">Expirada</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-gray-300">Prioridade</label>
-                  <input type="number" min={1} value={form.priority} onChange={(e) => setForm({ ...form, priority: Number(e.target.value) })}
-                    className="input-dark w-full px-3 py-2 text-sm" />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-gray-300">Limite Requests</label>
-                  <input type="number" value={form.requestLimit} onChange={(e) => setForm({ ...form, requestLimit: e.target.value })}
-                    className="input-dark w-full px-3 py-2 text-sm" placeholder="Ex: 100000" />
-                </div>
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-gray-300">Data de Expiração</label>
-                <input type="date" value={form.expiresAt} onChange={(e) => setForm({ ...form, expiresAt: e.target.value })}
-                  className="input-dark w-full px-3 py-2 text-sm" />
-              </div>
-              <div>
-                <label className="mb-2 block text-xs font-semibold text-gray-300">Tipos de Utilização</label>
-                <div className="flex flex-wrap gap-2">
-                  {USAGE_TYPES.map((type) => (
-                    <button key={type.value} onClick={() => toggleUsageType(type.value)}
-                      className={`rounded-full px-3 py-1 text-xs font-semibold transition-all ${form.usageTypes.includes(type.value)
-                        ? "bg-blue-600 text-white"
-                        : "bg-[#1A1A2A] text-gray-400 hover:bg-[#2A2A3A]"
-                      }`}>
-                      {type.label}
+
+            {/* ── STEP: PROVIDER SELECTION ── */}
+            {!editKey && modalStep === "provider" && (
+              <div className="p-5 space-y-4 flex-1 overflow-y-auto">
+                {/* Category filter */}
+                <div className="flex gap-1.5 flex-wrap">
+                  {[["all", "Todos"], ...Object.entries(CATEGORY_META).map(([k, v]) => [k, v.label])].map(([k, label]) => (
+                    <button
+                      key={k}
+                      onClick={() => setCatFilter(k)}
+                      className={`px-3 py-1 rounded-full text-[10px] font-bold transition-all ${catFilter === k ? "bg-[#E50914] text-white" : "bg-[#111118] text-gray-400 border border-[#1E1E2A] hover:text-white"}`}
+                    >
+                      {label}
                     </button>
                   ))}
                 </div>
+
+                <div className="space-y-2">
+                  {filteredProviders.map((provider) => {
+                    const meta = CATEGORY_META[provider.category as keyof typeof CATEGORY_META];
+                    const CatIcon = meta.icon;
+                    return (
+                      <button
+                        key={provider.id}
+                        onClick={() => handleProviderSelect(provider)}
+                        className="w-full flex items-center gap-4 p-4 rounded-xl border border-[#1E1E2A] bg-[#111118] hover:border-[#E50914]/30 hover:bg-[#1A1A24] transition-all text-left group"
+                      >
+                        <span className="text-2xl flex-shrink-0">{provider.logo}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-bold text-white">{provider.label}</p>
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5" style={{ color: meta.color, background: `${meta.color}15` }}>
+                              <CatIcon className="h-2 w-2" /> {meta.label}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">{provider.description}</p>
+                        </div>
+                        {provider.url && <ExternalLink className="h-3.5 w-3.5 text-gray-600 flex-shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="flex justify-end pt-2 border-t border-[#1E1E2A]">
+                  <button onClick={() => setModalOpen(false)} className="rounded-xl border border-[#1E1E2A] px-4 py-2 text-sm text-gray-300 hover:text-white">
+                    Cancelar
+                  </button>
+                </div>
               </div>
-            </div>
-            <div className="flex justify-end gap-3 border-t border-[#1E1E2A] p-5">
-              <button onClick={() => setModalOpen(false)} className="rounded-xl border border-[#1E1E2A] px-4 py-2 text-sm text-gray-300 hover:text-white">
-                Cancelar
-              </button>
-              <button onClick={save} disabled={saving} className="rounded-xl bg-[#E50914] px-5 py-2 text-sm font-bold text-white hover:bg-[#B00000] disabled:opacity-60">
-                {saving ? "A guardar..." : editKey ? "Guardar" : "Criar"}
-              </button>
-            </div>
+            )}
+
+            {/* ── STEP: CONFIGURE (new or edit) ── */}
+            {(editKey || modalStep === "configure") && (
+              <div className="p-5 space-y-4 flex-1 overflow-y-auto">
+                {/* Back button (new only) */}
+                {!editKey && (
+                  <button
+                    onClick={() => setModalStep("provider")}
+                    className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-white transition-colors"
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5" /> Voltar à seleção de provedor
+                  </button>
+                )}
+
+                {/* Provider URL hint */}
+                {selectedProvider?.url && (
+                  <div className="flex items-center gap-2 rounded-xl bg-blue-500/5 border border-blue-500/20 px-3 py-2.5">
+                    <Info className="h-3.5 w-3.5 text-blue-400 flex-shrink-0" />
+                    <p className="text-xs text-blue-300">
+                      Obtenha a sua chave em{" "}
+                      <a href={selectedProvider.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-200">
+                        {selectedProvider.url}
+                      </a>
+                    </p>
+                  </div>
+                )}
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-gray-300">Nome *</label>
+                    <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
+                      className="input-dark w-full px-3 py-2 text-sm" placeholder="API-Football Live" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-gray-300">Provedor *</label>
+                    <input value={form.provider} onChange={(e) => setForm({ ...form, provider: e.target.value })}
+                      className="input-dark w-full px-3 py-2 text-sm" placeholder="api-sports.io"
+                      readOnly={!editKey && !!selectedProvider}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-gray-300">
+                    {selectedProvider?.keyLabel || "API Key"} {!editKey && "*"}
+                    {editKey && <span className="ml-1 text-gray-600 font-normal">(deixe em branco para manter)</span>}
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showKeyValue ? "text" : "password"}
+                      value={form.keyValue}
+                      onChange={(e) => setForm({ ...form, keyValue: e.target.value })}
+                      className="input-dark w-full px-3 py-2 pr-10 text-sm font-mono"
+                      placeholder={editKey ? "••••••••••••••" : "Insira a chave da API"}
+                    />
+                    <button onClick={() => setShowKeyValue(!showKeyValue)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white">
+                      {showKeyValue ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {selectedProvider?.secretLabel && (
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-gray-300">{selectedProvider.secretLabel}</label>
+                    <input
+                      type="password"
+                      value={form.secretValue}
+                      onChange={(e) => setForm({ ...form, secretValue: e.target.value })}
+                      className="input-dark w-full px-3 py-2 text-sm font-mono"
+                      placeholder="••••••••••••••"
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-gray-300">URL Base</label>
+                  <input value={form.baseUrl} onChange={(e) => setForm({ ...form, baseUrl: e.target.value })}
+                    className="input-dark w-full px-3 py-2 text-sm font-mono" placeholder="https://api.example.com" />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-gray-300">Descrição</label>
+                  <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
+                    rows={2} className="input-dark w-full resize-none px-3 py-2 text-sm" placeholder="Descrição da API Key..." />
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-gray-300">Status</label>
+                    <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}
+                      className="input-dark w-full px-3 py-2 text-sm">
+                      <option value="active">Ativa</option>
+                      <option value="inactive">Inativa</option>
+                      <option value="expired">Expirada</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-gray-300">Prioridade</label>
+                    <input type="number" min={1} value={form.priority} onChange={(e) => setForm({ ...form, priority: Number(e.target.value) })}
+                      className="input-dark w-full px-3 py-2 text-sm" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-gray-300">Limite Requests</label>
+                    <input type="number" value={form.requestLimit} onChange={(e) => setForm({ ...form, requestLimit: e.target.value })}
+                      className="input-dark w-full px-3 py-2 text-sm" placeholder="Ex: 100000" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-gray-300">Data de Expiração</label>
+                  <input type="date" value={form.expiresAt} onChange={(e) => setForm({ ...form, expiresAt: e.target.value })}
+                    className="input-dark w-full px-3 py-2 text-sm" />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-xs font-semibold text-gray-300">Tipos de Utilização</label>
+                  <div className="flex flex-wrap gap-2">
+                    {USAGE_TYPES.map((type) => (
+                      <button key={type.value} onClick={() => toggleUsageType(type.value)}
+                        className={`rounded-full px-3 py-1 text-xs font-semibold transition-all ${form.usageTypes.includes(type.value)
+                          ? "bg-blue-600 text-white"
+                          : "bg-[#1A1A2A] text-gray-400 hover:bg-[#2A2A3A]"
+                        }`}>
+                        {type.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Footer (only shown in configure step) */}
+            {(editKey || modalStep === "configure") && (
+              <div className="flex justify-end gap-3 border-t border-[#1E1E2A] p-5 flex-shrink-0">
+                <button onClick={() => setModalOpen(false)} className="rounded-xl border border-[#1E1E2A] px-4 py-2 text-sm text-gray-300 hover:text-white">
+                  Cancelar
+                </button>
+                <button onClick={save} disabled={saving} className="rounded-xl bg-[#E50914] px-5 py-2 text-sm font-bold text-white hover:bg-[#B00000] disabled:opacity-60">
+                  {saving ? "A guardar..." : editKey ? "Guardar" : "Criar"}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

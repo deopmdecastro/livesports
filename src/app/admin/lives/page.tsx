@@ -1,7 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Plus,
   Search,
@@ -32,6 +31,7 @@ import AdminActionButton from "@/components/admin/AdminActionButton";
 import AdminLivePreviewModal from "@/components/admin/AdminLivePreviewModal";
 import AdminTeamMark, { isLeagueLogoDisplayable } from "@/components/admin/AdminTeamMark";
 import { apiRequest, type ApiListResponse } from "@/lib/api";
+import ApiKeyRequiredModal from "@/components/admin/ApiKeyRequiredModal";
 
 const statusConfig: Record<
   LiveStatus,
@@ -132,22 +132,6 @@ function isImageValue(value?: string) {
 }
 
 export default function LivesPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-[40vh] items-center justify-center text-sm text-gray-400">
-          A carregar lives...
-        </div>
-      }
-    >
-      <LivesPageContent />
-    </Suspense>
-  );
-}
-
-function LivesPageContent() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const [lives, setLives] = useState<Live[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -158,6 +142,7 @@ function LivesPageContent() {
   const [modalTab, setModalTab] = useState<"Geral" | "Streaming" | "Detalhes">("Geral");
   const [viewingLive, setViewingLive] = useState<Live | null>(null);
   const [syncingStreams, setSyncingStreams] = useState(false);
+  const [apiKeyModalOpen, setApiKeyModalOpen] = useState(false);
 
   // Event select/search state (Nova Live)
   const [eventQuery, setEventQuery] = useState("");
@@ -356,12 +341,6 @@ function LivesPageContent() {
     setShowModal(true);
   };
 
-  useEffect(() => {
-    if (searchParams.get("create") !== "1") return;
-    handleCreate();
-    router.replace("/admin/lives");
-  }, [searchParams, router]);
-
   const handlePickEvent = (eventId: string) => {
     const ev = eventOptions.find((e) => e.id === eventId);
     if (!ev) return;
@@ -475,7 +454,13 @@ function LivesPageContent() {
           : `${result.syncedCount} streams ao vivo importados da RapidAPI!`
       );
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel importar streams da RapidAPI.");
+      const msg = error instanceof Error ? error.message : "";
+      // Detect missing API key errors (422, "no_key", "not configured", etc.)
+      if (/no.key|not configured|api.key|422|401|403/i.test(msg) || msg === "") {
+        setApiKeyModalOpen(true);
+      } else {
+        toast.error(msg || "Nao foi possivel importar streams da RapidAPI.");
+      }
     } finally {
       setSyncingStreams(false);
     }
@@ -1014,6 +999,16 @@ function LivesPageContent() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* API Key Required Modal */}
+      {apiKeyModalOpen && (
+        <ApiKeyRequiredModal
+          context="Importar Streams (RapidAPI)"
+          suggestedProvider="streamm3u"
+          onClose={() => setApiKeyModalOpen(false)}
+          onKeySaved={() => { setApiKeyModalOpen(false); syncRapidApiStreams(); }}
+        />
       )}
     </div>
   );
