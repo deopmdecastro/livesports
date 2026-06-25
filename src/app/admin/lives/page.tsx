@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Plus,
   Search,
@@ -131,6 +132,22 @@ function isImageValue(value?: string) {
 }
 
 export default function LivesPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-[40vh] items-center justify-center text-sm text-gray-400">
+          A carregar lives...
+        </div>
+      }
+    >
+      <LivesPageContent />
+    </Suspense>
+  );
+}
+
+function LivesPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [lives, setLives] = useState<Live[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -338,6 +355,12 @@ export default function LivesPage() {
 
     setShowModal(true);
   };
+
+  useEffect(() => {
+    if (searchParams.get("create") !== "1") return;
+    handleCreate();
+    router.replace("/admin/lives");
+  }, [searchParams, router]);
 
   const handlePickEvent = (eventId: string) => {
     const ev = eventOptions.find((e) => e.id === eventId);

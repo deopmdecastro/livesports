@@ -26,8 +26,21 @@ import {
   Globe,
   Bell,
 } from "lucide-react";
-import { cn } from "@/utils";
-import { useState } from "react";
+import { cn, formatNumber } from "@/utils";
+import { useEffect, useState } from "react";
+import { apiRequest } from "@/lib/api";
+
+interface SidebarStats {
+  livesLiveNow: number;
+  onlineViewers: number;
+  countries: number;
+}
+
+const emptySidebarStats: SidebarStats = {
+  livesLiveNow: 0,
+  onlineViewers: 0,
+  countries: 0,
+};
 
 interface NavItem {
   label: string;
@@ -86,6 +99,33 @@ const navGroups: { title: string; items: NavItem[] }[] = [
 export default function AdminSidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState<string[]>([]);
+  const [sidebarStats, setSidebarStats] = useState<SidebarStats>(emptySidebarStats);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadSidebarStats = async () => {
+      try {
+        const data = await apiRequest<SidebarStats>("/dashboard/sidebar-stats", { cacheTtl: 30_000 });
+        if (!cancelled && data) setSidebarStats(data);
+      } catch {
+        if (!cancelled) setSidebarStats(emptySidebarStats);
+      }
+    };
+
+    loadSidebarStats();
+    const interval = setInterval(loadSidebarStats, 60_000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
+
+  const quickStats = [
+    { icon: Zap, label: "Lives", value: formatNumber(sidebarStats.livesLiveNow), color: "#E50914" },
+    { icon: Users, label: "Online", value: formatNumber(sidebarStats.onlineViewers), color: "#22C55E" },
+    { icon: Globe, label: "Países", value: formatNumber(sidebarStats.countries), color: "#3B82F6" },
+  ];
 
   const toggleGroup = (title: string) => {
     setCollapsed((prev) =>
@@ -118,11 +158,7 @@ export default function AdminSidebar() {
 
       {/* Quick stats strip */}
       <div className="grid grid-cols-3 gap-px bg-[#1A1A24] border-b border-[#1A1A24]">
-        {[
-          { icon: Zap, label: "Lives", value: "3", color: "#E50914" },
-          { icon: Users, label: "Online", value: "1.2K", color: "#22C55E" },
-          { icon: Globe, label: "Países", value: "47", color: "#3B82F6" },
-        ].map(({ icon: Icon, label, value, color }) => (
+        {quickStats.map(({ icon: Icon, label, value, color }) => (
           <div key={label} className="flex flex-col items-center py-2.5 bg-[#0A0A0F] hover:bg-[#111118] transition-colors">
             <Icon className="w-3 h-3 mb-1" style={{ color }} />
             <span className="text-[11px] font-black text-white leading-none">{value}</span>

@@ -37,6 +37,34 @@ router.get('/stats', authenticateToken, requireAdmin, async (_req, res, next) =>
   }
 });
 
+router.get('/sidebar-stats', authenticateToken, requireAdmin, async (_req, res, next) => {
+  try {
+    const rows = await prisma.$queryRawUnsafe<Array<{
+      live_now: bigint;
+      online_viewers: bigint;
+      countries: bigint;
+    }>>(`
+      SELECT
+        (SELECT COUNT(*)::bigint FROM "lives" WHERE status = 'live') AS live_now,
+        (SELECT COALESCE(SUM(viewer_count), 0)::bigint FROM "lives" WHERE status = 'live') AS online_viewers,
+        (SELECT COUNT(DISTINCT country)::bigint FROM "users"
+          WHERE country IS NOT NULL AND TRIM(country) <> '') AS countries
+    `);
+
+    const row = rows[0];
+    res.json({
+      success: true,
+      data: {
+        livesLiveNow: Number(row?.live_now ?? 0),
+        onlineViewers: Number(row?.online_viewers ?? 0),
+        countries: Number(row?.countries ?? 0),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get('/charts/views', authenticateToken, requireAdmin, async (_req, res, next) => {
   try {
     const rows = await prisma.$queryRawUnsafe<Array<{ date: string; views: bigint; revenue: any }>>(`
