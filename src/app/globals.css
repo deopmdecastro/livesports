@@ -142,6 +142,31 @@ body {
 }
 .card-hover:hover::before { opacity: 1; }
 
+/* ─── MOBILE MENU ─── */
+.mobile-menu-enter {
+  animation: mobileMenuIn 0.25s ease-out;
+}
+
+@keyframes mobileMenuIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── TICKER ANIMATION ─── */
+.ticker-content {
+  display: flex;
+  width: max-content;
+  animation: tickerScroll 40s linear infinite;
+}
+.ticker-content:hover {
+  animation-play-state: paused;
+}
+
+@keyframes tickerScroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
 /* ─── SHIMMER LOADING ─── */
 .shimmer {
   background: linear-gradient(90deg, #111118 0%, #1A1A28 50%, #111118 100%);

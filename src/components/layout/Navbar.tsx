@@ -1,8 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect, useRef } from "react";
-import { Search, Menu, X, Bell, ChevronDown, Zap, Globe, Trophy, User, LogOut, Settings, Shield } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import {
+  Search, Menu, X, Bell, ChevronDown, Zap, Globe, Trophy, User,
+  LogOut, Settings, Shield, Play, Clock, Radio,
+} from "lucide-react";
 import { cn } from "@/utils";
 import { useLang } from "@/lib/lang";
 import { publicApiRequest, getStoredUser, logout as performLogout } from "@/lib/api";
@@ -17,6 +20,79 @@ interface StoredUser {
   role: string;
 }
 
+interface SearchResult {
+  kind: "live" | "event";
+  id: string;
+  title: string;
+  league?: string;
+  leagueLogo?: string;
+  teamA?: string;
+  teamB?: string;
+  status: string;
+  sport: string;
+  thumbnail?: string;
+  scheduledAt?: string;
+  matchTime?: string;
+}
+
+interface SearchResponse {
+  lives: SearchResult[];
+  events: SearchResult[];
+}
+
+function useDebounce<T>(value: T, delay: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(t);
+  }, [value, delay]);
+  return debounced;
+}
+
+function buildTickerItems(lives: Live[]): string[] {
+  const items: string[] = [];
+  for (const live of lives) {
+    if (live.status === "live") {
+      const score =
+        typeof live.scoreA === "number" && typeof live.scoreB === "number"
+          ? ` ${live.scoreA}-${live.scoreB}`
+          : "";
+      const time = live.matchTime ? ` · ${live.matchTime}` : "";
+      const teams =
+        live.teamA && live.teamB
+          ? `${live.teamA}${score} ${live.teamB}${time}`
+          : live.title;
+      items.push(`🔴 AO VIVO · ${teams}`);
+    }
+  }
+  if (items.length === 0) {
+    items.push("⚽ Copa do Mundo 2026 — EUA, Canadá e México · Junho-Julho 2026");
+    items.push("🏆 FIFA World Cup 2026 — USA, Canada & Mexico · June-July 2026");
+  }
+  return [...items, ...items];
+}
+
+function buildNotifications(lives: Live[]) {
+  const live = lives.filter((l) => l.status === "live").slice(0, 3);
+  const soon = lives
+    .filter((l) => l.status === "scheduled")
+    .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
+    .slice(0, 2);
+
+  const results: Array<{ title: string; time: string; dot: boolean; href: string }> = [];
+  for (const l of live) {
+    const label = l.teamA && l.teamB ? `${l.teamA} vs ${l.teamB} AO VIVO` : `${l.title} AO VIVO`;
+    results.push({ title: label, time: "agora", dot: true, href: `/watch/${l.id}` });
+  }
+  for (const l of soon) {
+    const diff = Math.round((new Date(l.scheduledAt).getTime() - Date.now()) / 60000);
+    const label = l.teamA && l.teamB ? `${l.teamA} vs ${l.teamB}` : l.title;
+    const timeStr = diff <= 0 ? "em breve" : diff < 60 ? `em ${diff}min` : `em ${Math.round(diff / 60)}h`;
+    results.push({ title: `${label} começa ${timeStr}`, time: timeStr, dot: false, href: `/watch/${l.id}` });
+  }
+  return results;
+}
+
 export default function Navbar() {
   const { lang, setLang, t } = useLang();
   const [scrolled, setScrolled] = useState(false);
@@ -24,37 +100,42 @@ export default function Navbar() {
   const [moreOpen, setMoreOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<SearchResponse | null>(null);
+  const [searchLoading, setSearchLoading] = useState(false);
   const [liveCount, setLiveCount] = useState(0);
   const [totalViewers, setTotalViewers] = useState(0);
+  const [liveItems, setLiveItems] = useState<Live[]>([]);
   const [user, setUser] = useState<StoredUser | null>(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
 
-  // Load user from localStorage
+  const debouncedQuery = useDebounce(searchQuery, 320);
+
   useEffect(() => {
     const stored = getStoredUser<StoredUser>();
     setUser(stored);
   }, []);
 
-  // Fetch live count dynamically
   useEffect(() => {
-    const fetchLiveCount = async () => {
+    const fetchLiveData = async () => {
       try {
         const data = await publicApiRequest<ApiListResponse<Live>>("/lives?status=live&limit=50");
         const count = data.pagination?.total ?? data.items?.length ?? 0;
         setLiveCount(count);
-        // Sum viewer counts from live items
+        setLiveItems(data.items || []);
         const viewers = (data.items || []).reduce((sum, l) => sum + (l.viewerCount || 0), 0);
         setTotalViewers(viewers);
       } catch {
         setLiveCount(0);
+        setLiveItems([]);
         setTotalViewers(0);
       }
     };
-    fetchLiveCount();
-    const interval = setInterval(fetchLiveCount, 60_000);
+    fetchLiveData();
+    const interval = setInterval(fetchLiveData, 60_000);
     return () => clearInterval(interval);
   }, []);
 
@@ -70,15 +151,31 @@ export default function Navbar() {
     return () => { document.body.style.overflow = ""; };
   }, [mobileOpen]);
 
-  // Close dropdowns on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) setUserMenuOpen(false);
       if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false);
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setSearchResults(null);
+      }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
+  useEffect(() => {
+    if (!debouncedQuery || debouncedQuery.length < 2) {
+      setSearchResults(null);
+      return;
+    }
+    let cancelled = false;
+    setSearchLoading(true);
+    publicApiRequest<SearchResponse>(`/search?q=${encodeURIComponent(debouncedQuery)}&limit=6`)
+      .then((data) => { if (!cancelled) setSearchResults(data); })
+      .catch(() => { if (!cancelled) setSearchResults(null); })
+      .finally(() => { if (!cancelled) setSearchLoading(false); });
+    return () => { cancelled = true; };
+  }, [debouncedQuery]);
 
   const handleLogout = async () => {
     setUser(null);
@@ -86,6 +183,12 @@ export default function Navbar() {
     await performLogout();
     window.location.href = "/";
   };
+
+  const closeSearch = useCallback(() => {
+    setSearchOpen(false);
+    setSearchQuery("");
+    setSearchResults(null);
+  }, []);
 
   const navLinks = [
     { label: t.nav_home, href: "/" },
@@ -106,24 +209,20 @@ export default function Navbar() {
   ];
 
   const isAdmin = user && ["super_admin", "admin", "moderator", "editor"].includes(user.role);
+  const tickerItems = buildTickerItems(liveItems);
+  const notifications = buildNotifications(liveItems);
+  const hasUnread = notifications.some((n) => n.dot);
+
+  const allSearchResults = searchResults
+    ? [...searchResults.lives, ...searchResults.events]
+    : [];
 
   return (
     <>
       {/* Live Ticker */}
       <div className="fixed top-0 left-0 right-0 z-[60] h-7 overflow-hidden bg-[#E50914]">
         <div className="ticker-content flex items-center gap-8 py-1 px-4 text-[11px] font-bold tracking-wide text-white uppercase">
-          {[
-            `🔴 AO VIVO · Man United 2-1 Liverpool · 75'`,
-            `🔴 LIVE · Real Madrid 1-0 Barcelona · 62'`,
-            `🔴 AO VIVO · Boston Celtics 78-74 Miami Heat · Q4`,
-            `⚽ Copa do Mundo 2026 — EUA, Canadá e México · Junho-Julho 2026`,
-            `🏆 FIFA World Cup 2026 — USA, Canada & Mexico · June-July 2026`,
-            `🔴 AO VIVO · Man United 2-1 Liverpool · 75'`,
-            `🔴 LIVE · Real Madrid 1-0 Barcelona · 62'`,
-            `🔴 AO VIVO · Boston Celtics 78-74 Miami Heat · Q4`,
-            `⚽ Copa do Mundo 2026 — EUA, Canadá e México · Junho-Julho 2026`,
-            `🏆 FIFA World Cup 2026 — USA, Canada & Mexico · June-July 2026`,
-          ].map((item, i) => (
+          {tickerItems.map((item, i) => (
             <span key={i} className="flex-shrink-0 flex items-center gap-3">
               {item}
               <span className="h-3 w-px bg-white/30 mx-2" />
@@ -219,7 +318,7 @@ export default function Navbar() {
 
             {/* Right Actions */}
             <div className="flex items-center gap-1.5">
-              {/* Live count pill — dynamic */}
+              {/* Live count pill */}
               {liveCount > 0 && (
                 <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-[#E50914]/10 border border-[#E50914]/20 mr-1">
                   <span className="live-badge h-1.5 w-1.5 rounded-full bg-[#E50914]" />
@@ -233,29 +332,100 @@ export default function Navbar() {
               )}
 
               {/* Search */}
-              {searchOpen ? (
-                <div className="flex items-center gap-2 bg-[#111118] border border-[#1E1E2A] focus-within:border-[#E50914]/50 rounded-xl px-3 py-1.5 transition-all">
-                  <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                  <input
-                    type="text"
-                    placeholder={t.nav_search_placeholder}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="bg-transparent text-sm text-white placeholder-gray-500 outline-none w-36 lg:w-52"
-                    autoFocus
-                  />
-                  <button onClick={() => setSearchOpen(false)}>
-                    <X className="w-4 h-4 text-gray-400 hover:text-white transition-colors" />
+              <div className="relative" ref={searchRef}>
+                {searchOpen ? (
+                  <div className="flex items-center gap-2 bg-[#111118] border border-[#1E1E2A] focus-within:border-[#E50914]/50 rounded-xl px-3 py-1.5 transition-all">
+                    <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                    <input
+                      type="text"
+                      placeholder={t.nav_search_placeholder}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="bg-transparent text-sm text-white placeholder-gray-500 outline-none w-36 lg:w-52"
+                      autoFocus
+                    />
+                    {searchLoading && (
+                      <div className="w-3.5 h-3.5 border-2 border-[#E50914]/40 border-t-[#E50914] rounded-full animate-spin flex-shrink-0" />
+                    )}
+                    <button onClick={closeSearch}>
+                      <X className="w-4 h-4 text-gray-400 hover:text-white transition-colors" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setSearchOpen(true)}
+                    className="p-2 text-gray-400 hover:text-white transition-colors rounded-xl hover:bg-[#111118]"
+                  >
+                    <Search className="w-4.5 h-4.5" />
                   </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setSearchOpen(true)}
-                  className="p-2 text-gray-400 hover:text-white transition-colors rounded-xl hover:bg-[#111118]"
-                >
-                  <Search className="w-4.5 h-4.5" />
-                </button>
-              )}
+                )}
+
+                {/* Search Results Dropdown */}
+                {searchOpen && searchQuery.length >= 2 && !searchLoading && allSearchResults.length > 0 && (
+                  <div className="absolute right-0 top-full mt-2 w-80 glass border border-[#1E1E2A] rounded-xl shadow-2xl overflow-hidden animate-fade-in-up z-50">
+                    <div className="p-1 max-h-[400px] overflow-y-auto">
+                      {allSearchResults.map((result) => {
+                        const isLive = result.status === "live";
+                        const href = result.kind === "live" ? `/watch/${result.id}` : `/evento/${result.id}`;
+                        const label = result.teamA && result.teamB
+                          ? `${result.teamA} vs ${result.teamB}`
+                          : result.title;
+                        return (
+                          <Link
+                            key={`${result.kind}-${result.id}`}
+                            href={href}
+                            onClick={closeSearch}
+                            className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#E50914]/8 transition-colors group"
+                          >
+                            <div className={cn(
+                              "flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center",
+                              isLive ? "bg-[#E50914]/15" : "bg-white/5"
+                            )}>
+                              {isLive
+                                ? <Radio className="w-3.5 h-3.5 text-[#E50914]" />
+                                : <Clock className="w-3.5 h-3.5 text-gray-500" />
+                              }
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-semibold text-white truncate leading-snug group-hover:text-[#E50914] transition-colors">
+                                {label}
+                              </p>
+                              <p className="text-[10px] text-gray-500 truncate mt-0.5">
+                                {result.league || result.sport}
+                                {isLive && result.matchTime && ` · ${result.matchTime}`}
+                              </p>
+                            </div>
+                            {isLive && (
+                              <span className="flex-shrink-0 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-[#E50914] text-[9px] font-black text-white uppercase">
+                                <span className="live-badge h-1 w-1 rounded-full bg-white" />
+                                LIVE
+                              </span>
+                            )}
+                            {!isLive && (
+                              <Play className="w-3 h-3 text-gray-600 group-hover:text-white transition-colors flex-shrink-0" />
+                            )}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                    <div className="border-t border-[#1E1E2A] px-3 py-2">
+                      <p className="text-[10px] text-gray-600 text-center">
+                        {allSearchResults.length} resultado{allSearchResults.length !== 1 ? "s" : ""} para &ldquo;{searchQuery}&rdquo;
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* No results */}
+                {searchOpen && searchQuery.length >= 2 && !searchLoading && searchResults && allSearchResults.length === 0 && (
+                  <div className="absolute right-0 top-full mt-2 w-72 glass border border-[#1E1E2A] rounded-xl shadow-2xl overflow-hidden animate-fade-in-up z-50">
+                    <div className="px-4 py-5 text-center">
+                      <Search className="w-5 h-5 text-gray-600 mx-auto mb-2" />
+                      <p className="text-xs text-gray-500">Nenhum resultado para &ldquo;{searchQuery}&rdquo;</p>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* Notifications */}
               <div className="relative hidden sm:block" ref={notifRef}>
@@ -264,33 +434,55 @@ export default function Navbar() {
                   className="relative p-2 text-gray-400 hover:text-white transition-colors rounded-xl hover:bg-[#111118]"
                 >
                   <Bell className="w-4.5 h-4.5" />
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#E50914] rounded-full live-badge" />
+                  {hasUnread && (
+                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#E50914] rounded-full live-badge" />
+                  )}
                 </button>
                 {notifOpen && (
                   <div className="absolute right-0 top-full mt-2 w-80 glass border border-[#1E1E2A] rounded-xl shadow-2xl overflow-hidden animate-fade-in-up z-50">
-                    <div className="p-4 border-b border-[#1E1E2A]">
+                    <div className="p-4 border-b border-[#1E1E2A] flex items-center justify-between">
                       <h3 className="text-sm font-bold text-white">Notificações</h3>
+                      {liveCount > 0 && (
+                        <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#E50914]/15 border border-[#E50914]/25 text-[#E50914] text-[10px] font-bold">
+                          <span className="live-badge h-1.5 w-1.5 rounded-full bg-[#E50914]" />
+                          {liveCount} ao vivo
+                        </span>
+                      )}
                     </div>
                     <div className="p-2">
-                      {[
-                        { title: "Man United vs Liverpool AO VIVO", time: "agora", dot: true },
-                        { title: "El Clásico começa em 30 minutos", time: "28 min", dot: false },
-                        { title: "Nova transmissão: Copa Libertadores", time: "1h", dot: false },
-                      ].map((n, i) => (
-                        <div key={i} className="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-[#111118] transition-colors cursor-pointer">
-                          {n.dot && <span className="mt-1.5 h-2 w-2 rounded-full bg-[#E50914] flex-shrink-0 live-badge" />}
-                          {!n.dot && <span className="mt-1.5 h-2 w-2 rounded-full bg-gray-600 flex-shrink-0" />}
-                          <div>
-                            <p className="text-xs font-semibold text-white leading-snug">{n.title}</p>
-                            <p className="text-[10px] text-gray-500 mt-0.5">{n.time}</p>
-                          </div>
+                      {notifications.length > 0 ? (
+                        notifications.map((n, i) => (
+                          <Link
+                            key={i}
+                            href={n.href}
+                            onClick={() => setNotifOpen(false)}
+                            className="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-[#111118] transition-colors cursor-pointer"
+                          >
+                            {n.dot
+                              ? <span className="mt-1.5 h-2 w-2 rounded-full bg-[#E50914] flex-shrink-0 live-badge" />
+                              : <span className="mt-1.5 h-2 w-2 rounded-full bg-gray-600 flex-shrink-0" />
+                            }
+                            <div>
+                              <p className="text-xs font-semibold text-white leading-snug">{n.title}</p>
+                              <p className="text-[10px] text-gray-500 mt-0.5">{n.time}</p>
+                            </div>
+                          </Link>
+                        ))
+                      ) : (
+                        <div className="px-3 py-5 text-center">
+                          <Bell className="w-5 h-5 text-gray-600 mx-auto mb-2" />
+                          <p className="text-xs text-gray-500">Sem transmissões ativas agora</p>
                         </div>
-                      ))}
+                      )}
                     </div>
                     <div className="p-2 border-t border-[#1E1E2A]">
-                      <button className="w-full text-center text-xs text-[#E50914] font-semibold py-1.5 hover:text-red-400 transition-colors">
-                        Ver todas as notificações
-                      </button>
+                      <Link
+                        href="/calendario"
+                        onClick={() => setNotifOpen(false)}
+                        className="w-full text-center block text-xs text-[#E50914] font-semibold py-1.5 hover:text-red-400 transition-colors"
+                      >
+                        Ver calendário completo
+                      </Link>
                     </div>
                   </div>
                 )}
@@ -399,9 +591,46 @@ export default function Navbar() {
               <input
                 type="text"
                 placeholder={t.nav_search_placeholder}
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setSearchOpen(true);
+                }}
                 className="bg-transparent text-sm text-white placeholder-gray-500 outline-none flex-1"
               />
+              {searchLoading && (
+                <div className="w-3.5 h-3.5 border-2 border-[#E50914]/40 border-t-[#E50914] rounded-full animate-spin" />
+              )}
             </div>
+
+            {/* Mobile search results */}
+            {searchQuery.length >= 2 && !searchLoading && allSearchResults.length > 0 && (
+              <div className="mb-4 border border-[#1E1E2A] rounded-xl overflow-hidden">
+                {allSearchResults.slice(0, 5).map((result) => {
+                  const isLive = result.status === "live";
+                  const href = result.kind === "live" ? `/watch/${result.id}` : `/evento/${result.id}`;
+                  const label = result.teamA && result.teamB ? `${result.teamA} vs ${result.teamB}` : result.title;
+                  return (
+                    <Link
+                      key={`${result.kind}-${result.id}`}
+                      href={href}
+                      onClick={() => setMobileOpen(false)}
+                      className="flex items-center gap-3 px-3 py-3 border-b border-[#1E1E2A] last:border-0 hover:bg-[#111118] transition-colors"
+                    >
+                      {isLive
+                        ? <Radio className="w-4 h-4 text-[#E50914] flex-shrink-0" />
+                        : <Clock className="w-4 h-4 text-gray-600 flex-shrink-0" />
+                      }
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-white truncate">{label}</p>
+                        <p className="text-xs text-gray-500 truncate">{result.league || result.sport}</p>
+                      </div>
+                      {isLive && <span className="flex-shrink-0 text-[10px] font-black text-[#E50914] uppercase">LIVE</span>}
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
 
             {/* World Cup Banner */}
             <Link

@@ -209,30 +209,35 @@ export async function ensureRuntimeSchema() {
       ADD COLUMN IF NOT EXISTS "team_b_code" VARCHAR(10)
   `);
 
-  await prisma.$executeRawUnsafe(`
-    INSERT INTO "competitions" (
-      "id", "name", "slug", "season", "sport", "description", "status", "format",
-      "hero_badge", "hero_badge_icon", "hero_title_line1", "hero_title_line2", "hero_description",
-      "stat_teams", "stat_games", "stat_host_countries", "stat_stadiums",
-      "host_countries", "section_title", "cta_title", "cta_description", "cta_button_text",
-      "theme_color", "thumbnail", "banner"
-    )
-    SELECT
-      'comp-wc-2026', 'Copa do Mundo FIFA 2026', 'copa-do-mundo', '2026', 'football'::sport_category,
-      'O maior espetáculo do futebol mundial.', 'active'::competition_status, 'groups'::competition_format,
-      'FIFA World Cup 2026', '🏆', 'COPA DO MUNDO', 'FIFA 2026',
-      'O maior espetáculo do futebol mundial. 48 seleções, 104 jogos ao vivo, transmitidos em HD com múltiplos servidores. EUA · Canadá · México.',
-      48, 104, 3, 16,
-      'EUA, Canadá e México',
-      'Copa do Mundo FIFA 2026',
-      'Não perca nenhum jogo da Copa do Mundo!',
-      '104 jogos ao vivo · Transmissão em HD · Múltiplos servidores',
-      'Assistir ao Vivo',
-      '#FFD700',
-      'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/2026_FIFA_World_Cup.svg/120px-2026_FIFA_World_Cup.svg.png',
-      'https://images.unsplash.com/photo-1574629810360-7efbbe195778?auto=format&fit=crop&w=1600&q=80'
-    WHERE NOT EXISTS (SELECT 1 FROM "competitions" WHERE "slug" = 'copa-do-mundo')
-  `);
+  try {
+    await prisma.$executeRawUnsafe(`
+      INSERT INTO "competitions" (
+        "id", "name", "slug", "season", "sport", "description", "status", "format",
+        "hero_badge", "hero_badge_icon", "hero_title_line1", "hero_title_line2", "hero_description",
+        "stat_teams", "stat_games", "stat_host_countries", "stat_stadiums",
+        "host_countries", "section_title", "cta_title", "cta_description", "cta_button_text",
+        "theme_color", "thumbnail", "banner"
+      )
+      SELECT
+        'comp-wc-2026', 'Copa do Mundo FIFA 2026', 'copa-do-mundo', '2026', 'football'::sport_category,
+        'O maior espetáculo do futebol mundial.', 'active'::competition_status, 'groups'::competition_format,
+        'FIFA World Cup 2026', '🏆', 'COPA DO MUNDO', 'FIFA 2026',
+        'O maior espetáculo do futebol mundial. 48 seleções, 104 jogos ao vivo, transmitidos em HD com múltiplos servidores. EUA · Canadá · México.',
+        48, 104, 3, 16,
+        'EUA, Canadá e México',
+        'Copa do Mundo FIFA 2026',
+        'Não perca nenhum jogo da Copa do Mundo!',
+        '104 jogos ao vivo · Transmissão em HD · Múltiplos servidores',
+        'Assistir ao Vivo',
+        '#FFD700',
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/2026_FIFA_World_Cup.svg/120px-2026_FIFA_World_Cup.svg.png',
+        'https://images.unsplash.com/photo-1574629810360-7efbbe195778?auto=format&fit=crop&w=1600&q=80'
+      WHERE NOT EXISTS (SELECT 1 FROM "competitions" WHERE "slug" = 'copa-do-mundo')
+    `);
+  } catch (seedErr: unknown) {
+    const msg = seedErr instanceof Error ? seedErr.message : String(seedErr);
+    console.warn('[ensureRuntimeSchema] Competition seed skipped:', msg);
+  }
 
   await prisma.$executeRawUnsafe(`
     UPDATE "competitions"
@@ -244,51 +249,56 @@ export async function ensureRuntimeSchema() {
   `);
 
   for (const seed of COMPETITION_SEEDS) {
-    const media = getCompetitionSeedMedia(seed.slug);
-    await prisma.$executeRawUnsafe(
-      `
-        INSERT INTO "competitions" (
-          "id", "name", "slug", "season", "sport", "description", "status", "format",
-          "hero_badge", "hero_badge_icon", "hero_title_line1", "hero_title_line2",
-          "host_countries", "section_title", "theme_color", "thumbnail", "banner"
-        )
-        SELECT
-          $1, $2, $3, $4, 'football'::sport_category, $5, 'active'::competition_status, $6::competition_format,
-          $7, $8, $9, $10, $11, $12, $13, $14, $15
-        WHERE NOT EXISTS (SELECT 1 FROM "competitions" WHERE "slug" = $3)
-      `,
-      seed.id,
-      seed.name,
-      seed.slug,
-      seed.season,
-      seed.description,
-      seed.format,
-      seed.heroBadge ?? seed.name,
-      seed.heroBadgeIcon ?? '⚽',
-      seed.heroTitleLine1 ?? seed.name,
-      seed.heroTitleLine2 ?? seed.season,
-      seed.country,
-      seed.sectionTitle ?? seed.name,
-      media?.themeColor ?? null,
-      media?.thumbnail ?? null,
-      media?.banner ?? null
-    );
-
-    if (media) {
+    try {
+      const media = getCompetitionSeedMedia(seed.slug);
       await prisma.$executeRawUnsafe(
         `
-          UPDATE "competitions"
-          SET
-            "theme_color" = COALESCE("theme_color", $2),
-            "thumbnail" = COALESCE("thumbnail", $3),
-            "banner" = COALESCE("banner", $4)
-          WHERE "slug" = $1
+          INSERT INTO "competitions" (
+            "id", "name", "slug", "season", "sport", "description", "status", "format",
+            "hero_badge", "hero_badge_icon", "hero_title_line1", "hero_title_line2",
+            "host_countries", "section_title", "theme_color", "thumbnail", "banner"
+          )
+          SELECT
+            $1, $2, $3, $4, 'football'::sport_category, $5, 'active'::competition_status, $6::competition_format,
+            $7, $8, $9, $10, $11, $12, $13, $14, $15
+          WHERE NOT EXISTS (SELECT 1 FROM "competitions" WHERE "slug" = $3)
         `,
+        seed.id,
+        seed.name,
         seed.slug,
-        media.themeColor,
-        media.thumbnail ?? null,
-        media.banner ?? null
+        seed.season,
+        seed.description,
+        seed.format,
+        seed.heroBadge ?? seed.name,
+        seed.heroBadgeIcon ?? '⚽',
+        seed.heroTitleLine1 ?? seed.name,
+        seed.heroTitleLine2 ?? seed.season,
+        seed.country,
+        seed.sectionTitle ?? seed.name,
+        media?.themeColor ?? null,
+        media?.thumbnail ?? null,
+        media?.banner ?? null
       );
+
+      if (media) {
+        await prisma.$executeRawUnsafe(
+          `
+            UPDATE "competitions"
+            SET
+              "theme_color" = COALESCE("theme_color", $2),
+              "thumbnail" = COALESCE("thumbnail", $3),
+              "banner" = COALESCE("banner", $4)
+            WHERE "slug" = $1
+          `,
+          seed.slug,
+          media.themeColor,
+          media.thumbnail ?? null,
+          media.banner ?? null
+        );
+      }
+    } catch (seedErr: unknown) {
+      const msg = seedErr instanceof Error ? seedErr.message : String(seedErr);
+      console.warn(`[ensureRuntimeSchema] Seed skipped for "${seed.slug}":`, msg.split('\n')[0]);
     }
   }
 
