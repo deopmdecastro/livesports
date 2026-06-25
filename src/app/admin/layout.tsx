@@ -13,9 +13,9 @@ export default function AdminLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-[#0A0A0A]">
-      {/* Sidebar - Desktop */}
-      <div className="hidden lg:block flex-shrink-0">
+    <div className="flex h-screen overflow-hidden bg-[#0A0A0A]">
+      {/* Sidebar - Desktop (fixed height, scrolls internally) */}
+      <div className="hidden lg:flex lg:flex-shrink-0">
         <AdminSidebar />
       </div>
 
@@ -34,12 +34,12 @@ export default function AdminLayout({
         </div>
       )}
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
+      {/* Main Content — header stays fixed, only <main> scrolls */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <AdminHeader
           onMenuToggle={() => setSidebarOpen(true)}
         />
-        <main className="flex-1 p-4 lg:p-6 overflow-auto">
+        <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
           {children}
         </main>
       </div>
