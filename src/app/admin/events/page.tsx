@@ -12,6 +12,7 @@ import AdminTeamMark, { isLeagueLogoDisplayable } from "@/components/admin/Admin
 import { AdminTeamSearchField } from "@/components/thesportsdb/TeamSearch";
 import toast from "react-hot-toast";
 import { apiRequest } from "@/lib/api";
+import ApiKeyRequiredModal from "@/components/admin/ApiKeyRequiredModal";
 
 const sportOptions = [
   { value: "football", label: "Futebol" },
@@ -66,6 +67,8 @@ export default function EventsPage() {
   const [syncingLive, setSyncingLive] = useState(false);
   const [importingCalendar, setImportingCalendar] = useState(false);
   const [eventModalTab, setEventModalTab] = useState<"Geral" | "Equipas" | "Detalhes">("Geral");
+  const [apiKeyModalOpen, setApiKeyModalOpen] = useState(false);
+  const [apiKeyContext, setApiKeyContext] = useState("");
 
   const filteredNormalEvents = normalEvents.filter((event) =>
     [event.title, event.league || "", event.teamA || "", event.teamB || ""].some((value) => value.toLowerCase().includes(search.toLowerCase()))
@@ -181,7 +184,13 @@ export default function EventsPage() {
       setEvents(refreshed);
       toast.success(`${result.importedCount} jogos da fase de grupos importados!`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel importar jogos da Copa.");
+      const msg = error instanceof Error ? error.message : "";
+      if (/no.key|not configured|api.key|422|401|403/i.test(msg) || msg === "") {
+        setApiKeyContext("Importar Copa do Mundo (Football-Data.org)");
+        setApiKeyModalOpen(true);
+      } else {
+        toast.error(msg || "Nao foi possivel importar jogos da Copa.");
+      }
     } finally {
       setImporting(false);
     }
@@ -197,7 +206,13 @@ export default function EventsPage() {
       setEvents(refreshed);
       toast.success(`${result.syncedCount} jogos sincronizados da API-Football!`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel sincronizar jogos ao vivo.");
+      const msg = error instanceof Error ? error.message : "";
+      if (/no.key|not configured|api.key|422|401|403/i.test(msg) || msg === "") {
+        setApiKeyContext("Sincronizar Eventos ao Vivo (API-Football)");
+        setApiKeyModalOpen(true);
+      } else {
+        toast.error(msg || "Nao foi possivel sincronizar jogos ao vivo.");
+      }
     } finally {
       setSyncingLive(false);
     }
@@ -515,6 +530,16 @@ export default function EventsPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* API Key Required Modal */}
+      {apiKeyModalOpen && (
+        <ApiKeyRequiredModal
+          context={apiKeyContext}
+          suggestedProvider="api_football"
+          onClose={() => setApiKeyModalOpen(false)}
+          onKeySaved={() => setApiKeyModalOpen(false)}
+        />
       )}
     </div>
   );

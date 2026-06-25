@@ -119,11 +119,12 @@ function LogLine({ log }: { log: SyncLog }) {
 interface SyncCompetitionsModalProps {
   onClose: () => void;
   onSyncComplete?: (results: SyncResult[]) => void;
+  onNoApiKey?: () => void;
 }
 
 type Step = "select" | "configure" | "syncing" | "done";
 
-export default function SyncCompetitionsModal({ onClose, onSyncComplete }: SyncCompetitionsModalProps) {
+export default function SyncCompetitionsModal({ onClose, onSyncComplete, onNoApiKey }: SyncCompetitionsModalProps) {
   const [step, setStep] = useState<Step>("select");
   const [selectedProviders, setSelectedProviders] = useState<string[]>(
     MOCK_PROVIDERS.filter((p) => p.status === "ready").map((p) => p.id)
@@ -326,9 +327,15 @@ export default function SyncCompetitionsModal({ onClose, onSyncComplete }: SyncC
                   <AlertCircle className="h-4 w-4 text-amber-400 flex-shrink-0" />
                   <p className="text-xs text-amber-300">
                     {noKeyProviders.length} provedor(es) sem chave configurada.{" "}
-                    <a href="/admin/settings" className="underline text-amber-200 hover:text-white">
-                      Adicionar em Configurações → API Keys
-                    </a>
+                    {onNoApiKey ? (
+                      <button onClick={() => { onClose(); onNoApiKey(); }} className="underline text-amber-200 hover:text-white">
+                        Configurar API Key
+                      </button>
+                    ) : (
+                      <a href="/admin/api-keys" className="underline text-amber-200 hover:text-white">
+                        Adicionar em API Keys
+                      </a>
+                    )}
                   </p>
                 </div>
               )}

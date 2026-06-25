@@ -3,6 +3,7 @@
 import { Bell, Search, ChevronDown, Menu, X, Radio } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import { apiRequest } from "@/lib/api";
 
 interface AdminHeaderProps {
   title?: string;
@@ -14,6 +15,7 @@ export default function AdminHeader({ title = "Dashboard", onMenuToggle }: Admin
   const [profileOpen, setProfileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [liveCount, setLiveCount] = useState<number | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
   const today = new Date().toLocaleDateString("pt-PT", {
@@ -21,6 +23,21 @@ export default function AdminHeader({ title = "Dashboard", onMenuToggle }: Admin
     month: "short",
     year: "numeric",
   });
+
+  // Fetch real live count on mount and every 30s
+  useEffect(() => {
+    const fetchLiveCount = async () => {
+      try {
+        const data = await apiRequest<{ liveNow: number }>("/lives/stats");
+        setLiveCount(data.liveNow ?? 0);
+      } catch {
+        // silently fail — keep showing last known count
+      }
+    };
+    fetchLiveCount();
+    const interval = setInterval(fetchLiveCount, 30_000);
+    return () => clearInterval(interval);
+  }, []);
 
   const notifications = [
     { id: 1, text: "Nova live iniciada: Man. United vs Liverpool", time: "2 min atrás", unread: true, type: "live" },
@@ -108,8 +125,12 @@ export default function AdminHeader({ title = "Dashboard", onMenuToggle }: Admin
         {/* Live indicator */}
         <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#E50914]/10 border border-[#E50914]/20">
           <Radio className="w-3 h-3 text-[#E50914]" />
-          <span className="text-[10px] font-black text-[#E50914] uppercase tracking-wide">3 Live</span>
-          <span className="w-1.5 h-1.5 rounded-full bg-[#E50914] live-badge flex-shrink-0" />
+          <span className="text-[10px] font-black text-[#E50914] uppercase tracking-wide">
+            {liveCount === null ? "..." : `${liveCount} Live`}
+          </span>
+          {(liveCount === null || liveCount > 0) && (
+            <span className="w-1.5 h-1.5 rounded-full bg-[#E50914] live-badge flex-shrink-0" />
+          )}
         </div>
 
         {/* Search mobile */}

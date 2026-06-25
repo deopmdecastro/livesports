@@ -31,6 +31,7 @@ import AdminActionButton from "@/components/admin/AdminActionButton";
 import AdminLivePreviewModal from "@/components/admin/AdminLivePreviewModal";
 import AdminTeamMark, { isLeagueLogoDisplayable } from "@/components/admin/AdminTeamMark";
 import { apiRequest, type ApiListResponse } from "@/lib/api";
+import ApiKeyRequiredModal from "@/components/admin/ApiKeyRequiredModal";
 
 const statusConfig: Record<
   LiveStatus,
@@ -141,6 +142,7 @@ export default function LivesPage() {
   const [modalTab, setModalTab] = useState<"Geral" | "Streaming" | "Detalhes">("Geral");
   const [viewingLive, setViewingLive] = useState<Live | null>(null);
   const [syncingStreams, setSyncingStreams] = useState(false);
+  const [apiKeyModalOpen, setApiKeyModalOpen] = useState(false);
 
   // Event select/search state (Nova Live)
   const [eventQuery, setEventQuery] = useState("");
@@ -452,7 +454,13 @@ export default function LivesPage() {
           : `${result.syncedCount} streams ao vivo importados da RapidAPI!`
       );
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel importar streams da RapidAPI.");
+      const msg = error instanceof Error ? error.message : "";
+      // Detect missing API key errors (422, "no_key", "not configured", etc.)
+      if (/no.key|not configured|api.key|422|401|403/i.test(msg) || msg === "") {
+        setApiKeyModalOpen(true);
+      } else {
+        toast.error(msg || "Nao foi possivel importar streams da RapidAPI.");
+      }
     } finally {
       setSyncingStreams(false);
     }
@@ -991,6 +999,16 @@ export default function LivesPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* API Key Required Modal */}
+      {apiKeyModalOpen && (
+        <ApiKeyRequiredModal
+          context="Importar Streams (RapidAPI)"
+          suggestedProvider="streamm3u"
+          onClose={() => setApiKeyModalOpen(false)}
+          onKeySaved={() => { setApiKeyModalOpen(false); syncRapidApiStreams(); }}
+        />
       )}
     </div>
   );

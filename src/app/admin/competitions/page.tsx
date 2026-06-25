@@ -10,6 +10,7 @@ import { apiRequest } from "@/lib/api";
 import { formatDateTime, getSportLabel } from "@/utils";
 import AdminActionButton from "@/components/admin/AdminActionButton";
 import SyncCompetitionsModal from "@/components/admin/SyncCompetitionsModal";
+import ApiKeyRequiredModal from "@/components/admin/ApiKeyRequiredModal";
 
 const statusLabels: Record<string, string> = {
   active: "Ativa",
@@ -30,6 +31,7 @@ export default function CompetitionsPage() {
   const [q, setQ] = useState("");
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
+  const [apiKeyModalOpen, setApiKeyModalOpen] = useState(false);
 
   useEffect(() => {
     apiRequest<Competition[]>("/competitions")
@@ -273,11 +275,22 @@ export default function CompetitionsPage() {
       {showSyncModal && (
         <SyncCompetitionsModal
           onClose={() => setShowSyncModal(false)}
+          onNoApiKey={() => setApiKeyModalOpen(true)}
           onSyncComplete={(results) => {
             const total = results.reduce((acc, r) => acc + r.added + r.updated, 0);
             setLastSyncAt(new Date().toISOString());
             toast.success(`Sincronização concluída! ${total} competições processadas.`);
           }}
+        />
+      )}
+
+      {/* API Key Required Modal */}
+      {apiKeyModalOpen && (
+        <ApiKeyRequiredModal
+          context="Sincronizar Competições"
+          suggestedProvider="api_football"
+          onClose={() => setApiKeyModalOpen(false)}
+          onKeySaved={() => { setApiKeyModalOpen(false); setShowSyncModal(true); }}
         />
       )}
     </div>

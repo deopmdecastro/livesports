@@ -2,15 +2,11 @@
 
 import { useState } from "react";
 import {
-  Save, Globe, Shield, Bell, Database,
-  Key, Eye, EyeOff, Plus, Trash2, RefreshCw,
-  CheckCircle2, XCircle, AlertCircle, Copy, Zap,
-  Tv2, Trophy, BarChart3, Cloud, ExternalLink,
-  ChevronDown, Info, ArrowRight,
+  Save, Globe, Shield, Bell,
+  Tv2,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import AdminImageField from "@/components/admin/AdminImageField";
-import Link from "next/link";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -74,7 +70,7 @@ function Toggle({ checked, onChange, label, sub }: { checked: boolean; onChange:
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
-const SETTINGS_TABS = ["Geral", "Identidade", "Segurança", "Notificações", "API Keys"] as const;
+const SETTINGS_TABS = ["Geral", "Identidade", "Segurança", "Notificações"] as const;
 type SettingsTab = typeof SETTINGS_TABS[number];
 
 export default function SettingsPage() {
@@ -166,7 +162,7 @@ export default function SettingsPage() {
         {/* Tab bar */}
         <div className="mt-5 flex gap-1 rounded-xl border border-[#1E1E2A] bg-[#0A0A0F] p-1">
           {SETTINGS_TABS.map((tab) => {
-            const icons: Record<SettingsTab, React.ElementType> = { Geral: Globe, Identidade: Tv2, Segurança: Shield, Notificações: Bell, "API Keys": Key };
+            const icons: Record<SettingsTab, React.ElementType> = { Geral: Globe, Identidade: Tv2, Segurança: Shield, Notificações: Bell };
             const Icon = icons[tab];
             return (
               <button
@@ -364,58 +360,8 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* ── TAB: API KEYS ── */}
-      {activeTab === "API Keys" && (
-        <div className="space-y-5">
-          {/* Info banner */}
-          <div className="flex gap-3 rounded-xl border border-blue-500/20 bg-blue-500/5 p-4">
-            <Info className="h-4 w-4 text-blue-400 flex-shrink-0 mt-0.5" />
-            <div className="text-xs text-blue-300 leading-relaxed">
-              A gestão de API Keys foi centralizada numa página dedicada com suporte a persistência real na base de dados,
-              gestão de prioridades, limites de requests, tipos de utilização e descoberta automática de APIs configuradas por variáveis de ambiente.
-            </div>
-          </div>
-
-          {/* Redirect card */}
-          <Link
-            href="/admin/api-keys"
-            className="group flex items-center justify-between gap-4 rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] p-6 hover:border-[#E50914]/40 hover:bg-[#0E0E16]/80 transition-all"
-          >
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#E50914]/10 border border-[#E50914]/20">
-                <Key className="h-6 w-6 text-[#E50914]" />
-              </div>
-              <div>
-                <p className="font-bold text-white text-base">Gestão de API Keys</p>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  Adicione, edite e monitorize chaves de API — dados desportivos, streams, resultados e mais.
-                </p>
-              </div>
-            </div>
-            <ArrowRight className="h-5 w-5 text-gray-500 group-hover:text-[#E50914] group-hover:translate-x-1 transition-all flex-shrink-0" />
-          </Link>
-
-          {/* Feature highlights */}
-          <div className="grid gap-3 sm:grid-cols-3">
-            {[
-              { icon: Database, color: "#22C55E", label: "Persistência real", desc: "Chaves guardadas na base de dados, não no browser" },
-              { icon: Shield, color: "#3B82F6", label: "Gestão avançada", desc: "Prioridades, limites de requests e status por chave" },
-              { icon: Zap, color: "#F59E0B", label: "Descoberta automática", desc: "Deteta APIs configuradas via variáveis de ambiente" },
-            ].map(({ icon: Icon, color, label, desc }) => (
-              <div key={label} className="rounded-xl border border-[#1E1E2A] bg-[#0A0A0F] p-4">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg mb-3" style={{ background: `${color}15`, border: `1px solid ${color}25` }}>
-                  <Icon className="h-4 w-4" style={{ color }} />
-                </div>
-                <p className="text-sm font-semibold text-white mb-1">{label}</p>
-                <p className="text-[11px] text-gray-500 leading-relaxed">{desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Save button (not on API Keys tab) */}
-      {activeTab !== "API Keys" && activeTab !== "Identidade" && (
+      {/* Save button (not on Identidade tab) */}
+      {activeTab !== "Identidade" && (
         <button
           onClick={handleSave}
           className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#E50914] to-[#B00000] px-6 py-3 text-sm font-bold text-white shadow-[0_4px_20px_rgba(229,9,20,0.3)] hover:from-[#FF1A24] hover:to-[#E50914] transition-all"
