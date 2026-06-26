@@ -25,6 +25,8 @@ import {
   Zap,
   Globe,
   Bell,
+  MessageCircle,
+  UserCheck,
 } from "lucide-react";
 import { cn } from "@/utils";
 import { useState } from "react";
@@ -53,6 +55,18 @@ const navGroups: { title: string; items: NavItem[] }[] = [
       { label: "Categorias", href: "/admin/categories", icon: Tag },
       { label: "Notícias", href: "/admin/news", icon: Newspaper },
       { label: "Banners", href: "/admin/banners", icon: Image },
+    ],
+  },
+  {
+    title: "Chat & Interação",
+    items: [
+      { label: "Chat das Lives", href: "/admin/chat", icon: MessageCircle, badge: "NOVO", badgeColor: "#22C55E" },
+    ],
+  },
+  {
+    title: "Criadores",
+    items: [
+      { label: "Criadores / Canais", href: "/admin/creators", icon: UserCheck, badge: "NOVO", badgeColor: "#3B82F6" },
     ],
   },
   {

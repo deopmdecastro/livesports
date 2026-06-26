@@ -5,6 +5,7 @@ import SportCategoriesSection from "@/components/landing/SportCategoriesSection"
 import BenefitsSection from "@/components/landing/BenefitsSection";
 import WorldCupSection from "@/components/landing/WorldCupSection";
 import LeaguesSection from "@/components/landing/LeaguesSection";
+import CreatorCTASection from "@/components/landing/CreatorCTASection";
 import AdSlot from "@/components/ads/AdSlot";
 
 export const metadata: Metadata = {
@@ -25,6 +26,7 @@ export default function HomePage() {
       <WorldCupSection />
       <LeaguesSection />
       <SportCategoriesSection />
+      <CreatorCTASection />
       <BenefitsSection />
     </>
   );

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Search, Menu, X, Bell, ChevronDown, Zap, Globe, Trophy, User,
-  LogOut, Settings, Shield, Play, Clock, Radio,
+  LogOut, Settings, Shield, Play, Clock, Radio, Tv2,
 } from "lucide-react";
 import { cn } from "@/utils";
 import { useLang } from "@/lib/lang";
@@ -525,20 +525,26 @@ export default function Navbar() {
                         </span>
                       </div>
                       <div className="p-1">
-                        <Link href="/admin/profile" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#E50914]/10 hover:text-white rounded-lg transition-colors" onClick={() => setUserMenuOpen(false)}>
+                        <Link href="/me" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#E50914]/10 hover:text-white rounded-lg transition-colors" onClick={() => setUserMenuOpen(false)}>
                           <User className="w-4 h-4" />
                           Meu Perfil
                         </Link>
+                        <Link href="/me/tickets" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#E50914]/10 hover:text-white rounded-lg transition-colors" onClick={() => setUserMenuOpen(false)}>
+                          <Settings className="w-4 h-4" />
+                          Suporte
+                        </Link>
+                        {user && ["creator", "editor", "moderator", "admin", "super_admin"].includes(user.role) && (
+                          <Link href="/creator" className="flex items-center gap-2 px-3 py-2 text-sm text-yellow-400 hover:bg-yellow-500/10 rounded-lg transition-colors" onClick={() => setUserMenuOpen(false)}>
+                            <Tv2 className="w-4 h-4" />
+                            Creator Studio
+                          </Link>
+                        )}
                         {isAdmin && (
                           <Link href="/admin/dashboard" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#E50914]/10 hover:text-white rounded-lg transition-colors" onClick={() => setUserMenuOpen(false)}>
                             <Shield className="w-4 h-4" />
                             Painel Admin
                           </Link>
                         )}
-                        <Link href="/admin/settings" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#E50914]/10 hover:text-white rounded-lg transition-colors" onClick={() => setUserMenuOpen(false)}>
-                          <Settings className="w-4 h-4" />
-                          Configurações
-                        </Link>
                         <div className="h-px bg-[#1E1E2A] my-1" />
                         <button
                           onClick={handleLogout}
