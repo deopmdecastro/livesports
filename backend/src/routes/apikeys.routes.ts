@@ -159,19 +159,39 @@ router.post('/', async (req, res, next) => {
 // PUT /api/api-keys/:id — update
 router.put('/:id', async (req, res, next) => {
   try {
-    const parsed = apiKeySchema.safeParse(req.body);
+    // For edits, keyValue is optional - keep existing if not provided
+    const editSchema = apiKeySchema.extend({
+      keyValue: z.string().trim().optional(),
+    }).partial({ keyValue: true });
+    const parsed = editSchema.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ success: false, error: parsed.error.errors[0].message });
       return;
     }
     const d = parsed.data;
-    const usageTypesLiteral = d.usageTypes.length > 0 ? `ARRAY[${d.usageTypes.map((t) => `'${t}'`).join(',')}]::TEXT[]` : "'{}'::TEXT[]";
+    if (!d.name || !d.provider) {
+      res.status(400).json({ success: false, error: 'Nome e provedor sao obrigatorios' });
+      return;
+    }
+    const usageTypesLiteral = (d.usageTypes || []).length > 0 ? `ARRAY[${(d.usageTypes || []).map((t) => `'${t}'`).join(',')}]::TEXT[]` : "'{}'::TEXT[]";
+
+    // If keyValue not provided, keep existing
+    let keyValueParam: string | null = d.keyValue || null;
+    if (!keyValueParam) {
+      // Fetch existing key value
+      const existing = await prisma.$queryRawUnsafe<Array<{ key_value: string }>>(
+        `SELECT key_value FROM "api_keys" WHERE id = $1`,
+        req.params.id
+      );
+      keyValueParam = existing[0]?.key_value || null;
+    }
+
     const rows = await prisma.$queryRawUnsafe<any[]>(
       `UPDATE "api_keys" SET name=$2,description=$3,provider=$4,base_url=$5,key_value=$6,
        status=$7::api_key_status,priority=$8,request_limit=$9,expires_at=$10::timestamptz,
        usage_types=${usageTypesLiteral},updated_at=NOW()
        WHERE id=$1 RETURNING *`,
-      req.params.id, d.name, d.description ?? null, d.provider, d.baseUrl ?? null, d.keyValue,
+      req.params.id, d.name, d.description ?? null, d.provider, d.baseUrl ?? null, keyValueParam,
       d.status, d.priority, d.requestLimit ?? null, d.expiresAt ?? null,
     );
     if (!rows[0]) { res.status(404).json({ success: false, error: 'API Key não encontrada' }); return; }

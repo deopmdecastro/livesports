@@ -12,6 +12,7 @@ import {
   Volume1,
   Volume2,
   VolumeX,
+  Youtube,
 } from "lucide-react";
 import type { Live, LiveStreamServer } from "@/types";
 import { cn, formatNumber } from "@/utils";
@@ -47,8 +48,30 @@ export default function LivePlayer({ live, adOverlay = null, autoPlayMuted = fal
   const [error, setError] = useState("");
   const [streamReady, setStreamReady] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
+  const [showYoutubeMode, setShowYoutubeMode] = useState(false);
   // Track whether user explicitly paused — prevents auto-play from overriding
   const userPausedRef = useRef(false);
+
+  // Check for YouTube embed
+  const hasYoutubeEmbed = Boolean(live.youtubeEmbed);
+  const youtubeEmbedUrl = useMemo(() => {
+    if (!live.youtubeEmbed) return null;
+    // If it's an iframe string, extract URL
+    if (live.youtubeEmbed.includes('<iframe')) {
+      const srcMatch = live.youtubeEmbed.match(/src="([^"]+)"/);
+      return srcMatch ? srcMatch[1] : null;
+    }
+    // If it's a URL, use it directly
+    if (live.youtubeEmbed.startsWith('http')) {
+      // Add autoplay and other params if not already present
+      const url = new URL(live.youtubeEmbed);
+      if (!url.searchParams.has('autoplay')) url.searchParams.set('autoplay', '1');
+      if (!url.searchParams.has('mute')) url.searchParams.set('mute', autoPlayMuted ? '1' : '0');
+      url.searchParams.set('allowfullscreen', '1');
+      return url.toString();
+    }
+    return live.youtubeEmbed;
+  }, [live.youtubeEmbed, autoPlayMuted]);
 
   const servers = useMemo<Required<LiveStreamServer>[]>(() => {
     const customServers = (live.streamServers || [])
@@ -227,6 +250,43 @@ export default function LivePlayer({ live, adOverlay = null, autoPlayMuted = fal
 
   const VolumeIcon = muted || volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
 
+  // YouTube mode toggle available if we have both HLS and YouTube
+  const canToggleMode = hasYoutubeEmbed && servers.some(s => s.url);
+
+  // If YouTube mode is enabled and we have embed URL, render YouTube iframe
+  if (showYoutubeMode && youtubeEmbedUrl) {
+    return (
+      <div ref={playerRef} className="relative flex h-full min-h-0 flex-col overflow-hidden bg-black">
+        {/* Top bar for switching back */}
+        <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between bg-gradient-to-b from-black/80 to-transparent px-4 py-3">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E50914] px-3 py-1 text-xs font-black text-white shadow-lg">
+              <span className="h-2 w-2 rounded-full bg-white live-badge" />
+              AO VIVO
+            </span>
+            <span className="hidden rounded-full bg-black/60 px-3 py-1 text-xs font-semibold text-gray-200 backdrop-blur-sm sm:inline">
+              YouTube
+            </span>
+          </div>
+          <button
+            onClick={() => setShowYoutubeMode(false)}
+            className="rounded-lg bg-white/10 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-white/20 flex items-center gap-1.5"
+          >
+            <Server className="h-3.5 w-3.5" />
+            Voltar ao Player
+          </button>
+        </div>
+        <iframe
+          src={youtubeEmbedUrl}
+          className="h-full w-full"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          title={live.title}
+        />
+      </div>
+    );
+  }
+
   return (
     <div ref={playerRef} className="relative flex h-full min-h-0 flex-col overflow-hidden bg-black">
       {/* ── Video area ── */}
@@ -367,6 +427,17 @@ export default function LivePlayer({ live, adOverlay = null, autoPlayMuted = fal
                   {server.name}
                 </button>
               ))}
+              {/* YouTube Toggle Button */}
+              {hasYoutubeEmbed && (
+                <button
+                  onClick={() => setShowYoutubeMode(true)}
+                  className="whitespace-nowrap rounded-lg border border-red-600/50 bg-red-600/20 px-3 py-2 text-xs font-bold text-red-400 transition-all hover:bg-red-600/30 hover:text-red-300"
+                  title="Assistir via YouTube"
+                >
+                  <Youtube className="h-3.5 w-3.5 inline-block mr-1" />
+                  YouTube
+                </button>
+              )}
             </div>
             <button
               onClick={toggleFullscreen}

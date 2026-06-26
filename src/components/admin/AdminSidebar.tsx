@@ -59,7 +59,7 @@ const navGroups: { title: string; items: NavItem[] }[] = [
     items: [
       { label: "Lives", href: "/admin/lives", icon: Radio, badge: "AO VIVO", badgeColor: "#E50914" },
       { label: "Eventos", href: "/admin/events", icon: Calendar },
-      { label: "Competições", href: "/admin/competitions", icon: Trophy },
+      { label: "Ligas & Competicoes", href: "/admin/competitions", icon: Trophy },
       { label: "Categorias", href: "/admin/categories", icon: Tag },
       { label: "Notícias", href: "/admin/news", icon: Newspaper },
       { label: "Banners", href: "/admin/banners", icon: Image },

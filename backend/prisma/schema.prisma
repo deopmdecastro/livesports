@@ -79,6 +79,7 @@ model Live {
   banner      String?
   sport       SportCategory
   league      String?
+  leagueLogo  String?    @map("league_logo")
   teamA       String?
   teamALogo   String?
   teamB       String?
@@ -88,6 +89,8 @@ model Live {
   streamUrl   String?
   hlsUrl      String?
   m3u8Url     String?
+  youtubeUrl  String?    @map("youtube_url")
+  youtubeEmbed String?   @map("youtube_embed")
   status      LiveStatus @default(scheduled)
   featured    Boolean    @default(false)
   viewerCount Int        @default(0)

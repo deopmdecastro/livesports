@@ -54,6 +54,8 @@ export interface Live {
   streamUrl?: string;
   hlsUrl?: string;
   m3u8Url?: string;
+  youtubeUrl?: string;
+  youtubeEmbed?: string;
   streamServers?: LiveStreamServer[];
   status: LiveStatus;
   featured: boolean;

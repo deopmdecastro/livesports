@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Clock, Play, Eye, Users, Star, Zap, Trophy, Signal } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, Play, Eye, Users, Star, Zap, Trophy, Signal, Calendar, Tv2 } from "lucide-react";
 import type { Ad, Live } from "@/types";
 import { publicApiRequest, type ApiListResponse } from "@/lib/api";
 import { resolveCountryFlagUrl } from "@/lib/flags";
@@ -320,7 +320,61 @@ export default function HeroSection() {
   }
 
   if (!slide) {
-    return <section className="relative h-[88vh] min-h-[600px] max-h-[950px] overflow-hidden bg-[#060609]"><div className="absolute inset-0 grid-bg opacity-20" /></section>;
+    return (
+      <section className="relative h-[88vh] min-h-[600px] max-h-[950px] overflow-hidden bg-gradient-to-b from-[#060609] via-[#0a0a12] to-[#0E0E16]">
+        <div className="absolute inset-0 grid-bg opacity-20" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#060609] via-[#060609]/70 to-transparent" />
+        <div className="relative z-10 flex h-full items-center">
+          <div className="mx-auto w-full max-w-[1400px] px-4 lg:px-6">
+            <div className="grid lg:grid-cols-[1fr_380px] gap-12 items-center">
+              <div className="max-w-2xl space-y-5">
+                <div className="flex items-center gap-2">
+                  <span className="flex items-center gap-2 rounded-full border border-[#E50914]/30 bg-[#E50914]/10 px-3.5 py-1.5 text-xs font-black uppercase tracking-widest text-[#E50914]">
+                    <span className="relative flex h-2 w-2">
+                      <span className="live-ring absolute inline-flex h-full w-full rounded-full bg-white opacity-60" />
+                    </span>
+                    {t.hero_scheduled || "Em breve"}
+                  </span>
+                </div>
+                <h1 className="font-black leading-tight text-4xl md:text-5xl lg:text-6xl xl:text-7xl tracking-tight" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+                  <span className="text-white">Live</span>
+                  <span className="gradient-text-red">Sports</span>
+                </h1>
+                <p className="text-gray-300 text-sm lg:text-base max-w-lg">
+                  Acompanhe os melhores jogos e eventos desportivos em direto. Transmissões de alta qualidade de futebol, basquete, tenis e muito mais.
+                </p>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Link href="/register" className="group flex items-center gap-2.5 rounded-xl bg-gradient-to-r from-[#E50914] to-[#B00000] px-7 py-3.5 font-bold text-white transition-all hover:from-[#FF1A24] hover:to-[#E50914] shadow-red hover:shadow-red-lg hover:-translate-y-0.5">
+                    <Users className="h-4 w-4" />
+                    {t.hero_create_account || "Criar conta"}
+                  </Link>
+                  <Link href="/calendario" className="flex items-center gap-2 rounded-xl border border-white/15 bg-white/8 px-7 py-3.5 font-semibold text-white backdrop-blur-sm transition-all hover:bg-white/15 hover:border-white/25">
+                    <Calendar className="h-4 w-4" />
+                    Ver calendario
+                  </Link>
+                </div>
+              </div>
+              <div className="hidden lg:block">
+                <div className="rounded-2xl border border-white/10 bg-black/40 backdrop-blur-md overflow-hidden p-8 text-center">
+                  <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-[#E50914]/10 mb-4">
+                    <Tv2 className="h-10 w-10 text-[#E50914]" />
+                  </div>
+                  <h3 className="text-xl font-black text-white mb-2" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+                    Sem transmissoes ao vivo
+                  </h3>
+                  <p className="text-sm text-gray-400 mb-4">
+                    Novas lives em breve. Consulte o calendario!
+                  </p>
+                  <Link href="/calendario" className="inline-flex items-center gap-2 text-sm font-bold text-[#E50914] hover:text-red-400">
+                    Ver agenda <ChevronRight className="h-4 w-4" />
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
   }
 
   // Other live matches (for the mini sidebar)

@@ -89,16 +89,16 @@ export default function CompetitionsPage() {
           <div>
             <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-[#E50914]/20 bg-[#E50914]/10 px-3 py-1 text-xs font-semibold text-[#E50914]">
               <Trophy className="h-3.5 w-3.5" />
-              Gestão de Competições
+              Ligas & Competicoes
             </div>
-            <h2 className="text-2xl font-black text-white" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Competições</h2>
+            <h2 className="text-2xl font-black text-white" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Ligas & Competicoes</h2>
             <p className="text-sm text-gray-400 mt-1">
-              Torneios, ligas e campeonatos — Copa do Mundo, Eliminatórias, Champions League e mais.
+              Torneios, ligas e campeonatos — Copa do Mundo, Eliminatorias, Champions League e mais.
             </p>
             {lastSyncAt && (
               <p className="text-[10px] text-gray-600 mt-1.5 flex items-center gap-1">
                 <RefreshCw className="h-2.5 w-2.5" />
-                Última sincronização: {new Date(lastSyncAt).toLocaleString("pt-PT")}
+                Ultima sincronizacao: {new Date(lastSyncAt).toLocaleString("pt-PT")}
               </p>
             )}
           </div>

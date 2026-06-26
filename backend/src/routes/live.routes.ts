@@ -39,6 +39,8 @@ function mapLive(row: any) {
     streamUrl: row.stream_url,
     hlsUrl: row.hls_url,
     m3u8Url: row.m3u8_url,
+    youtubeUrl: row.youtube_url,
+    youtubeEmbed: row.youtube_embed,
     streamServers: parseStreamServers(row.stream_servers),
     status: row.status,
     featured: row.featured,
@@ -60,7 +62,7 @@ function mapLive(row: any) {
 
 const selectLiveSql = `
   SELECT id, title, description, thumbnail, banner, sport::text, league, league_logo, team_a, team_a_logo,
-    team_b, team_b_logo, score_a, score_b, stream_url, hls_url, m3u8_url, stream_servers,
+    team_b, team_b_logo, score_a, score_b, stream_url, hls_url, m3u8_url, youtube_url, youtube_embed, stream_servers,
     status::text, featured, viewer_count, total_views, like_count, share_count,
     (SELECT COUNT(*)::bigint FROM "live_comments" WHERE "live_id" = "lives"."id") AS comment_count,
     match_time, tags, scheduled_at, started_at, ended_at, archived, created_at, updated_at
@@ -451,15 +453,15 @@ router.post('/', authenticateToken, requireEditor, async (req: AuthRequest, res,
       `
         INSERT INTO "lives" (
           title, description, thumbnail, banner, sport, league, league_logo, stream_url, hls_url, m3u8_url,
-          stream_servers, status, featured, scheduled_at,
+          youtube_url, youtube_embed, stream_servers, status, featured, scheduled_at,
           team_a, team_a_logo, team_b, team_b_logo, score_a, score_b, match_time
         )
         VALUES (
           $1, $2, $3, $4,
           $5::sport_category, $6, $7,
           $8, $9, $10,
-          $11::jsonb, $12::live_status, $13, $14::timestamptz,
-          $15, $16, $17, $18, $19, $20, $21
+          $11, $12, $13::jsonb, $14::live_status, $15, $16::timestamptz,
+          $17, $18, $19, $20, $21, $22, $23
         )
         RETURNING *
       `,
@@ -474,6 +476,8 @@ router.post('/', authenticateToken, requireEditor, async (req: AuthRequest, res,
       streamUrl,
       body.hlsUrl || streamUrl,
       body.m3u8Url || null,
+      body.youtubeUrl || null,
+      body.youtubeEmbed || null,
       JSON.stringify(servers),
       body.status || 'scheduled',
       Boolean(body.featured),
@@ -518,10 +522,10 @@ router.put('/:id', authenticateToken, requireEditor, async (req: AuthRequest, re
         UPDATE "lives"
         SET title = $2, description = $3, thumbnail = $4, banner = $5, sport = $6::sport_category,
             league = $7, league_logo = $8, stream_url = $9, hls_url = $10, m3u8_url = $11,
-            stream_servers = $12::jsonb, status = $13::live_status, featured = $14,
-            scheduled_at = $15::timestamptz, updated_at = NOW(),
-            team_a = $16, team_a_logo = $17, team_b = $18, team_b_logo = $19,
-            score_a = $20, score_b = $21, match_time = $22
+            youtube_url = $12, youtube_embed = $13, stream_servers = $14::jsonb, status = $15::live_status, featured = $16,
+            scheduled_at = $17::timestamptz, updated_at = NOW(),
+            team_a = $18, team_a_logo = $19, team_b = $20, team_b_logo = $21,
+            score_a = $22, score_b = $23, match_time = $24
         WHERE id = $1
         RETURNING *
       `,
@@ -536,6 +540,8 @@ router.put('/:id', authenticateToken, requireEditor, async (req: AuthRequest, re
       streamUrl,
       body.hlsUrl || streamUrl,
       body.m3u8Url || null,
+      body.youtubeUrl || null,
+      body.youtubeEmbed || null,
       JSON.stringify(servers),
       body.status || 'scheduled',
       Boolean(body.featured),

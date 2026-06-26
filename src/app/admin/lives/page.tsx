@@ -190,6 +190,8 @@ export default function LivesPage() {
     matchTime: "",
     hlsUrl: "",
     m3u8Url: "",
+    youtubeUrl: "",
+    youtubeEmbed: "",
     streamServers: [createStreamServer(0, DEFAULT_STREAM_URL)],
     scheduledAt: "",
     description: "",
@@ -297,6 +299,8 @@ export default function LivesPage() {
       matchTime: live.matchTime || "",
       hlsUrl: live.hlsUrl || "",
       m3u8Url: live.m3u8Url || "",
+      youtubeUrl: live.youtubeUrl || "",
+      youtubeEmbed: live.youtubeEmbed || "",
       streamServers:
         live.streamServers && live.streamServers.length > 0
           ? live.streamServers
@@ -333,6 +337,8 @@ export default function LivesPage() {
       matchTime: "",
       hlsUrl: "",
       m3u8Url: "",
+      youtubeUrl: "",
+      youtubeEmbed: "",
       streamServers: [createStreamServer(0, DEFAULT_STREAM_URL)],
       scheduledAt: new Date().toISOString().slice(0, 16),
       description: "",
@@ -367,8 +373,9 @@ export default function LivesPage() {
   };
 
   const handleSave = async () => {
-    if (!editingLive && !form.eventId) {
-      toast.error("Selecione um evento para criar a live.");
+    // Allow creating lives without event - just need title
+    if (!editingLive && !form.eventId && !form.title.trim()) {
+      toast.error("Informe o titulo da live ou selecione um evento.");
       return;
     }
 
@@ -388,8 +395,10 @@ export default function LivesPage() {
       }))
       .filter((server) => server.url);
 
-    if (cleanServers.length === 0 && !form.hlsUrl.trim() && !form.m3u8Url.trim()) {
-      toast.error("Adicione pelo menos um servidor com URL de transmissao.");
+    // Allow creating lives even without stream URL (can be added later)
+    // Only validate if we're editing and there's no youtube URL either
+    if (cleanServers.length === 0 && !form.hlsUrl.trim() && !form.m3u8Url.trim() && !form.youtubeUrl.trim() && !form.youtubeEmbed.trim()) {
+      toast.error("Adicione pelo menos um servidor, URL de transmissao ou link do YouTube.");
       return;
     }
 
@@ -412,6 +421,8 @@ export default function LivesPage() {
       description: form.description || null,
       hlsUrl: form.hlsUrl || null,
       m3u8Url: form.m3u8Url || null,
+      youtubeUrl: form.youtubeUrl || null,
+      youtubeEmbed: form.youtubeEmbed || null,
       streamServers: cleanServers,
       scheduledAt: form.scheduledAt,
       featured: form.featured,
@@ -761,16 +772,26 @@ export default function LivesPage() {
               {/* ── TAB: GERAL ── */}
               {modalTab === "Geral" && (
                 <>
+                  {/* Title field for new lives (allows creating without event) */}
                   {!editingLive && (
-                    <div className="rounded-xl border border-[#E50914]/20 bg-[#E50914]/5 p-4">
+                    <div>
+                      <label className="mb-1.5 block text-xs font-semibold text-gray-300">Título da Live <span className="text-[#E50914]">*</span></label>
+                      <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="input-dark w-full px-3 py-2.5 text-sm" placeholder="Ex: Real Madrid vs Barcelona" />
+                      <p className="mt-1 text-[10px] text-gray-500">Obrigatorio se nao vincular a um evento.</p>
+                    </div>
+                  )}
+
+                  {/* Optional event linking section */}
+                  {!editingLive && (
+                    <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-4">
                       <div className="mb-3 flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
-                          <CalendarClock className="h-4 w-4 text-[#E50914]" />
-                          <span className="text-sm font-bold text-white">Vincular a Evento</span>
+                          <CalendarClock className="h-4 w-4 text-blue-400" />
+                          <span className="text-sm font-bold text-white">Vincular a Evento (opcional)</span>
                         </div>
-                        {eventSearchLoading && <span className="text-[10px] text-[#E50914] animate-pulse">A pesquisar...</span>}
+                        {eventSearchLoading && <span className="text-[10px] text-blue-400 animate-pulse">A pesquisar...</span>}
                       </div>
-                      <p className="mb-3 text-xs text-gray-500">Selecione um evento previamente criado para associar a esta live.</p>
+                      <p className="mb-3 text-xs text-gray-500">Vincule a um evento existente para preencher automaticamente os dados.</p>
                       <div className="relative mb-3">
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
                         <input
@@ -783,15 +804,23 @@ export default function LivesPage() {
                       <AdminSelect
                         value={form.eventId}
                         onChange={(value) => { setForm((prev) => ({ ...prev, eventId: value })); handlePickEvent(value); }}
-                        options={eventOptions.length ? eventOptions.map((ev) => ({ value: ev.id, label: ev.title })) : [{ value: "", label: "Selecione um evento" }]}
+                        options={eventOptions.length ? eventOptions.map((ev) => ({ value: ev.id, label: ev.title })) : [{ value: "", label: "Selecione um evento (opcional)" }]}
                         ariaLabel="Selecionar evento"
                       />
                       {form.eventId && (
-                        <div className="mt-3 flex items-center gap-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-3 py-2">
-                          <CheckCircle className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" />
-                          <span className="text-xs text-emerald-300">
-                            Evento vinculado: <strong>{eventOptions.find((e) => e.id === form.eventId)?.title}</strong>
-                          </span>
+                        <div className="mt-3 flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 flex-1">
+                            <CheckCircle className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" />
+                            <span className="text-xs text-emerald-300">
+                              Evento: <strong>{eventOptions.find((e) => e.id === form.eventId)?.title}</strong>
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => setForm((prev) => ({ ...prev, eventId: "" }))}
+                            className="text-[10px] text-red-400 hover:text-red-300 font-semibold px-2"
+                          >
+                            Remover
+                          </button>
                         </div>
                       )}
                     </div>
@@ -878,6 +907,47 @@ export default function LivesPage() {
               {/* ── TAB: STREAMING ── */}
               {modalTab === "Streaming" && (
                 <>
+                  {/* YouTube Integration */}
+                  <div className="rounded-xl border border-red-500/20 bg-[#1A0A0A] p-4 mb-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <svg className="h-4 w-4 text-red-500" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                      </svg>
+                      <h4 className="text-sm font-bold text-white">YouTube / Embed</h4>
+                    </div>
+                    <p className="text-xs text-gray-500 mb-3">Incorpore um video do YouTube ou codigo iframe.</p>
+
+                    <div className="space-y-3">
+                      <div>
+                        <label className="mb-1 block text-[10px] font-semibold text-gray-500 uppercase">URL do YouTube</label>
+                        <input
+                          value={form.youtubeUrl}
+                          onChange={(e) => {
+                            const url = e.target.value;
+                            // Auto-extract embed URL from YouTube URL
+                            let embed = "";
+                            const videoIdMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+                            if (videoIdMatch) {
+                              embed = `https://www.youtube.com/embed/${videoIdMatch[1]}`;
+                            }
+                            setForm({ ...form, youtubeUrl: url, youtubeEmbed: embed || form.youtubeEmbed });
+                          }}
+                          className="input-dark w-full px-3 py-2.5 text-sm"
+                          placeholder="https://www.youtube.com/watch?v=..."
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-[10px] font-semibold text-gray-500 uppercase">URL Embed (ou iframe codigo)</label>
+                        <input
+                          value={form.youtubeEmbed}
+                          onChange={(e) => setForm({ ...form, youtubeEmbed: e.target.value })}
+                          className="input-dark w-full px-3 py-2.5 text-sm font-mono"
+                          placeholder="https://www.youtube.com/embed/... ou <iframe...>"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="rounded-xl border border-[#E50914]/15 bg-[#E50914]/5 p-4">
                     <div className="flex items-center gap-2 mb-3">
                       <Server className="h-4 w-4 text-[#E50914]" />
@@ -903,7 +973,7 @@ export default function LivesPage() {
                           </div>
                           <div className="grid gap-3 sm:grid-cols-2">
                             <div className="sm:col-span-2">
-                              <label className="mb-1 block text-[10px] font-semibold text-gray-500 uppercase">URL do Stream (HLS/M3U8) *</label>
+                              <label className="mb-1 block text-[10px] font-semibold text-gray-500 uppercase">URL do Stream (HLS/M3U8)</label>
                               <input value={server.url} onChange={(e) => setForm({ ...form, streamServers: form.streamServers.map((s) => s.id === server.id ? { ...s, url: e.target.value } : s) })} className="input-dark w-full px-3 py-2.5 text-sm font-mono" placeholder="https://example.com/live.m3u8" />
                             </div>
                             <div>
