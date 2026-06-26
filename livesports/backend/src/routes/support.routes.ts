@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { authenticateToken, requireAdmin, requireEditor, AuthRequest } from '../middleware/auth.middleware';
 import { prisma } from '../lib/prisma';
 import { parsePagination, buildPaginationMeta } from '../lib/pagination';
+import { createNotification, notifyAdmins } from './notifications.routes';
 
 const router = Router();
 
@@ -161,7 +162,20 @@ router.post('/', authenticateToken, async (req: AuthRequest, res, next) => {
        VALUES ($1,$2,$3::ticket_priority,$4::ticket_category,$5) RETURNING *`,
       d.subject, d.description, d.priority, d.category, req.user?.id ?? null
     );
-    res.status(201).json({ success: true, data: mapTicket(rows[0]) });
+    const ticket = mapTicket(rows[0]);
+
+    // Notify all admins/editors of the new ticket
+    const userName = req.user?.name || 'Utilizador';
+    const priorityEmoji = d.priority === 'critical' ? '🚨' : d.priority === 'high' ? '⚠️' : '📩';
+    notifyAdmins({
+      type: 'new_ticket',
+      title: `${priorityEmoji} Novo ticket de suporte`,
+      message: `${userName}: "${d.subject}"`,
+      link: `/admin/support/${ticket.id}`,
+      meta: { ticketId: ticket.id, priority: d.priority, category: d.category },
+    }).catch(() => {});
+
+    res.status(201).json({ success: true, data: ticket });
   } catch (error) {
     next(error);
   }
@@ -187,6 +201,34 @@ router.post('/:id/messages', authenticateToken, async (req: AuthRequest, res, ne
         `UPDATE "support_tickets" SET status='pending', updated_at=NOW() WHERE id=$1 AND status='open'`,
         req.params.id
       );
+    }
+
+    // Notify: if admin replied → notify ticket owner; if user replied → notify admins
+    const ticket = await prisma.$queryRawUnsafe<any[]>(
+      `SELECT t.user_id, t.subject FROM "support_tickets" t WHERE t.id=$1 LIMIT 1`,
+      req.params.id
+    );
+    if (ticket[0]) {
+      if (isAdmin && ticket[0].user_id) {
+        // Notify the ticket owner that support replied
+        createNotification({
+          userId: ticket[0].user_id,
+          type: 'ticket_reply',
+          title: '💬 Suporte respondeu ao teu ticket',
+          message: `"${ticket[0].subject}" — nova resposta da equipa`,
+          link: `/me/tickets`,
+          meta: { ticketId: req.params.id },
+        }).catch(() => {});
+      } else if (!isAdmin) {
+        // Notify admins that user replied
+        notifyAdmins({
+          type: 'ticket_reply',
+          title: '💬 Nova resposta no ticket',
+          message: `${req.user?.name || 'Utilizador'}: "${ticket[0].subject}"`,
+          link: `/admin/support/${req.params.id}`,
+          meta: { ticketId: req.params.id },
+        }).catch(() => {});
+      }
     }
 
     res.status(201).json({

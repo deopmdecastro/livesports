@@ -9,9 +9,6 @@ import path from 'path';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 
-// Shared Socket.IO instance (must import before routes that need getIO())
-import { initIO } from './lib/socket';
-
 // Routes
 import authRoutes from './routes/auth.routes';
 import liveRoutes from './routes/live.routes';
@@ -29,7 +26,11 @@ import logsRoutes from './routes/logs.routes';
 import supportRoutes from './routes/support.routes';
 import reportsRoutes from './routes/reports.routes';
 import searchRoutes from './routes/search.routes';
+import creatorRoutes from './routes/creator.routes';
 import pollRoutes from './routes/poll.routes';
+import chatRoutes from './routes/chat.routes';
+import notificationsRoutes from './routes/notifications.routes';
+import { setIo } from './lib/socket';
 import { ensureRuntimeSchema } from './lib/prisma';
 import { prisma } from './lib/prisma';
 import { structuredLogger, slowRequestWarner } from './middleware/logger.middleware';
@@ -94,9 +95,6 @@ const io = new Server(httpServer, {
     credentials: true,
   },
 });
-
-// Share the io instance so poll.routes.ts (and others) can broadcast
-initIO(io);
 
 // ─── Security Headers (Helmet) ────────────────────────────────────────────────
 app.use(
@@ -248,7 +246,10 @@ app.use('/api/logs', logsRoutes);
 app.use('/api/support', supportRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/search', searchRoutes);
-app.use('/api', pollRoutes);
+app.use('/api/creator', creatorRoutes);
+app.use('/api/polls', pollRoutes);
+app.use('/api/chat', chatRoutes);
+app.use('/api/notifications', notificationsRoutes);
 
 // Apply mutation limiter to write operations on all routes
 app.use('/api/', (req, res, next) => {
@@ -331,10 +332,25 @@ function getViewerCount(liveId: string): number {
 // Export so REST routes can read live viewer counts
 export { getViewerCount };
 
+// Share io with routes via singleton module
+setIo(io);
+
 // ─── Socket.IO Real-time features ────────────────────────────────────────────
 io.on('connection', (socket) => {
   // Track which live rooms this socket has joined (for disconnect cleanup)
   const joinedLives = new Set<string>();
+
+  // Allow user to join their private room for notifications
+  socket.on('join-user', (userId: string) => {
+    if (typeof userId === 'string' && userId.length <= 100) {
+      socket.join(`user-${userId}`);
+    }
+  });
+
+  // Allow admins/editors to join the admin broadcast room
+  socket.on('join-admin', () => {
+    socket.join('admin-room');
+  });
 
   socket.on('join-live', (liveId: string) => {
     if (typeof liveId !== 'string' || liveId.length > 100) return;
@@ -363,35 +379,6 @@ io.on('connection', (socket) => {
       message: safeMessage,
       timestamp: new Date().toISOString(),
     });
-  });
-
-  // ── Real-time poll voting ──────────────────────────────────────────────────
-  socket.on('poll-vote', (data: { liveId: string; pollId: string; optionId: string; clientId: string }) => {
-    if (
-      typeof data?.liveId !== 'string' ||
-      typeof data?.pollId !== 'string' ||
-      typeof data?.optionId !== 'string'
-    ) return;
-
-    // Import the in-memory store from poll routes
-    const { pollsStore } = require('./routes/poll.routes');
-    const poll = pollsStore.get(data.pollId);
-    if (!poll) return;
-    if (poll.status === 'ended') return;
-
-    const clientId = String(data.clientId || socket.id).slice(0, 128);
-    if (poll.votedClients.has(clientId)) return; // deduplicate
-
-    const option = poll.options.find((o: { id: string }) => o.id === data.optionId);
-    if (!option) return;
-
-    option.votes += 1;
-    poll.totalVotes += 1;
-    poll.votedClients.add(clientId);
-
-    // Broadcast updated results to everyone in the live room
-    const { votedClients, ...pub } = poll;
-    io.to(`live-${data.liveId}`).emit('poll-update', pub);
   });
 
   socket.on('disconnect', () => {

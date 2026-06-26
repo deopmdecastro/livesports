@@ -395,7 +395,7 @@ export async function ensureRuntimeSchema() {
 
   // Seed default admin user if none exists
   const adminExists = await prisma.$queryRawUnsafe<Array<{ count: string }>>(
-    `SELECT COUNT(*)::text AS count FROM "users" WHERE "role" = 'admin' LIMIT 1`
+    `SELECT COUNT(*)::text AS count FROM "users" WHERE "role" IN ('admin', 'super_admin') LIMIT 1`
   ).catch(() => [{ count: '0' }]);
 
   if (parseInt((adminExists[0] as { count: string })?.count ?? '0', 10) === 0) {
@@ -403,16 +403,31 @@ export async function ensureRuntimeSchema() {
     const insertAdmin = async () => {
       await prisma.$executeRawUnsafe(
         `
-          INSERT INTO "users" ("name", "email", "password", "role")
-          VALUES ($1, $2, $3, $4)
+          INSERT INTO "users" ("name", "email", "password", "role", "status", "email_verified")
+          VALUES ($1, $2, $3, $4, 'active', TRUE)
           ON CONFLICT ("email") DO NOTHING
         `,
-        'Admin',
+        'Administrador',
         'admin@livesports.com',
         password,
-        'admin'
+        'super_admin'
       );
     };
     try { await insertAdmin(); } catch { /* column/table may already exist */ }
+  }
+
+  const adminRows = await prisma.$queryRawUnsafe<Array<{ id: string; password: string }>>(
+    `SELECT id, password FROM "users" WHERE email = 'admin@livesports.com' LIMIT 1`
+  ).catch(() => []);
+
+  const defaultAdmin = adminRows[0];
+  if (defaultAdmin && !bcrypt.compareSync('admin123', defaultAdmin.password)) {
+    const password = bcrypt.hashSync('admin123', 12);
+    await prisma.$executeRawUnsafe(
+      `UPDATE "users" SET "password" = $1 WHERE id = $2`,
+      password,
+      defaultAdmin.id
+    );
+    console.warn('[ensureRuntimeSchema] admin@livesports.com password reset to documented default');
   }
 }

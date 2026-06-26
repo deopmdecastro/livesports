@@ -616,5 +616,49 @@ router.delete('/:id', authenticateToken, requireAdmin, async (req: AuthRequest, 
   }
 });
 
+// ── Stream health check ────────────────────────────────────────────────────────
+// Admin-only: probes a given stream URL (HLS/M3U8) for availability.
+// YouTube embed URLs are always considered online (iframe-based, no server-side check needed).
+router.post('/check-stream', authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  const { url } = req.body as { url?: string };
+
+  if (!url || typeof url !== 'string' || !url.trim()) {
+    res.status(400).json({ success: false, error: 'URL required' });
+    return;
+  }
+
+  const trimmed = url.trim();
+
+  // YouTube embed/watch/short URLs → always report as online
+  if (/youtube\.com\/(embed|watch)|youtu\.be\//.test(trimmed)) {
+    res.json({ success: true, online: true, latency: 0, youtube: true });
+    return;
+  }
+
+  const start = Date.now();
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 6000);
+
+    const response = await fetch(trimmed, {
+      method: 'HEAD',
+      signal: controller.signal,
+      headers: { 'User-Agent': 'LiveSports-StreamChecker/1.0', 'Accept': '*/*' },
+    });
+    clearTimeout(timer);
+
+    const latency = Date.now() - start;
+    // 200, 206 (partial), 302 redirect, 307 — all indicate the stream endpoint exists.
+    // 403 can mean the stream exists but requires a player handshake — treat as online.
+    const online = response.status < 400 || response.status === 403;
+
+    res.json({ success: true, online, latency, statusCode: response.status });
+  } catch (err: any) {
+    const latency = Date.now() - start;
+    const reason = err?.name === 'AbortError' ? 'timeout' : 'unreachable';
+    res.json({ success: true, online: false, latency, error: reason });
+  }
+});
+
 export default router;
 

@@ -13,8 +13,6 @@ import { resolveCountryFlagUrl } from "@/lib/flags";
 import LivePlayer from "@/components/watch/LivePlayer";
 import { apiRequest, publicApiRequest } from "@/lib/api";
 import { useViewerCount } from "@/hooks/useViewerCount";
-import { useRealtimePoll } from "@/hooks/useRealtimePoll";
-import LivePollWidget from "@/components/live/LivePollWidget";
 
 interface WatchExperienceProps {
   live: Live;
@@ -300,7 +298,6 @@ export default function WatchExperience({ live, liveId }: WatchExperienceProps) 
   const [liked, setLiked] = useState(false);
   const [viewers, setViewers] = useState(live.viewerCount);
   const { count: socketViewers, connected: socketConnected } = useViewerCount(id, viewers);
-  const { activePoll, votedOptionId, vote, dismiss } = useRealtimePoll(id);
   const displayViewers = socketConnected ? socketViewers : viewers;
   const [totalViews, setTotalViews] = useState(live.totalViews);
   const [likeCount, setLikeCount] = useState(live.likeCount || 0);
@@ -680,18 +677,6 @@ export default function WatchExperience({ live, liveId }: WatchExperienceProps) 
               {chat.length}
             </span>
           </div>
-
-          {/* Live Poll Widget */}
-          {activePoll && (
-            <div className="flex-shrink-0 px-2 pt-2">
-              <LivePollWidget
-                poll={activePoll}
-                votedOptionId={votedOptionId}
-                onVote={vote}
-                onDismiss={dismiss}
-              />
-            </div>
-          )}
 
           {/* Messages */}
           <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-3">

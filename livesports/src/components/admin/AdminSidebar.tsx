@@ -26,8 +26,6 @@ import {
   Globe,
   Bell,
   MessageCircle,
-  PieChart,
-  PlayCircle,
   UserCheck,
 } from "lucide-react";
 import { cn } from "@/utils";
@@ -52,8 +50,6 @@ const navGroups: { title: string; items: NavItem[] }[] = [
     title: "Conteúdos",
     items: [
       { label: "Lives", href: "/admin/lives", icon: Radio, badge: "AO VIVO", badgeColor: "#E50914" },
-      { label: "Chat das Lives", href: "/admin/chat", icon: MessageCircle },
-      { label: "Sondagens", href: "/admin/polls", icon: PieChart },
       { label: "Eventos", href: "/admin/events", icon: Calendar },
       { label: "Competições", href: "/admin/competitions", icon: Trophy },
       { label: "Categorias", href: "/admin/categories", icon: Tag },
@@ -62,10 +58,15 @@ const navGroups: { title: string; items: NavItem[] }[] = [
     ],
   },
   {
+    title: "Chat & Interação",
+    items: [
+      { label: "Chat das Lives", href: "/admin/chat", icon: MessageCircle, badge: "NOVO", badgeColor: "#22C55E" },
+    ],
+  },
+  {
     title: "Criadores",
     items: [
-      { label: "Criadores", href: "/admin/creators", icon: PlayCircle },
-      { label: "Canais", href: "/admin/channels", icon: Tv2 },
+      { label: "Criadores / Canais", href: "/admin/creators", icon: UserCheck, badge: "NOVO", badgeColor: "#3B82F6" },
     ],
   },
   {
@@ -91,7 +92,7 @@ const navGroups: { title: string; items: NavItem[] }[] = [
       { label: "API Keys", href: "/admin/api-keys", icon: Key },
       { label: "Notificações", href: "/admin/notifications", icon: Bell },
       { label: "Logs", href: "/admin/logs", icon: ScrollText },
-      { label: "Suporte", href: "/admin/support", icon: HeadphonesIcon, badge: "!", badgeColor: "#F59E0B" },
+      { label: "Suporte", href: "/admin/support", icon: HeadphonesIcon },
     ],
   },
 ];
@@ -142,32 +143,6 @@ export default function AdminSidebar() {
             <span className="text-[9px] text-gray-600 mt-0.5">{label}</span>
           </div>
         ))}
-      </div>
-
-      {/* Quick Access: Chat + Polls */}
-      <div className="grid grid-cols-2 gap-1 px-2 py-2 border-b border-[#1A1A24]">
-        <Link
-          href="/admin/chat"
-          className={cn(
-            "flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-semibold transition-all",
-            pathname === "/admin/chat"
-              ? "bg-[#E50914]/15 text-[#E50914]"
-              : "text-gray-500 hover:text-white hover:bg-[#111118]"
-          )}
-        >
-          <MessageCircle className="w-3.5 h-3.5" /> Chat
-        </Link>
-        <Link
-          href="/admin/polls"
-          className={cn(
-            "flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-semibold transition-all",
-            pathname === "/admin/polls"
-              ? "bg-[#E50914]/15 text-[#E50914]"
-              : "text-gray-500 hover:text-white hover:bg-[#111118]"
-          )}
-        >
-          <PieChart className="w-3.5 h-3.5" /> Sondagens
-        </Link>
       </div>
 
       {/* Navigation */}
@@ -234,13 +209,6 @@ export default function AdminSidebar() {
 
       {/* Footer */}
       <div className="p-3 border-t border-[#1A1A24] space-y-1">
-        <Link
-          href="/creator"
-          className="flex items-center gap-3 px-3 py-2 text-xs font-medium text-gray-500 hover:text-violet-400 hover:bg-[#111118] rounded-lg transition-all"
-        >
-          <PlayCircle className="w-4 h-4" />
-          <span>Painel Criador</span>
-        </Link>
         <Link
           href="/"
           className="flex items-center gap-3 px-3 py-2 text-xs font-medium text-gray-500 hover:text-blue-400 hover:bg-[#111118] rounded-lg transition-all"

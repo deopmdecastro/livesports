@@ -68,6 +68,8 @@ const emptyForm = {
   email: "",
   country: "",
   phone: "",
+  avatar: "",
+  password: "",
   role: "user",
   status: "active",
   twoFactorEnabled: "false",
@@ -129,6 +131,8 @@ export default function UsersPage() {
       email: user.email,
       country: user.country || "",
       phone: user.phone || "",
+      avatar: user.avatar || "",
+      password: "",
       role: user.role,
       status: user.status,
       twoFactorEnabled: String(user.twoFactorEnabled),
@@ -148,6 +152,7 @@ export default function UsersPage() {
       email: form.email,
       country: form.country,
       phone: form.phone,
+      avatar: form.avatar || null,
       role: form.role as UserRole,
       status: form.status as UserStatus,
       twoFactorEnabled: form.twoFactorEnabled === "true",
@@ -168,12 +173,12 @@ export default function UsersPage() {
           method: "POST",
           body: JSON.stringify({
             ...payload,
-            password: "user12345",
-            avatar: `https://i.pravatar.cc/40?u=${encodeURIComponent(form.email)}`,
+            password: form.password.trim() || "user12345",
+            avatar: form.avatar || `https://i.pravatar.cc/40?u=${encodeURIComponent(form.email)}`,
           }),
         });
         setUsers((current) => [created, ...current]);
-        toast.success("Utilizador criado!");
+        toast.success(`Utilizador criado! Senha: ${form.password.trim() || "user12345"}`);
       }
       setModalMode(null);
     } catch (error) {
@@ -370,12 +375,41 @@ export default function UsersPage() {
                 </div>
               )}
               <div className="grid gap-3 sm:grid-cols-2">
-                <div><label className="mb-1.5 block text-xs font-medium text-gray-300">Nome *</label><input disabled={modalMode === "view"} value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} className="input-dark w-full px-3 py-2.5 text-sm" /></div>
-                <div><label className="mb-1.5 block text-xs font-medium text-gray-300">Email *</label><input disabled={modalMode === "view"} value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} className="input-dark w-full px-3 py-2.5 text-sm" /></div>
+                <div><label className="mb-1.5 block text-xs font-medium text-gray-300">Nome *</label><input disabled={modalMode === "view"} value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} className="input-dark w-full px-3 py-2.5 text-sm" placeholder="Nome completo" /></div>
+                <div><label className="mb-1.5 block text-xs font-medium text-gray-300">Email *</label><input type="email" disabled={modalMode === "view"} value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} className="input-dark w-full px-3 py-2.5 text-sm" placeholder="email@exemplo.com" /></div>
+              </div>
+              {modalMode === "create" && (
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-gray-300">
+                    Senha inicial <span className="text-gray-500 font-normal">(padrão: user12345)</span>
+                  </label>
+                  <input
+                    type="password"
+                    value={form.password}
+                    onChange={(event) => setForm({ ...form, password: event.target.value })}
+                    className="input-dark w-full px-3 py-2.5 text-sm"
+                    placeholder="Deixar vazio para usar senha padrão"
+                  />
+                </div>
+              )}
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-gray-300">Avatar (URL da imagem)</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    disabled={modalMode === "view"}
+                    value={form.avatar}
+                    onChange={(event) => setForm({ ...form, avatar: event.target.value })}
+                    className="input-dark w-full px-3 py-2.5 text-sm flex-1"
+                    placeholder="https://exemplo.com/avatar.jpg"
+                  />
+                  {form.avatar && (
+                    <img src={form.avatar} alt="avatar preview" className="h-10 w-10 rounded-full border border-white/10 object-cover flex-shrink-0" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                  )}
+                </div>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
-                <div><label className="mb-1.5 block text-xs font-medium text-gray-300">Pais</label><input disabled={modalMode === "view"} value={form.country} onChange={(event) => setForm({ ...form, country: event.target.value })} className="input-dark w-full px-3 py-2.5 text-sm" /></div>
-                <div><label className="mb-1.5 block text-xs font-medium text-gray-300">Telefone</label><input disabled={modalMode === "view"} value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} className="input-dark w-full px-3 py-2.5 text-sm" /></div>
+                <div><label className="mb-1.5 block text-xs font-medium text-gray-300">Pais</label><input disabled={modalMode === "view"} value={form.country} onChange={(event) => setForm({ ...form, country: event.target.value })} className="input-dark w-full px-3 py-2.5 text-sm" placeholder="PT, BR, AO..." /></div>
+                <div><label className="mb-1.5 block text-xs font-medium text-gray-300">Telefone</label><input disabled={modalMode === "view"} value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} className="input-dark w-full px-3 py-2.5 text-sm" placeholder="+351 999 999 999" /></div>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div><label className="mb-1.5 block text-xs font-medium text-gray-300">Funcao</label><AdminSelect disabled={modalMode === "view"} value={form.role} onChange={(value) => setForm({ ...form, role: value })} options={roleOptions} /></div>

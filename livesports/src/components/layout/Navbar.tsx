@@ -4,8 +4,9 @@ import Link from "next/link";
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Search, Menu, X, Bell, ChevronDown, Zap, Globe, Trophy, User,
-  LogOut, Settings, Shield, Play, Clock, Radio,
+  LogOut, Settings, Shield, Play, Clock, Radio, Tv2,
 } from "lucide-react";
+import NotificationBell from "./NotificationBell";
 import { cn } from "@/utils";
 import { useLang } from "@/lib/lang";
 import { publicApiRequest, getStoredUser, logout as performLogout } from "@/lib/api";
@@ -107,9 +108,7 @@ export default function Navbar() {
   const [liveItems, setLiveItems] = useState<Live[]>([]);
   const [user, setUser] = useState<StoredUser | null>(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [notifOpen, setNotifOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
-  const notifRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
 
   const debouncedQuery = useDebounce(searchQuery, 320);
@@ -154,7 +153,6 @@ export default function Navbar() {
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) setUserMenuOpen(false);
-      if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false);
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
         setSearchResults(null);
       }
@@ -210,8 +208,6 @@ export default function Navbar() {
 
   const isAdmin = user && ["super_admin", "admin", "moderator", "editor"].includes(user.role);
   const tickerItems = buildTickerItems(liveItems);
-  const notifications = buildNotifications(liveItems);
-  const hasUnread = notifications.some((n) => n.dot);
 
   const allSearchResults = searchResults
     ? [...searchResults.lives, ...searchResults.events]
@@ -428,64 +424,8 @@ export default function Navbar() {
               </div>
 
               {/* Notifications */}
-              <div className="relative hidden sm:block" ref={notifRef}>
-                <button
-                  onClick={() => setNotifOpen(!notifOpen)}
-                  className="relative p-2 text-gray-400 hover:text-white transition-colors rounded-xl hover:bg-[#111118]"
-                >
-                  <Bell className="w-4.5 h-4.5" />
-                  {hasUnread && (
-                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#E50914] rounded-full live-badge" />
-                  )}
-                </button>
-                {notifOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-80 glass border border-[#1E1E2A] rounded-xl shadow-2xl overflow-hidden animate-fade-in-up z-50">
-                    <div className="p-4 border-b border-[#1E1E2A] flex items-center justify-between">
-                      <h3 className="text-sm font-bold text-white">Notificações</h3>
-                      {liveCount > 0 && (
-                        <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#E50914]/15 border border-[#E50914]/25 text-[#E50914] text-[10px] font-bold">
-                          <span className="live-badge h-1.5 w-1.5 rounded-full bg-[#E50914]" />
-                          {liveCount} ao vivo
-                        </span>
-                      )}
-                    </div>
-                    <div className="p-2">
-                      {notifications.length > 0 ? (
-                        notifications.map((n, i) => (
-                          <Link
-                            key={i}
-                            href={n.href}
-                            onClick={() => setNotifOpen(false)}
-                            className="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-[#111118] transition-colors cursor-pointer"
-                          >
-                            {n.dot
-                              ? <span className="mt-1.5 h-2 w-2 rounded-full bg-[#E50914] flex-shrink-0 live-badge" />
-                              : <span className="mt-1.5 h-2 w-2 rounded-full bg-gray-600 flex-shrink-0" />
-                            }
-                            <div>
-                              <p className="text-xs font-semibold text-white leading-snug">{n.title}</p>
-                              <p className="text-[10px] text-gray-500 mt-0.5">{n.time}</p>
-                            </div>
-                          </Link>
-                        ))
-                      ) : (
-                        <div className="px-3 py-5 text-center">
-                          <Bell className="w-5 h-5 text-gray-600 mx-auto mb-2" />
-                          <p className="text-xs text-gray-500">Sem transmissões ativas agora</p>
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-2 border-t border-[#1E1E2A]">
-                      <Link
-                        href="/calendario"
-                        onClick={() => setNotifOpen(false)}
-                        className="w-full text-center block text-xs text-[#E50914] font-semibold py-1.5 hover:text-red-400 transition-colors"
-                      >
-                        Ver calendário completo
-                      </Link>
-                    </div>
-                  </div>
-                )}
+              <div className="hidden sm:block">
+                <NotificationBell userId={user?.id} />
               </div>
 
               {/* Language Toggle */}
@@ -525,20 +465,26 @@ export default function Navbar() {
                         </span>
                       </div>
                       <div className="p-1">
-                        <Link href="/admin/profile" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#E50914]/10 hover:text-white rounded-lg transition-colors" onClick={() => setUserMenuOpen(false)}>
+                        <Link href="/me" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#E50914]/10 hover:text-white rounded-lg transition-colors" onClick={() => setUserMenuOpen(false)}>
                           <User className="w-4 h-4" />
                           Meu Perfil
                         </Link>
+                        <Link href="/me/tickets" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#E50914]/10 hover:text-white rounded-lg transition-colors" onClick={() => setUserMenuOpen(false)}>
+                          <Settings className="w-4 h-4" />
+                          Suporte
+                        </Link>
+                        {user && ["creator", "editor", "moderator", "admin", "super_admin"].includes(user.role) && (
+                          <Link href="/creator" className="flex items-center gap-2 px-3 py-2 text-sm text-yellow-400 hover:bg-yellow-500/10 rounded-lg transition-colors" onClick={() => setUserMenuOpen(false)}>
+                            <Tv2 className="w-4 h-4" />
+                            Creator Studio
+                          </Link>
+                        )}
                         {isAdmin && (
                           <Link href="/admin/dashboard" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#E50914]/10 hover:text-white rounded-lg transition-colors" onClick={() => setUserMenuOpen(false)}>
                             <Shield className="w-4 h-4" />
                             Painel Admin
                           </Link>
                         )}
-                        <Link href="/admin/settings" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#E50914]/10 hover:text-white rounded-lg transition-colors" onClick={() => setUserMenuOpen(false)}>
-                          <Settings className="w-4 h-4" />
-                          Configurações
-                        </Link>
                         <div className="h-px bg-[#1E1E2A] my-1" />
                         <button
                           onClick={handleLogout}
