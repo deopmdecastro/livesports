@@ -174,6 +174,8 @@ export default function LivesPage() {
   const [serverTypes, setServerTypes] = useState<Record<string, ServerType>>({});
   // Raw YouTube paste input per server
   const [youtubeInputs, setYoutubeInputs] = useState<Record<string, string>>({});
+  // Per-server stream health status
+  const [serverStatuses, setServerStatuses] = useState<Record<string, { online: boolean | null; latency: number | null; checking: boolean; youtube?: boolean }>>({});
   const [viewingLive, setViewingLive] = useState<Live | null>(null);
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [apiKeyModalOpen, setApiKeyModalOpen] = useState(false);
@@ -489,6 +491,30 @@ export default function LivesPage() {
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Nao foi possivel guardar a live.");
     }
+  };
+
+  // ── Stream health check ──────────────────────────────────────────────────────
+  const checkServer = async (serverId: string, url: string) => {
+    if (!url.trim()) return;
+    setServerStatuses((prev) => ({ ...prev, [serverId]: { online: null, latency: null, checking: true } }));
+    try {
+      const result = await apiRequest<{ online: boolean; latency: number; youtube?: boolean; error?: string }>(
+        "/lives/check-stream",
+        { method: "POST", body: JSON.stringify({ url }) }
+      );
+      setServerStatuses((prev) => ({
+        ...prev,
+        [serverId]: { online: result.online, latency: result.latency, checking: false, youtube: result.youtube },
+      }));
+    } catch {
+      setServerStatuses((prev) => ({ ...prev, [serverId]: { online: false, latency: null, checking: false } }));
+    }
+  };
+
+  const checkAllServers = () => {
+    form.streamServers.forEach((s) => {
+      if (s.url.trim()) checkServer(s.id, s.url);
+    });
   };
 
   const syncRapidApiStreams = async () => {
@@ -930,9 +956,21 @@ export default function LivesPage() {
               {modalTab === "Streaming" && (
                 <>
                   <div className="rounded-xl border border-[#E50914]/15 bg-[#E50914]/5 p-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Server className="h-4 w-4 text-[#E50914]" />
-                      <h4 className="text-sm font-bold text-white">Servidores de Stream</h4>
+                    <div className="flex items-center justify-between gap-2 mb-3">
+                      <div className="flex items-center gap-2">
+                        <Server className="h-4 w-4 text-[#E50914]" />
+                        <h4 className="text-sm font-bold text-white">Servidores de Stream</h4>
+                      </div>
+                      {form.streamServers.some((s) => s.url.trim()) && (
+                        <button
+                          type="button"
+                          onClick={checkAllServers}
+                          className="flex items-center gap-1.5 rounded-lg border border-sky-500/30 bg-sky-500/10 px-3 py-1.5 text-[10px] font-bold text-sky-300 transition-colors hover:bg-sky-500/20"
+                        >
+                          <Signal className="h-3 w-3" />
+                          Verificar todos
+                        </button>
+                      )}
                     </div>
                     <p className="text-xs text-gray-500 mb-4">Adicione servidores HLS/M3U8 ou transmissões YouTube. O utilizador pode escolher entre eles no player.</p>
 
@@ -974,6 +1012,22 @@ export default function LivesPage() {
                           }));
                         };
 
+                        const status = serverStatuses[server.id];
+                        const statusDot = status?.checking
+                          ? "bg-yellow-400 animate-pulse"
+                          : status?.online === true
+                          ? "bg-emerald-400"
+                          : status?.online === false
+                          ? "bg-red-500"
+                          : "bg-gray-600";
+                        const statusLabel = status?.checking
+                          ? "A verificar..."
+                          : status?.online === true
+                          ? `Online${status.youtube ? " (YouTube)" : status.latency != null ? ` · ${status.latency}ms` : ""}`
+                          : status?.online === false
+                          ? "Offline"
+                          : null;
+
                         return (
                           <div key={server.id} className={`rounded-xl border p-4 ${isYT ? "border-red-600/25 bg-red-950/10" : "border-white/8 bg-[#111118]"}`}>
                             <div className="mb-3 flex items-center justify-between">
@@ -989,8 +1043,29 @@ export default function LivesPage() {
                                     `Servidor ${index + 1}`
                                   )}
                                 </span>
+                                {/* Status indicator */}
+                                {statusLabel && (
+                                  <span className="flex items-center gap-1 rounded-full border border-white/10 bg-black/30 px-2 py-0.5 text-[9px] font-semibold">
+                                    <span className={`h-1.5 w-1.5 rounded-full ${statusDot}`} />
+                                    <span className={status?.online === true ? "text-emerald-300" : status?.online === false ? "text-red-300" : "text-yellow-300"}>
+                                      {statusLabel}
+                                    </span>
+                                  </span>
+                                )}
                               </div>
                               <div className="flex items-center gap-2">
+                                {/* Ping button */}
+                                {server.url.trim() && (
+                                  <button
+                                    type="button"
+                                    onClick={() => checkServer(server.id, server.url)}
+                                    disabled={status?.checking}
+                                    className="flex items-center gap-1 rounded-lg border border-sky-500/25 bg-sky-500/8 px-2 py-1 text-[10px] font-semibold text-sky-400 transition-colors hover:bg-sky-500/15 disabled:opacity-50"
+                                  >
+                                    <Signal className="h-3 w-3" />
+                                    {status?.checking ? "..." : "Ping"}
+                                  </button>
+                                )}
                                 {/* Type toggle */}
                                 <div className="flex rounded-lg border border-white/10 overflow-hidden text-[10px] font-bold">
                                   <button
@@ -1017,6 +1092,7 @@ export default function LivesPage() {
                                     setForm({ ...form, streamServers: updated });
                                     setServerTypes((prev) => { const n = { ...prev }; delete n[server.id]; return n; });
                                     setYoutubeInputs((prev) => { const n = { ...prev }; delete n[server.id]; return n; });
+                                    setServerStatuses((prev) => { const n = { ...prev }; delete n[server.id]; return n; });
                                   }}
                                   className="flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-semibold text-gray-500 hover:bg-red-500/10 hover:text-red-400 transition-colors"
                                 >
@@ -1057,7 +1133,16 @@ export default function LivesPage() {
                               <div className="grid gap-3 sm:grid-cols-2">
                                 <div className="sm:col-span-2">
                                   <label className="mb-1 block text-[10px] font-semibold text-gray-500 uppercase">URL do Stream (HLS/M3U8) *</label>
-                                  <input value={server.url} onChange={(e) => setForm({ ...form, streamServers: form.streamServers.map((s) => s.id === server.id ? { ...s, url: e.target.value } : s) })} className="input-dark w-full px-3 py-2.5 text-sm font-mono" placeholder="https://example.com/live.m3u8" />
+                                  <input
+                                    value={server.url}
+                                    onChange={(e) => {
+                                      setForm({ ...form, streamServers: form.streamServers.map((s) => s.id === server.id ? { ...s, url: e.target.value } : s) });
+                                      // Clear status when URL changes
+                                      setServerStatuses((prev) => { const n = { ...prev }; delete n[server.id]; return n; });
+                                    }}
+                                    className="input-dark w-full px-3 py-2.5 text-sm font-mono"
+                                    placeholder="https://example.com/live.m3u8"
+                                  />
                                 </div>
                                 <div>
                                   <label className="mb-1 block text-[10px] font-semibold text-gray-500 uppercase">Nome do servidor</label>
