@@ -77,4 +77,108 @@ router.get('/public', async (_req, res, next) => {
   }
 });
 
+/**
+ * GET /api/stats/imported-leagues
+ *
+ * Returns leagues/competitions that are actually imported in the database
+ * from events and lives tables, with their logos.
+ * Used by frontend to show only real/imported leagues instead of hardcoded mock data.
+ */
+router.get('/imported-leagues', async (_req, res, next) => {
+  try {
+    // Get distinct leagues from both events and lives tables with their logos
+    const eventsLeagues = await prisma.$queryRawUnsafe<Array<{
+      league: string;
+      league_logo: string | null;
+      sport: string;
+      count: bigint;
+    }>>(`
+      SELECT
+        league,
+        MAX(league_logo) as league_logo,
+        sport::text as sport,
+        COUNT(*)::bigint as count
+      FROM "events"
+      WHERE league IS NOT NULL AND TRIM(league) <> ''
+      GROUP BY league, sport
+      ORDER BY count DESC
+    `);
+
+    const livesLeagues = await prisma.$queryRawUnsafe<Array<{
+      league: string;
+      league_logo: string | null;
+      sport: string;
+      count: bigint;
+    }>>(`
+      SELECT
+        league,
+        MAX(league_logo) as league_logo,
+        sport::text as sport,
+        COUNT(*)::bigint as count
+      FROM "lives"
+      WHERE league IS NOT NULL AND TRIM(league) <> ''
+      GROUP BY league, sport
+      ORDER BY count DESC
+    `);
+
+    // Merge and deduplicate leagues (prefer events data)
+    const leagueMap = new Map<string, { name: string; logo: string | null; sport: string; eventCount: number; liveCount: number }>();
+
+    for (const row of eventsLeagues) {
+      leagueMap.set(row.league, {
+        name: row.league,
+        logo: row.league_logo,
+        sport: row.sport,
+        eventCount: Number(row.count),
+        liveCount: 0,
+      });
+    }
+
+    for (const row of livesLeagues) {
+      const existing = leagueMap.get(row.league);
+      if (existing) {
+        existing.liveCount = Number(row.count);
+        // Use logo from lives if events doesn't have one
+        if (!existing.logo && row.league_logo) {
+          existing.logo = row.league_logo;
+        }
+      } else {
+        leagueMap.set(row.league, {
+          name: row.league,
+          logo: row.league_logo,
+          sport: row.sport,
+          eventCount: 0,
+          liveCount: Number(row.count),
+        });
+      }
+    }
+
+    // Convert to array and sort by total count
+    const leagues = Array.from(leagueMap.values())
+      .sort((a, b) => (b.eventCount + b.liveCount) - (a.eventCount + a.liveCount))
+      .map((league, index) => ({
+        id: `league-${index}`,
+        key: league.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/g, ''),
+        name: league.name,
+        logo: league.logo,
+        sport: league.sport,
+        eventCount: league.eventCount,
+        liveCount: league.liveCount,
+        totalCount: league.eventCount + league.liveCount,
+        country: null, // Could be enriched from competitions table if available
+      }));
+
+    res.json({
+      success: true,
+      data: {
+        leagues,
+        totalLeagues: leagues.length,
+        updatedAt: new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;
