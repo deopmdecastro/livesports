@@ -29,6 +29,8 @@ import searchRoutes from './routes/search.routes';
 import creatorRoutes from './routes/creator.routes';
 import pollRoutes from './routes/poll.routes';
 import chatRoutes from './routes/chat.routes';
+import notificationsRoutes from './routes/notifications.routes';
+import { setIo } from './lib/socket';
 import { ensureRuntimeSchema } from './lib/prisma';
 import { prisma } from './lib/prisma';
 import { structuredLogger, slowRequestWarner } from './middleware/logger.middleware';
@@ -247,6 +249,7 @@ app.use('/api/search', searchRoutes);
 app.use('/api/creator', creatorRoutes);
 app.use('/api/polls', pollRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/notifications', notificationsRoutes);
 
 // Apply mutation limiter to write operations on all routes
 app.use('/api/', (req, res, next) => {
@@ -329,10 +332,25 @@ function getViewerCount(liveId: string): number {
 // Export so REST routes can read live viewer counts
 export { getViewerCount };
 
+// Share io with routes via singleton module
+setIo(io);
+
 // ─── Socket.IO Real-time features ────────────────────────────────────────────
 io.on('connection', (socket) => {
   // Track which live rooms this socket has joined (for disconnect cleanup)
   const joinedLives = new Set<string>();
+
+  // Allow user to join their private room for notifications
+  socket.on('join-user', (userId: string) => {
+    if (typeof userId === 'string' && userId.length <= 100) {
+      socket.join(`user-${userId}`);
+    }
+  });
+
+  // Allow admins/editors to join the admin broadcast room
+  socket.on('join-admin', () => {
+    socket.join('admin-room');
+  });
 
   socket.on('join-live', (liveId: string) => {
     if (typeof liveId !== 'string' || liveId.length > 100) return;

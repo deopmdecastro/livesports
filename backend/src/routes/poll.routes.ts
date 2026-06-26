@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { authenticateToken, requireAdmin, requireEditor, AuthRequest } from '../middleware/auth.middleware';
 import { prisma } from '../lib/prisma';
+import { notifyAdmins, createNotification } from './notifications.routes';
 
 const router = Router();
 
@@ -159,7 +160,33 @@ router.post('/:id/vote', async (req, res, next) => {
     const options = await prisma.$queryRawUnsafe<any[]>(
       `SELECT * FROM poll_options WHERE poll_id=$1 ORDER BY order_index ASC`, req.params.id
     );
-    res.json({ success: true, data: mapPoll(polls[0], options) });
+    const updatedPoll = mapPoll(polls[0], options);
+
+    // Fire-and-forget: notify on vote milestones (10, 50, 100, 500, 1000)
+    const MILESTONES = [10, 50, 100, 500, 1000];
+    const total = updatedPoll.totalVotes;
+    if (MILESTONES.includes(total)) {
+      notifyAdmins({
+        type: 'poll_milestone',
+        title: `📊 Sondagem atingiu ${total} votos!`,
+        message: `"${updatedPoll.question}" — ${total} votos registados`,
+        link: `/admin/polls`,
+        meta: { pollId: req.params.id, totalVotes: total },
+      }).catch(() => {});
+      // Also notify the poll creator (if tracked)
+      if (polls[0].created_by) {
+        createNotification({
+          userId: polls[0].created_by,
+          type: 'poll_milestone',
+          title: `📊 A tua sondagem chegou a ${total} votos!`,
+          message: `"${updatedPoll.question}"`,
+          link: `/creator/polls`,
+          meta: { pollId: req.params.id, totalVotes: total },
+        }).catch(() => {});
+      }
+    }
+
+    res.json({ success: true, data: updatedPoll });
   } catch (error) { next(error); }
 });
 
