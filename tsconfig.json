@@ -55,6 +55,11 @@
   ],
   "exclude": [
     "node_modules",
-    "backend"
+    "backend",
+    "artifacts",
+    "lib",
+    "scripts",
+    "solution",
+    "docker"
   ]
 }

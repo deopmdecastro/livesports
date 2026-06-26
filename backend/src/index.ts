@@ -30,7 +30,9 @@ import creatorRoutes from './routes/creator.routes';
 import pollRoutes from './routes/poll.routes';
 import chatRoutes from './routes/chat.routes';
 import notificationsRoutes from './routes/notifications.routes';
+import statsRoutes from './routes/stats.routes';
 import { setIo } from './lib/socket';
+import { addViewer, removeViewer } from './lib/realtime';
 import { ensureRuntimeSchema } from './lib/prisma';
 import { prisma } from './lib/prisma';
 import { structuredLogger, slowRequestWarner } from './middleware/logger.middleware';
@@ -250,6 +252,7 @@ app.use('/api/creator', creatorRoutes);
 app.use('/api/polls', pollRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/notifications', notificationsRoutes);
+app.use('/api/stats', statsRoutes);
 
 // Apply mutation limiter to write operations on all routes
 app.use('/api/', (req, res, next) => {
@@ -308,29 +311,8 @@ app.use((err: Error & { status?: number; code?: string }, req: express.Request, 
 });
 
 // ─── Socket.IO Viewer Tracking ───────────────────────────────────────────────
-// In-memory map: liveId → Set of connected socketIds
-const viewerRooms = new Map<string, Set<string>>();
-
-function addViewer(liveId: string, socketId: string): number {
-  if (!viewerRooms.has(liveId)) viewerRooms.set(liveId, new Set());
-  viewerRooms.get(liveId)!.add(socketId);
-  return viewerRooms.get(liveId)!.size;
-}
-
-function removeViewer(liveId: string, socketId: string): number {
-  const room = viewerRooms.get(liveId);
-  if (!room) return 0;
-  room.delete(socketId);
-  if (room.size === 0) viewerRooms.delete(liveId);
-  return room.size;
-}
-
-function getViewerCount(liveId: string): number {
-  return viewerRooms.get(liveId)?.size ?? 0;
-}
-
-// Export so REST routes can read live viewer counts
-export { getViewerCount };
+// Viewer room state lives in ./lib/realtime so REST routes (public stats) can
+// read live counts without importing from this module.
 
 // Share io with routes via singleton module
 setIo(io);

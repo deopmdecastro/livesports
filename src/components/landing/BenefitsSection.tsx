@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { Monitor, Smartphone, Tv, Wifi, Bell, Shield, Star, Zap, Users, Globe, Clock, Award } from "lucide-react";
 import { useLang } from "@/lib/lang";
+import { usePlatformStats, formatCompactPlus } from "@/hooks/usePlatformStats";
 
 export default function BenefitsSection() {
   const { lang, t } = useLang();
+  const platform = usePlatformStats();
 
   const benefits = [
     {
@@ -46,11 +48,29 @@ export default function BenefitsSection() {
   ];
 
   const stats = [
-    { value: "150+", label: lang === "pt" ? "Canais Ao Vivo" : "Live Channels", icon: Zap },
-    { value: "1M+", label: lang === "pt" ? "Utilizadores" : "Users", icon: Users },
-    { value: "24/7", label: lang === "pt" ? "Disponível" : "Available", icon: Clock },
-    { value: "50+", label: lang === "pt" ? "Países" : "Countries", icon: Globe },
+    {
+      value: platform ? formatCompactPlus(platform.totalLives) : "—",
+      label: lang === "pt" ? "Transmissões" : "Live Streams",
+      icon: Zap,
+    },
+    {
+      value: platform ? formatCompactPlus(platform.totalUsers) : "—",
+      label: lang === "pt" ? "Utilizadores" : "Users",
+      icon: Users,
+    },
+    {
+      value: "24/7",
+      label: lang === "pt" ? "Disponível" : "Available",
+      icon: Clock,
+    },
+    {
+      value: platform ? formatCompactPlus(platform.countries) : "—",
+      label: lang === "pt" ? "Países" : "Countries",
+      icon: Globe,
+    },
   ];
+
+  const liveNow = platform?.liveNow ?? 0;
 
   return (
     <>
@@ -98,7 +118,7 @@ export default function BenefitsSection() {
                 <div className="absolute -bottom-3 -right-3 flex items-center gap-2 px-3 py-2 rounded-xl border border-[#E50914]/30 bg-[#111118]/90 backdrop-blur-sm shadow-red">
                   <span className="live-badge h-2 w-2 rounded-full bg-[#E50914]" />
                   <span className="text-[11px] font-black text-white">
-                    {lang === "pt" ? "3 AO VIVO" : "3 LIVE NOW"}
+                    {lang === "pt" ? `${liveNow} AO VIVO` : `${liveNow} LIVE NOW`}
                   </span>
                 </div>
               </div>

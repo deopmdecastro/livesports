@@ -382,7 +382,7 @@ export default function ApiKeysPage() {
                     <td colSpan={6} className="px-4 py-12 text-center">
                       <Key className="h-8 w-8 text-gray-700 mx-auto mb-2" />
                       <p className="text-gray-400 font-medium">Nenhuma API Key configurada</p>
-                      <p className="text-xs text-gray-600 mt-1">Clique em "Nova API Key" para começar</p>
+                      <p className="text-xs text-gray-600 mt-1">Clique em &quot;Nova API Key&quot; para começar</p>
                     </td>
                   </tr>
                 ) : keys.map((key) => (

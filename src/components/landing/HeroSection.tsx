@@ -220,7 +220,7 @@ interface BannerSlideData { id: string; title: string; subtitle?: string; badge?
 
 function buildBannerSlide(banner: BannerSlideData, index: number): HeroSlide {
   const image = banner.imageUrl || fallbackImages[index % fallbackImages.length];
-  const syntheticAd: Ad = { id: banner.id, title: banner.title, campaign: "", imageUrl: banner.imageUrl, clickUrl: banner.linkUrl || "", position: "live_preroll" as Ad["position"], status: "active", format: "image", videoUrl: "", startDate: "", endDate: "", impressions: 0, clicks: 0, ctr: 0, revenue: 0, createdAt: new Date().toISOString() };
+  const syntheticAd: Ad = { id: banner.id, title: banner.title, campaign: "", imageUrl: banner.imageUrl, clickUrl: banner.linkUrl || "", position: "live_preroll" as Ad["position"], status: "active", format: "banner", content: "", videoUrl: "", startDate: "", endDate: "", impressions: 0, clicks: 0, ctr: 0, revenue: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
   return { kind: "ad", id: banner.id, title: banner.title, highlight: banner.badge || "Em destaque", subtitle: banner.subtitle || "", image, ad: syntheticAd, cta: banner.ctaText || "Ver mais", isLive: false };
 }
 
