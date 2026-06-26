@@ -298,4 +298,134 @@ router.patch('/channels/:id/status', authenticateToken, requireAdmin, async (req
   } catch (error) { next(error); }
 });
 
+// ── PATCH /api/creator/channels/:id — admin: edit channel details
+router.patch('/channels/:id', authenticateToken, requireAdmin, async (req: AuthRequest, res, next) => {
+  try {
+    const parsed = channelSchema.partial().safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ success: false, error: parsed.error.errors[0].message });
+      return;
+    }
+    const d = parsed.data;
+
+    // If slug is being changed, check uniqueness
+    if (d.slug) {
+      const slugCheck = await prisma.$queryRawUnsafe<any[]>(
+        `SELECT id FROM channels WHERE slug = $1 AND id != $2 LIMIT 1`, d.slug, req.params.id
+      );
+      if (slugCheck[0]) {
+        res.status(409).json({ success: false, error: 'Este slug já está em uso.' });
+        return;
+      }
+    }
+
+    const rows = await prisma.$queryRawUnsafe<any[]>(
+      `UPDATE channels SET
+        name = COALESCE($2, name),
+        slug = COALESCE($3, slug),
+        description = COALESCE($4, description),
+        avatar = COALESCE($5, avatar),
+        banner = COALESCE($6, banner),
+        sport = COALESCE($7, sport),
+        country = COALESCE($8, country),
+        website_url = COALESCE($9, website_url),
+        social_links = COALESCE($10::jsonb, social_links),
+        updated_at = NOW()
+       WHERE id = $1 RETURNING *`,
+      req.params.id,
+      d.name || null, d.slug || null, d.description || null, d.avatar || null, d.banner || null,
+      d.sport || null, d.country || null, d.website_url || null,
+      d.social_links ? JSON.stringify(d.social_links) : null
+    );
+    if (!rows[0]) { res.status(404).json({ success: false, error: 'Canal não encontrado.' }); return; }
+    res.json({ success: true, data: mapChannel(rows[0]) });
+  } catch (error) { next(error); }
+});
+
+// ── POST /api/creator/admin/channels — admin: create channel profile for any user
+router.post('/admin/channels', authenticateToken, requireAdmin, async (req: AuthRequest, res, next) => {
+  try {
+    const adminChannelSchema = channelSchema.extend({
+      user_id: z.string().uuid('ID do utilizador inválido'),
+      status: z.enum(['pending', 'active', 'suspended']).optional(),
+      verified: z.boolean().optional(),
+    });
+
+    const parsed = adminChannelSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ success: false, error: parsed.error.errors[0].message });
+      return;
+    }
+    const d = parsed.data;
+
+    // Check if user exists
+    const userCheck = await prisma.$queryRawUnsafe<any[]>(
+      `SELECT id, role FROM users WHERE id = $1 LIMIT 1`, d.user_id
+    );
+    if (!userCheck[0]) {
+      res.status(404).json({ success: false, error: 'Utilizador não encontrado.' });
+      return;
+    }
+
+    // Check if user already has a channel
+    const existing = await prisma.$queryRawUnsafe<any[]>(
+      `SELECT id FROM channels WHERE user_id = $1 LIMIT 1`, d.user_id
+    );
+    if (existing[0]) {
+      res.status(409).json({ success: false, error: 'Este utilizador já possui um canal.' });
+      return;
+    }
+
+    // Check slug uniqueness
+    const slugCheck = await prisma.$queryRawUnsafe<any[]>(
+      `SELECT id FROM channels WHERE slug = $1 LIMIT 1`, d.slug
+    );
+    if (slugCheck[0]) {
+      res.status(409).json({ success: false, error: 'Este slug já está em uso.' });
+      return;
+    }
+
+    const channelStatus = d.status || 'active';
+    const isVerified = d.verified ?? false;
+
+    const rows = await prisma.$queryRawUnsafe<any[]>(
+      `INSERT INTO channels (user_id, name, slug, description, avatar, banner, sport, country, website_url, social_links, status, verified)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,$11::channel_status,$12) RETURNING *`,
+      d.user_id, d.name, d.slug, d.description || null, d.avatar || null, d.banner || null,
+      d.sport || null, d.country || null, d.website_url || null,
+      JSON.stringify(d.social_links || {}), channelStatus, isVerified
+    );
+
+    // Upgrade user role to creator if not already privileged
+    const currentRole = userCheck[0].role;
+    if (!['admin', 'super_admin', 'moderator', 'editor'].includes(currentRole)) {
+      await prisma.$executeRawUnsafe(
+        `UPDATE users SET role='creator' WHERE id=$1`, d.user_id
+      );
+    }
+
+    const channelRow = await prisma.$queryRawUnsafe<any[]>(
+      `SELECT c.*, u.name as owner_name, u.email as owner_email
+       FROM channels c LEFT JOIN users u ON u.id = c.user_id
+       WHERE c.id = $1 LIMIT 1`,
+      rows[0].id
+    );
+
+    res.status(201).json({ success: true, data: mapChannel(channelRow[0] || rows[0]) });
+  } catch (error) { next(error); }
+});
+
+// ── PATCH /api/creator/channels/:id/verify — admin: toggle channel verified status
+router.patch('/channels/:id/verify', authenticateToken, requireAdmin, async (req, res, next) => {
+  try {
+    const { verified } = req.body;
+    const rows = await prisma.$queryRawUnsafe<any[]>(
+      `UPDATE channels SET verified=$2, updated_at=NOW() WHERE id=$1 RETURNING *`,
+      req.params.id, Boolean(verified)
+    );
+    if (!rows[0]) { res.status(404).json({ success: false, error: 'Canal não encontrado.' }); return; }
+    res.json({ success: true, data: mapChannel(rows[0]) });
+  } catch (error) { next(error); }
+});
+
 export default router;
