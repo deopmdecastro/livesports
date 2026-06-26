@@ -32,6 +32,7 @@ import AdminLivePreviewModal from "@/components/admin/AdminLivePreviewModal";
 import AdminTeamMark, { isLeagueLogoDisplayable } from "@/components/admin/AdminTeamMark";
 import { apiRequest, type ApiListResponse } from "@/lib/api";
 import ApiKeyRequiredModal from "@/components/admin/ApiKeyRequiredModal";
+import SyncCompetitionsModal, { LIVES_PROVIDERS } from "@/components/admin/SyncCompetitionsModal";
 
 const statusConfig: Record<
   LiveStatus,
@@ -141,7 +142,7 @@ export default function LivesPage() {
   const [editingLive, setEditingLive] = useState<Live | null>(null);
   const [modalTab, setModalTab] = useState<"Geral" | "Streaming" | "Detalhes">("Geral");
   const [viewingLive, setViewingLive] = useState<Live | null>(null);
-  const [syncingStreams, setSyncingStreams] = useState(false);
+  const [showSyncModal, setShowSyncModal] = useState(false);
   const [apiKeyModalOpen, setApiKeyModalOpen] = useState(false);
 
   // Event select/search state (Nova Live)
@@ -440,30 +441,29 @@ export default function LivesPage() {
   };
 
   const syncRapidApiStreams = async () => {
-    setSyncingStreams(true);
-    try {
-      const result = await apiRequest<{ syncedCount: number; items: Live[]; notice?: string }>(
-        "/integrations/rapidapi/all-live-stream",
-        { method: "POST" }
-      );
-      const refreshed = await apiRequest<ApiListResponse<Live>>("/lives?limit=100");
-      setLives(refreshed.items);
-      toast.success(
-        result.notice
-          ? `${result.syncedCount} streams importados (modo demo).`
-          : `${result.syncedCount} streams ao vivo importados da RapidAPI!`
-      );
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : "";
-      // Detect missing API key errors (422, "no_key", "not configured", etc.)
-      if (/no.key|not configured|api.key|422|401|403/i.test(msg) || msg === "") {
-        setApiKeyModalOpen(true);
-      } else {
-        toast.error(msg || "Nao foi possivel importar streams da RapidAPI.");
-      }
-    } finally {
-      setSyncingStreams(false);
+    const result = await apiRequest<{ syncedCount: number; items: Live[]; notice?: string }>(
+      "/integrations/rapidapi/all-live-stream",
+      { method: "POST" }
+    );
+    const refreshed = await apiRequest<ApiListResponse<Live>>("/lives?limit=100");
+    setLives(refreshed.items);
+    return {
+      added: result.syncedCount,
+      updated: 0,
+      skipped: result.notice ? result.syncedCount : 0,
+      errors: 0,
+    };
+  };
+
+  const syncLiveProvider = async (providerId: string) => {
+    if (providerId === "api_football") {
+      return syncRapidApiStreams();
     }
+    throw new Error("Integração ainda não disponível para este provedor.");
+  };
+
+  const handleImportStreamsClick = () => {
+    setShowSyncModal(true);
   };
 
   return (
@@ -484,12 +484,11 @@ export default function LivesPage() {
 
             <div className="flex flex-wrap gap-2">
               <button
-                onClick={syncRapidApiStreams}
-                disabled={syncingStreams}
-                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-white/10 bg-[#1A1A1A] px-4 text-sm font-bold text-white transition-colors hover:bg-[#2A2A2A] disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={handleImportStreamsClick}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-white/10 bg-[#1A1A1A] px-4 text-sm font-bold text-white transition-colors hover:bg-[#2A2A2A]"
               >
-                <RefreshCw className={cn("h-4 w-4", syncingStreams && "animate-spin")} />
-                {syncingStreams ? "Importando..." : "Importar streams"}
+                <RefreshCw className="h-4 w-4" />
+                Importar streams
               </button>
               <button
                 onClick={handleCreate}
@@ -1001,13 +1000,36 @@ export default function LivesPage() {
         </div>
       )}
 
+      {/* Sync Modal */}
+      {showSyncModal && (
+        <SyncCompetitionsModal
+          title="Importar Streams"
+          providerDefinitions={LIVES_PROVIDERS}
+          summaryItems={["Streams ao vivo", "Transmissões M3U8", "CDN / Hosting"]}
+          summaryLabel="Streams"
+          onClose={() => setShowSyncModal(false)}
+          onNoApiKey={() => {
+            setShowSyncModal(false);
+            setApiKeyModalOpen(true);
+          }}
+          onSyncProvider={syncLiveProvider}
+          onSyncComplete={(results) => {
+            const total = results.reduce((acc, r) => acc + r.added, 0);
+            toast.success(`${total} stream(s) importado(s) com sucesso!`);
+          }}
+        />
+      )}
+
       {/* API Key Required Modal */}
       {apiKeyModalOpen && (
         <ApiKeyRequiredModal
-          context="Importar Streams (RapidAPI)"
-          suggestedProvider="streamm3u"
+          context="Importar Streams"
+          suggestedProvider="api_football"
           onClose={() => setApiKeyModalOpen(false)}
-          onKeySaved={() => { setApiKeyModalOpen(false); syncRapidApiStreams(); }}
+          onKeySaved={() => {
+            setApiKeyModalOpen(false);
+            setShowSyncModal(true);
+          }}
         />
       )}
     </div>

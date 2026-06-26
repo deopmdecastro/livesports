@@ -28,7 +28,7 @@ interface SyncLog {
   ts: string;
 }
 
-interface SyncResult {
+export interface SyncResult {
   provider: string;
   added: number;
   updated: number;
@@ -36,9 +36,11 @@ interface SyncResult {
   errors: number;
 }
 
+export type SyncProviderDefinition = Omit<SyncProvider, "status">;
+
 // ─── Static provider definitions (status resolved dynamically from API Keys) ──
 
-const STATIC_PROVIDERS: Omit<SyncProvider, "status">[] = [
+export const COMPETITIONS_PROVIDERS: SyncProviderDefinition[] = [
   {
     id: "api_football",
     name: "API-Football",
@@ -68,6 +70,63 @@ const STATIC_PROVIDERS: Omit<SyncProvider, "status">[] = [
     sports: ["Futebol"],
   },
 ];
+
+export const EVENTS_PROVIDERS: SyncProviderDefinition[] = [
+  {
+    id: "api_football",
+    name: "API-Football",
+    logo: "🏟️",
+    description: "Jogos ao vivo, fixtures e resultados em tempo real",
+    sports: ["Futebol"],
+  },
+  {
+    id: "football_data",
+    name: "Football-Data.org",
+    logo: "⚽",
+    description: "Copa do Mundo, ligas europeias — API gratuita",
+    sports: ["Futebol"],
+  },
+  {
+    id: "thesportsdb",
+    name: "TheSportsDB",
+    logo: "🏅",
+    description: "Calendário de eventos e logos de equipas",
+    sports: ["Múltiplos"],
+  },
+];
+
+export const LIVES_PROVIDERS: SyncProviderDefinition[] = [
+  {
+    id: "api_football",
+    name: "API-Football (RapidAPI)",
+    logo: "🏟️",
+    description: "Importar streams ao vivo de futebol via RapidAPI",
+    sports: ["Futebol"],
+  },
+  {
+    id: "streamm3u",
+    name: "StreamM3U / IPTV",
+    logo: "📺",
+    description: "Fornecedor de streams M3U8 para transmissões ao vivo",
+    sports: ["Múltiplos"],
+  },
+  {
+    id: "cloudflare_stream",
+    name: "Cloudflare Stream",
+    logo: "☁️",
+    description: "Hosting e CDN de vídeos e streams ao vivo",
+    sports: ["Múltiplos"],
+  },
+  {
+    id: "mux",
+    name: "Mux Video",
+    logo: "▶️",
+    description: "Plataforma de vídeo e streaming ao vivo escalável",
+    sports: ["Múltiplos"],
+  },
+];
+
+const DEFAULT_COMPETITIONS_PROVIDERS = COMPETITIONS_PROVIDERS;
 
 // Competitions that would be synced (mock)
 const MOCK_COMPETITIONS = [
@@ -112,16 +171,30 @@ function LogLine({ log }: { log: SyncLog }) {
 // ─── Main Modal ───────────────────────────────────────────────────────────────
 
 interface SyncCompetitionsModalProps {
+  title?: string;
+  providerDefinitions?: SyncProviderDefinition[];
+  summaryItems?: string[];
+  summaryLabel?: string;
   onClose: () => void;
   onSyncComplete?: (results: SyncResult[]) => void;
   onNoApiKey?: () => void;
+  onSyncProvider?: (providerId: string) => Promise<Omit<SyncResult, "provider">>;
 }
 
 type Step = "select" | "configure" | "syncing" | "done";
 
-export default function SyncCompetitionsModal({ onClose, onSyncComplete, onNoApiKey }: SyncCompetitionsModalProps) {
+export default function SyncCompetitionsModal({
+  title = "Sincronizar Competições",
+  providerDefinitions = DEFAULT_COMPETITIONS_PROVIDERS,
+  summaryItems = MOCK_COMPETITIONS,
+  summaryLabel = "Competições",
+  onClose,
+  onSyncComplete,
+  onNoApiKey,
+  onSyncProvider,
+}: SyncCompetitionsModalProps) {
   const [providers, setProviders] = useState<SyncProvider[]>(
-    STATIC_PROVIDERS.map((p) => ({ ...p, status: "no_key" as const }))
+    providerDefinitions.map((p) => ({ ...p, status: "no_key" as const }))
   );
   const [step, setStep] = useState<Step>("select");
   const [selectedProviders, setSelectedProviders] = useState<string[]>([]);
@@ -142,7 +215,7 @@ export default function SyncCompetitionsModal({ onClose, onSyncComplete, onNoApi
         keys.forEach((k) => {
           if (k.status === "active") activeByProvider.set(k.provider, k.lastUsedAt || "");
         });
-        const resolved: SyncProvider[] = STATIC_PROVIDERS.map((p) => ({
+        const resolved: SyncProvider[] = providerDefinitions.map((p) => ({
           ...p,
           status: activeByProvider.has(p.id) ? "ready" : "no_key",
           lastSync: activeByProvider.get(p.id) || undefined,
@@ -153,7 +226,7 @@ export default function SyncCompetitionsModal({ onClose, onSyncComplete, onNoApi
       .catch(() => {
         // Fallback: keep all as no_key
       });
-  }, []);
+  }, [providerDefinitions]);
 
   useEffect(() => {
     logsEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -193,46 +266,61 @@ export default function SyncCompetitionsModal({ onClose, onSyncComplete, onNoApi
       await delay(400);
       addLog("success", `Autenticação bem-sucedida`);
 
-      // Simulate fetching competitions
-      const competitionsForProvider = MOCK_COMPETITIONS.filter(
-        (_, idx) => idx % total === i
-      );
-
       let added = 0;
       let updated = 0;
       let skipped = 0;
+      let errors = 0;
 
-      for (const comp of competitionsForProvider) {
-        setCurrentTask(`A processar: ${comp}`);
-        await delay(200 + Math.random() * 300);
-
-        const action = Math.random();
-        if (action < 0.4) {
-          addLog("success", `[ADICIONADO] ${comp}`);
-          added++;
-        } else if (action < 0.7) {
-          addLog("info", `[ATUALIZADO] ${comp}`);
-          updated++;
-        } else {
-          addLog("info", `[SEM ALTERAÇÕES] ${comp}`);
-          skipped++;
+      if (onSyncProvider) {
+        setCurrentTask(`A sincronizar com ${provider.name}...`);
+        try {
+          const result = await onSyncProvider(pid);
+          added = result.added;
+          updated = result.updated;
+          skipped = result.skipped;
+          errors = result.errors;
+          addLog("success", `━━━ ${provider.name} concluído: +${added} adicionados, ~${updated} atualizados ━━━`);
+          setProgress(((i + 1) / total) * 100);
+        } catch (error) {
+          errors = 1;
+          addLog("error", error instanceof Error ? error.message : `Erro ao sincronizar ${provider.name}`);
         }
-        setProgress(((i / total) + (competitionsForProvider.indexOf(comp) + 1) / competitionsForProvider.length / total) * 100);
+      } else {
+        const itemsForProvider = summaryItems.filter((_, idx) => idx % total === i);
+
+        for (const item of itemsForProvider) {
+          setCurrentTask(`A processar: ${item}`);
+          await delay(200 + Math.random() * 300);
+
+          const action = Math.random();
+          if (action < 0.4) {
+            addLog("success", `[ADICIONADO] ${item}`);
+            added++;
+          } else if (action < 0.7) {
+            addLog("info", `[ATUALIZADO] ${item}`);
+            updated++;
+          } else {
+            addLog("info", `[SEM ALTERAÇÕES] ${item}`);
+            skipped++;
+          }
+          setProgress(((i / total) + (itemsForProvider.indexOf(item) + 1) / itemsForProvider.length / total) * 100);
+        }
+
+        if (fetchLogos) {
+          addLog("info", `A importar logos de ${provider.name}...`);
+          await delay(500);
+          addLog("success", `${added + updated} logos importados`);
+        }
+
+        addLog("success", `━━━ ${provider.name} concluído: +${added} adicionadas, ~${updated} atualizadas ━━━`);
       }
 
-      if (fetchLogos) {
-        addLog("info", `A importar logos de ${provider.name}...`);
-        await delay(500);
-        addLog("success", `${added + updated} logos importados`);
-      }
-
-      batchResults.push({ provider: provider.name, added, updated, skipped, errors: 0 });
-      addLog("success", `━━━ ${provider.name} concluído: +${added} adicionadas, ~${updated} atualizadas ━━━`);
+      batchResults.push({ provider: provider.name, added, updated, skipped, errors });
     }
 
     setProgress(100);
     setCurrentTask("Sincronização concluída!");
-    addLog("success", "✓ Todas as competições foram sincronizadas com sucesso.");
+    addLog("success", `✓ Sincronização de ${summaryLabel.toLowerCase()} concluída.`);
     setResults(batchResults);
     setStep("done");
     onSyncComplete?.(batchResults);
@@ -255,7 +343,7 @@ export default function SyncCompetitionsModal({ onClose, onSyncComplete, onNoApi
               <RefreshCw className={`h-4 w-4 text-[#E50914] ${step === "syncing" ? "animate-spin" : ""}`} />
             </div>
             <div>
-              <h3 className="font-black text-white">Sincronizar Competições</h3>
+              <h3 className="font-black text-white">{title}</h3>
               <p className="text-[11px] text-gray-500">
                 {step === "select" && "Selecione os provedores e filtros"}
                 {step === "configure" && "Configure as opções de importação"}
@@ -418,8 +506,8 @@ export default function SyncCompetitionsModal({ onClose, onSyncComplete, onNoApi
                     <p className="text-[10px] text-gray-500">Desporto(s)</p>
                   </div>
                   <div>
-                    <p className="text-xl font-black text-white">~{MOCK_COMPETITIONS.length}</p>
-                    <p className="text-[10px] text-gray-500">Competições</p>
+                    <p className="text-xl font-black text-white">~{summaryItems.length}</p>
+                    <p className="text-[10px] text-gray-500">{summaryLabel}</p>
                   </div>
                 </div>
               </div>

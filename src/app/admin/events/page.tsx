@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Calendar, Download, Edit2, Eye, Plus, RefreshCw, Search, Trash2, X, CheckCircle, XCircle, Archive } from "lucide-react";
+import { Calendar, Edit2, Eye, Plus, RefreshCw, Search, Trash2, X, CheckCircle, XCircle, Archive } from "lucide-react";
 import { formatDateTime } from "@/utils";
 import type { Event, SportCategory } from "@/types";
 import AdminSelect from "@/components/admin/AdminSelect";
@@ -13,6 +13,7 @@ import { AdminTeamSearchField } from "@/components/thesportsdb/TeamSearch";
 import toast from "react-hot-toast";
 import { apiRequest } from "@/lib/api";
 import ApiKeyRequiredModal from "@/components/admin/ApiKeyRequiredModal";
+import SyncCompetitionsModal, { EVENTS_PROVIDERS } from "@/components/admin/SyncCompetitionsModal";
 
 const sportOptions = [
   { value: "football", label: "Futebol" },
@@ -63,12 +64,9 @@ export default function EventsPage() {
   const [modalMode, setModalMode] = useState<"create" | "edit" | "view" | null>(null);
   const [selected, setSelected] = useState<Event | null>(null);
   const [form, setForm] = useState(emptyForm);
-  const [importing, setImporting] = useState(false);
-  const [syncingLive, setSyncingLive] = useState(false);
-  const [importingCalendar, setImportingCalendar] = useState(false);
+  const [showSyncModal, setShowSyncModal] = useState(false);
   const [eventModalTab, setEventModalTab] = useState<"Geral" | "Equipas" | "Detalhes">("Geral");
   const [apiKeyModalOpen, setApiKeyModalOpen] = useState(false);
-  const [apiKeyContext, setApiKeyContext] = useState("");
 
   const filteredNormalEvents = normalEvents.filter((event) =>
     [event.title, event.league || "", event.teamA || "", event.teamB || ""].some((value) => value.toLowerCase().includes(search.toLowerCase()))
@@ -174,66 +172,41 @@ export default function EventsPage() {
     }
   };
 
-  const importWorldCupEvents = async () => {
-    setImporting(true);
-    try {
-      const result = await apiRequest<{ importedCount: number; items: Event[] }>("/integrations/football-data/world-cup/events?season=2026", {
-        method: "POST",
-      });
-      const refreshed = await apiRequest<Event[]>("/events");
-      setEvents(refreshed);
-      toast.success(`${result.importedCount} jogos da fase de grupos importados!`);
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : "";
-      if (/no.key|not configured|api.key|422|401|403/i.test(msg) || msg === "") {
-        setApiKeyContext("Importar Copa do Mundo (Football-Data.org)");
-        setApiKeyModalOpen(true);
-      } else {
-        toast.error(msg || "Nao foi possivel importar jogos da Copa.");
-      }
-    } finally {
-      setImporting(false);
-    }
+  const refreshEvents = async () => {
+    const refreshed = await apiRequest<Event[]>("/events");
+    setEvents(refreshed);
   };
 
-  const syncLiveFootballEvents = async () => {
-    setSyncingLive(true);
-    try {
-      const result = await apiRequest<{ syncedCount: number; items: Event[] }>("/integrations/api-football/live-events", {
-        method: "POST",
-      });
-      const refreshed = await apiRequest<Event[]>("/events");
-      setEvents(refreshed);
-      toast.success(`${result.syncedCount} jogos sincronizados da API-Football!`);
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : "";
-      if (/no.key|not configured|api.key|422|401|403/i.test(msg) || msg === "") {
-        setApiKeyContext("Sincronizar Eventos ao Vivo (API-Football)");
-        setApiKeyModalOpen(true);
-      } else {
-        toast.error(msg || "Nao foi possivel sincronizar jogos ao vivo.");
-      }
-    } finally {
-      setSyncingLive(false);
+  const syncEventProvider = async (providerId: string) => {
+    if (providerId === "api_football") {
+      const result = await apiRequest<{ syncedCount: number; items: Event[] }>(
+        "/integrations/api-football/live-events",
+        { method: "POST" },
+      );
+      await refreshEvents();
+      return { added: result.syncedCount, updated: 0, skipped: 0, errors: 0 };
     }
-  };
 
-  const importSportsDbCalendar = async () => {
-    setImportingCalendar(true);
-    try {
+    if (providerId === "football_data") {
+      const result = await apiRequest<{ importedCount: number; items: Event[] }>(
+        "/integrations/football-data/world-cup/events?season=2026",
+        { method: "POST" },
+      );
+      await refreshEvents();
+      return { added: result.importedCount, updated: 0, skipped: 0, errors: 0 };
+    }
+
+    if (providerId === "thesportsdb") {
       const today = new Date().toISOString().slice(0, 10);
       const result = await apiRequest<{ importedCount: number; items: Event[] }>(
         `/integrations/thesportsdb/import-events?date=${today}&s=Soccer`,
         { method: "POST" },
       );
-      const refreshed = await apiRequest<Event[]>("/events");
-      setEvents(refreshed);
-      toast.success(`${result.importedCount} eventos importados do calendario TheSportsDB!`);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel importar o calendario.");
-    } finally {
-      setImportingCalendar(false);
+      await refreshEvents();
+      return { added: result.importedCount, updated: 0, skipped: 0, errors: 0 };
     }
+
+    throw new Error("Provedor não suportado.");
   };
 
   return (
@@ -245,28 +218,11 @@ export default function EventsPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <button
-            onClick={importWorldCupEvents}
-            disabled={importing}
-            className="inline-flex items-center gap-2 rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-4 py-2 text-sm font-bold text-white hover:bg-[#2A2A2A] disabled:cursor-not-allowed disabled:opacity-60"
+            onClick={() => setShowSyncModal(true)}
+            className="inline-flex items-center gap-2 rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-4 py-2 text-sm font-bold text-white hover:bg-[#2A2A2A]"
           >
-            <Download className="h-4 w-4" />
-            {importing ? "Importando..." : "Importar Copa"}
-          </button>
-          <button
-            onClick={importSportsDbCalendar}
-            disabled={importingCalendar}
-            className="inline-flex items-center gap-2 rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-4 py-2 text-sm font-bold text-white hover:bg-[#2A2A2A] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <Calendar className="h-4 w-4" />
-            {importingCalendar ? "Importando..." : "Importar Calendario"}
-          </button>
-          <button
-            onClick={syncLiveFootballEvents}
-            disabled={syncingLive}
-            className="inline-flex items-center gap-2 rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-4 py-2 text-sm font-bold text-white hover:bg-[#2A2A2A] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <RefreshCw className={`h-4 w-4 ${syncingLive ? "animate-spin" : ""}`} />
-            {syncingLive ? "Sincronizando..." : "Sincronizar ao vivo"}
+            <RefreshCw className="h-4 w-4" />
+            Sincronizar
           </button>
           <button onClick={openCreate} className="inline-flex items-center gap-2 rounded-lg bg-[#E50914] px-4 py-2 text-sm font-bold text-white hover:bg-[#B00000]">
             <Plus className="h-4 w-4" />
@@ -532,13 +488,36 @@ export default function EventsPage() {
         </div>
       )}
 
+      {/* Sync Modal */}
+      {showSyncModal && (
+        <SyncCompetitionsModal
+          title="Sincronizar Eventos"
+          providerDefinitions={EVENTS_PROVIDERS}
+          summaryItems={["Jogos ao vivo", "Copa do Mundo", "Calendário diário"]}
+          summaryLabel="Eventos"
+          onClose={() => setShowSyncModal(false)}
+          onNoApiKey={() => {
+            setShowSyncModal(false);
+            setApiKeyModalOpen(true);
+          }}
+          onSyncProvider={syncEventProvider}
+          onSyncComplete={(results) => {
+            const total = results.reduce((acc, r) => acc + r.added, 0);
+            toast.success(`Sincronização concluída! ${total} evento(s) processado(s).`);
+          }}
+        />
+      )}
+
       {/* API Key Required Modal */}
       {apiKeyModalOpen && (
         <ApiKeyRequiredModal
-          context={apiKeyContext}
+          context="Sincronizar Eventos"
           suggestedProvider="api_football"
           onClose={() => setApiKeyModalOpen(false)}
-          onKeySaved={() => setApiKeyModalOpen(false)}
+          onKeySaved={() => {
+            setApiKeyModalOpen(false);
+            setShowSyncModal(true);
+          }}
         />
       )}
     </div>
