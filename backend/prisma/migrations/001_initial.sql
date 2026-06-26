@@ -278,7 +278,7 @@ CREATE INDEX "audit_logs_created_at_idx" ON "audit_logs"("created_at" DESC);
 -- ==================== SEED DATA ====================
 -- Insert admin user (password: admin123)
 INSERT INTO "users" ("id", "name", "email", "email_verified", "password", "role", "status")
-VALUES ('admin-001', 'Administrador', 'admin@livesports.com', TRUE, '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj4IxByRkMpi', 'super_admin', 'active');
+VALUES ('admin-001', 'Administrador', 'admin@livesports.com', TRUE, '$2b$12$otiPj3ww0AR63raJnI37lu5u.16OpyB74o7WtCu.HrwCDFZC.3EJO', 'super_admin', 'active');
 
 -- Insert plans
 INSERT INTO "plans" ("name", "type", "price", "interval", "features", "max_devices", "hd_quality", "ads_removed") VALUES
