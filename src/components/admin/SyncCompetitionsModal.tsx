@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import {
   X, RefreshCw, CheckCircle2, XCircle, AlertCircle,
   Trophy, Zap, Globe, ChevronRight, Download,
@@ -437,9 +438,9 @@ export default function SyncCompetitionsModal({
                         Configurar API Key
                       </button>
                     ) : (
-                      <a href="/admin/api-keys" className="underline text-amber-200 hover:text-white">
+                      <Link href="/admin/api-keys" className="underline text-amber-200 hover:text-white">
                         Adicionar em API Keys
-                      </a>
+                      </Link>
                     )}
                   </p>
                 </div>

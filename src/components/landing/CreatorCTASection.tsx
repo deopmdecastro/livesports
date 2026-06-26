@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Tv2, Radio, BarChart3, Users, ArrowRight, CheckCircle } from "lucide-react";
+import { usePlatformStats, formatCompactPlus } from "@/hooks/usePlatformStats";
 
 const benefits = [
   "Dashboard de analíticas em tempo real",
@@ -19,6 +20,14 @@ const steps = [
 ];
 
 export default function CreatorCTASection() {
+  const platform = usePlatformStats();
+
+  const platformStats = [
+    { label: "Transmissões", value: platform ? formatCompactPlus(platform.totalLives) : "—" },
+    { label: "Espectadores", value: platform ? formatCompactPlus(platform.totalViews) : "—" },
+    { label: "Online agora", value: platform ? formatCompactPlus(platform.onlineViewers) : "—" },
+  ];
+
   return (
     <section className="relative overflow-hidden py-20">
       <div className="absolute inset-0 bg-gradient-to-br from-[#E50914]/8 via-transparent to-transparent" />
@@ -85,11 +94,7 @@ export default function CreatorCTASection() {
                 <span className="text-xs font-bold text-emerald-400">PLATAFORMA ATIVA</span>
               </div>
               <div className="grid grid-cols-3 gap-3">
-                {[
-                  { label: "Criadores", value: "500+" },
-                  { label: "Transmissões/mês", value: "2K+" },
-                  { label: "Espectadores", value: "50K+" },
-                ].map(({ label, value }) => (
+                {platformStats.map(({ label, value }) => (
                   <div key={label} className="text-center">
                     <p className="text-xl font-black text-white">{value}</p>
                     <p className="text-[10px] text-gray-500">{label}</p>

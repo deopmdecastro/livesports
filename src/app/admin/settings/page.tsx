@@ -245,7 +245,7 @@ export default function SettingsPage() {
                 onChange={(v) => setBranding({ ...branding, logoUrl: v })}
                 placeholder="https://cdn.exemplo.com/logo.svg"
                 aspectClassName="aspect-[3/1]"
-                sizeHint={{ width: 200, height: 60, maxFileSizeKB: 500, formats: ["SVG", "PNG", "WebP"] }}
+                sizeHint={{ width: 200, height: 60, maxSizeKB: 500, formats: ["SVG", "PNG", "WebP"] }}
               />
               {branding.logoUrl && (
                 <div className="rounded-lg border border-green-500/20 bg-green-500/5 p-3">
@@ -267,7 +267,7 @@ export default function SettingsPage() {
                 onChange={(v) => setBranding({ ...branding, faviconUrl: v })}
                 placeholder="https://cdn.exemplo.com/favicon.ico"
                 aspectClassName="aspect-square"
-                sizeHint={{ width: 32, height: 32, maxFileSizeKB: 100, formats: ["ICO", "PNG", "SVG"] }}
+                sizeHint={{ width: 32, height: 32, maxSizeKB: 100, formats: ["ICO", "PNG", "SVG"] }}
               />
               {branding.faviconUrl && (
                 <div className="rounded-lg border border-green-500/20 bg-green-500/5 p-3">
@@ -285,7 +285,7 @@ export default function SettingsPage() {
                 value={branding.ogImageUrl}
                 onChange={(v) => setBranding({ ...branding, ogImageUrl: v })}
                 placeholder="https://cdn.exemplo.com/og-image.jpg"
-                sizeHint={{ width: 1200, height: 630, maxFileSizeKB: 2048, formats: ["JPG", "PNG", "WebP"] }}
+                sizeHint={{ width: 1200, height: 630, maxSizeKB: 2048, formats: ["JPG", "PNG", "WebP"] }}
               />
             </div>
           </Section>
