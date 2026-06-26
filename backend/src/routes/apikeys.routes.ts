@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import axios from 'axios';
 import { authenticateToken, requireAdmin } from '../middleware/auth.middleware';
 import { prisma } from '../lib/prisma';
 
@@ -223,6 +224,110 @@ router.delete('/:id', async (req, res, next) => {
     );
     if (!rows[0]) { res.status(404).json({ success: false, error: 'API Key não encontrada' }); return; }
     res.json({ success: true, message: 'API Key removida.' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/api-keys/:id/test — test API connectivity
+router.post('/:id/test', async (req, res, next) => {
+  const startAt = Date.now();
+  try {
+    const rows = await prisma.$queryRawUnsafe<any[]>(
+      `SELECT id, name, provider, base_url, key_value FROM "api_keys" WHERE id = $1`,
+      req.params.id
+    );
+    const row = rows[0];
+    if (!row) {
+      res.status(404).json({ success: false, error: 'API Key não encontrada' });
+      return;
+    }
+
+    const baseUrl = row.base_url as string | null;
+    if (!baseUrl) {
+      res.json({ success: true, data: { reachable: false, latencyMs: null, statusCode: null, message: 'URL base não configurada — não é possível testar.' } });
+      return;
+    }
+
+    // Build a simple test request based on provider
+    const provider = (row.provider as string).toLowerCase();
+    const apiKey = row.key_value as string;
+    const headers: Record<string, string> = {};
+
+    if (provider.includes('api_football') || provider.includes('rapidapi')) {
+      headers['x-rapidapi-key'] = apiKey;
+      headers['x-apisports-key'] = apiKey;
+    } else if (provider.includes('football_data') || provider.includes('football-data')) {
+      headers['X-Auth-Token'] = apiKey;
+    } else if (provider.includes('thesportsdb')) {
+      // TheSportsDB uses key in URL path — just ping base
+    } else {
+      headers['Authorization'] = `Bearer ${apiKey}`;
+    }
+
+    try {
+      const testUrl = provider.includes('api_football')
+        ? 'https://v3.football.api-sports.io/status'
+        : provider.includes('football_data')
+          ? 'https://api.football-data.org/v4/competitions?limit=1'
+          : provider.includes('thesportsdb')
+            ? `https://www.thesportsdb.com/api/v1/json/${apiKey}/all_leagues.php`
+            : baseUrl;
+
+      const response = await axios.get(testUrl, {
+        headers,
+        timeout: 8000,
+        validateStatus: () => true,
+      });
+
+      const latencyMs = Date.now() - startAt;
+      const statusCode = response.status;
+      const reachable = statusCode >= 200 && statusCode < 500;
+
+      // Update last_used_at and error_count
+      if (reachable) {
+        await prisma.$executeRawUnsafe(
+          `UPDATE "api_keys" SET last_used_at=NOW(), error_count=0 WHERE id=$1`,
+          req.params.id
+        );
+      } else {
+        await prisma.$executeRawUnsafe(
+          `UPDATE "api_keys" SET error_count=error_count+1 WHERE id=$1`,
+          req.params.id
+        );
+      }
+
+      res.json({
+        success: true,
+        data: {
+          reachable,
+          latencyMs,
+          statusCode,
+          message: reachable
+            ? `Conectividade OK (${statusCode}) — ${latencyMs}ms`
+            : `Erro de conectividade (HTTP ${statusCode})`,
+        },
+      });
+    } catch (fetchErr: any) {
+      await prisma.$executeRawUnsafe(
+        `UPDATE "api_keys" SET error_count=error_count+1 WHERE id=$1`,
+        req.params.id
+      );
+      const latencyMs = Date.now() - startAt;
+      res.json({
+        success: true,
+        data: {
+          reachable: false,
+          latencyMs,
+          statusCode: null,
+          message: fetchErr?.code === 'ECONNREFUSED'
+            ? 'Ligação recusada — verifique o URL base'
+            : fetchErr?.code === 'ETIMEDOUT' || fetchErr?.code === 'ECONNABORTED'
+              ? 'Timeout — API não respondeu a tempo'
+              : `Erro: ${fetchErr?.message || 'Desconhecido'}`,
+        },
+      });
+    }
   } catch (error) {
     next(error);
   }

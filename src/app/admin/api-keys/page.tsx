@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import {
   Key, Plus, Edit2, Trash2, RefreshCw, CheckCircle, XCircle, Eye, EyeOff,
-  Globe, AlertTriangle, Activity, Info, ExternalLink, ArrowLeft,
-  Trophy, Tv2, BarChart3, Cloud, Zap, Shield,
+  Globe, Info, ExternalLink, ArrowLeft, Wifi, WifiOff, Loader2,
+  Trophy, Tv2, BarChart3, Cloud, Zap, Settings,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { apiRequest } from "@/lib/api";
@@ -138,6 +138,14 @@ const PROVIDER_CATALOGUE = [
   },
 ];
 
+// Map env key names to provider catalogue IDs
+const ENV_KEY_TO_PROVIDER: Record<string, string> = {
+  API_FOOTBALL_KEY: "api_football",
+  FOOTBALL_DATA_API_TOKEN: "football_data",
+  RAPIDAPI_KEY: "api_football",
+  THESPORTSDB_API_KEY: "thesportsdb",
+};
+
 const CATEGORY_META = {
   sports:  { label: "Dados Desportivos", color: "#22C55E", icon: Trophy },
   live:    { label: "Streaming / Live",  color: "#E50914", icon: Tv2 },
@@ -167,6 +175,13 @@ interface ApiKey {
   createdAt: string;
 }
 
+interface TestResult {
+  reachable: boolean;
+  latencyMs: number | null;
+  statusCode: number | null;
+  message: string;
+}
+
 interface Discovery {
   envApis: Array<{
     key: string; name: string; provider: string; baseUrl: string;
@@ -181,8 +196,6 @@ const emptyForm = {
   status: "active", priority: 1, requestLimit: "", expiresAt: "", usageTypes: [] as string[],
 };
 
-// ─── Modal step type ──────────────────────────────────────────────────────────
-
 type ModalStep = "provider" | "configure";
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -194,14 +207,15 @@ export default function ApiKeysPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editKey, setEditKey] = useState<ApiKey | null>(null);
   const [form, setForm] = useState({ ...emptyForm });
-  const [showKeyId, setShowKeyId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"keys" | "discovery">("keys");
   const [saving, setSaving] = useState(false);
   const [showKeyValue, setShowKeyValue] = useState(false);
-
-  // Provider selection step (only for new keys)
   const [modalStep, setModalStep] = useState<ModalStep>("provider");
   const [catFilter, setCatFilter] = useState("all");
+
+  // Test state: per-key id
+  const [testResults, setTestResults] = useState<Record<string, TestResult>>({});
+  const [testing, setTesting] = useState<Set<string>>(new Set());
 
   const load = async () => {
     try {
@@ -220,10 +234,54 @@ export default function ApiKeysPage() {
 
   useEffect(() => { load(); }, []);
 
+  const testKey = async (id: string) => {
+    setTesting((prev) => new Set(prev).add(id));
+    try {
+      const result = await apiRequest<TestResult>(`/api-keys/${id}/test`, { method: "POST" });
+      setTestResults((prev) => ({ ...prev, [id]: result }));
+      if (result.reachable) {
+        toast.success(`Conectividade OK — ${result.latencyMs}ms`);
+      } else {
+        toast.error(result.message);
+      }
+    } catch {
+      setTestResults((prev) => ({ ...prev, [id]: { reachable: false, latencyMs: null, statusCode: null, message: "Erro ao testar" } }));
+      toast.error("Erro ao testar conectividade");
+    } finally {
+      setTesting((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  };
+
   const openCreate = () => {
     setEditKey(null);
     setForm({ ...emptyForm });
     setModalStep("provider");
+    setCatFilter("all");
+    setShowKeyValue(false);
+    setModalOpen(true);
+  };
+
+  const openCreateForEnvApi = (envKey: string) => {
+    const providerId = ENV_KEY_TO_PROVIDER[envKey];
+    const provider = PROVIDER_CATALOGUE.find((p) => p.id === providerId);
+    setEditKey(null);
+    if (provider) {
+      setForm({
+        ...emptyForm,
+        name: provider.label,
+        provider: provider.id,
+        baseUrl: provider.baseUrl,
+        usageTypes: provider.defaultUsageTypes,
+      });
+      setModalStep("configure");
+    } else {
+      setForm({ ...emptyForm });
+      setModalStep("provider");
+    }
     setCatFilter("all");
     setShowKeyValue(false);
     setModalOpen(true);
@@ -238,7 +296,7 @@ export default function ApiKeysPage() {
       expiresAt: key.expiresAt ? key.expiresAt.slice(0, 10) : "",
       usageTypes: [...key.usageTypes],
     });
-    setModalStep("configure"); // edit always goes straight to configure
+    setModalStep("configure");
     setShowKeyValue(false);
     setModalOpen(true);
   };
@@ -307,7 +365,9 @@ export default function ApiKeysPage() {
     try {
       await apiRequest(`/api-keys/${id}`, { method: "DELETE" });
       setKeys((prev) => prev.filter((k) => k.id !== id));
+      setTestResults((prev) => { const next = { ...prev }; delete next[id]; return next; });
       toast.success("API Key removida!");
+      load();
     } catch {
       toast.error("Erro ao remover");
     }
@@ -329,19 +389,120 @@ export default function ApiKeysPage() {
   };
 
   const providerLogo = (id: string) => PROVIDER_CATALOGUE.find((p) => p.id === id)?.logo || "🔑";
-
-  const filteredProviders = PROVIDER_CATALOGUE.filter((p) =>
-    catFilter === "all" || p.category === catFilter
-  );
-
+  const filteredProviders = PROVIDER_CATALOGUE.filter((p) => catFilter === "all" || p.category === catFilter);
   const selectedProvider = PROVIDER_CATALOGUE.find((p) => p.id === form.provider);
+
+  // ─── Test indicator ───────────────────────────────────────────────────────────
+
+  const TestIndicator = ({ id }: { id: string }) => {
+    const isTesting = testing.has(id);
+    const result = testResults[id];
+    if (isTesting) return <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-400" />;
+    if (!result) return null;
+    return result.reachable
+      ? <span className="flex items-center gap-1 text-[10px] text-green-400"><Wifi className="h-3 w-3" />{result.latencyMs}ms</span>
+      : <span className="flex items-center gap-1 text-[10px] text-red-400"><WifiOff className="h-3 w-3" />Falhou</span>;
+  };
+
+  // ─── Key card for discovery tab ───────────────────────────────────────────────
+
+  const DbKeyCard = ({ item }: { item: ApiKey }) => {
+    const k = item;
+    const isTesting = testing.has(k.id);
+    const result = testResults[k.id];
+    return (
+      <div className="rounded-xl border border-[#2A2A2A] bg-[#1A1A1A] p-4 flex flex-col gap-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-lg">
+              {providerLogo(k.provider)}
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-white truncate">{k.name}</p>
+              <p className="text-[10px] text-gray-500 truncate">{k.provider}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${statusColor(k.status)}`}>
+              {k.status === "active" ? "Ativa" : k.status === "inactive" ? "Inativa" : "Expirada"}
+            </span>
+          </div>
+        </div>
+
+        {/* Test result bar */}
+        {(isTesting || result) && (
+          <div className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-[11px] font-medium ${
+            isTesting
+              ? "bg-blue-500/10 text-blue-300"
+              : result?.reachable
+                ? "bg-green-500/10 text-green-300"
+                : "bg-red-500/10 text-red-300"
+          }`}>
+            {isTesting
+              ? <><Loader2 className="h-3 w-3 animate-spin" /> A testar conectividade...</>
+              : result?.reachable
+                ? <><Wifi className="h-3 w-3" /> {result.message}</>
+                : <><WifiOff className="h-3 w-3" /> {result?.message}</>
+            }
+          </div>
+        )}
+
+        {/* Usage types */}
+        {k.usageTypes.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {k.usageTypes.slice(0, 4).map((t) => (
+              <span key={t} className="rounded bg-[#2A2A2A] px-1.5 py-0.5 text-[9px] text-gray-300">
+                {USAGE_TYPES.find((u) => u.value === t)?.label || t}
+              </span>
+            ))}
+            {k.usageTypes.length > 4 && (
+              <span className="text-[10px] text-gray-500">+{k.usageTypes.length - 4}</span>
+            )}
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex items-center justify-between border-t border-[#2A2A2A] pt-2">
+          <div className="flex items-center gap-1">
+            <TestIndicator id={k.id} />
+          </div>
+          <div className="flex gap-1.5">
+            <button
+              onClick={() => testKey(k.id)}
+              disabled={isTesting}
+              title="Testar conectividade"
+              className="flex items-center gap-1 rounded-lg border border-[#2A2A2A] bg-[#0E0E16] px-2.5 py-1.5 text-[10px] font-semibold text-gray-400 hover:border-blue-500/40 hover:text-blue-400 disabled:opacity-50"
+            >
+              {isTesting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wifi className="h-3 w-3" />}
+              Testar
+            </button>
+            <button
+              onClick={() => openEdit(k)}
+              title="Editar"
+              className="rounded-lg border border-[#2A2A2A] bg-[#0E0E16] p-1.5 text-gray-400 hover:text-white"
+            >
+              <Edit2 className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={() => deleteKey(k.id)}
+              title="Remover"
+              className="rounded-lg border border-[#2A2A2A] bg-[#0E0E16] p-1.5 text-gray-400 hover:text-red-400"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-4">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-bold text-white">Gestão de API Keys</h2>
-          <p className="text-xs text-gray-400">{keys.length} chaves configuradas</p>
+          <p className="text-xs text-gray-400">{keys.length} chave{keys.length !== 1 ? "s" : ""} configurada{keys.length !== 1 ? "s" : ""}</p>
         </div>
         <div className="flex gap-2">
           <button onClick={load} className="inline-flex items-center gap-2 rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2 text-sm text-white hover:bg-[#2A2A2A]">
@@ -363,10 +524,11 @@ export default function ApiKeysPage() {
         ))}
       </div>
 
+      {/* ── TAB: KEYS ── */}
       {activeTab === "keys" && (
         <div className="overflow-hidden rounded-xl border border-[#2A2A2A] bg-[#1A1A1A]">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[700px]">
+            <table className="w-full min-w-[780px]">
               <thead>
                 <tr className="border-b border-[#2A2A2A]">
                   {["Nome / Provedor", "Status", "Utilização", "Requests", "Prioridade", "Ações"].map((h) => (
@@ -401,7 +563,7 @@ export default function ApiKeysPage() {
                     </td>
                     <td className="px-4 py-3">
                       <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${statusColor(key.status)}`}>
-                        {key.status}
+                        {key.status === "active" ? "Ativa" : key.status === "inactive" ? "Inativa" : "Expirada"}
                       </span>
                       {key.errorCount > 0 && (
                         <span className="ml-1 rounded-full bg-yellow-500/20 px-1.5 py-0.5 text-[10px] text-yellow-400">
@@ -434,15 +596,33 @@ export default function ApiKeysPage() {
                       <span className="rounded bg-[#2A2A2A] px-2 py-0.5 text-xs font-bold text-gray-300">P{key.priority}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex gap-1.5">
+                      <div className="flex items-center gap-1.5">
+                        {/* Test result indicator */}
+                        <span className="mr-1 min-w-[48px]">
+                          <TestIndicator id={key.id} />
+                        </span>
+                        {/* Test button */}
+                        <button
+                          onClick={() => testKey(key.id)}
+                          disabled={testing.has(key.id)}
+                          title="Testar conectividade"
+                          className="rounded-lg border border-[#2A2A2A] bg-[#0E0E16] p-1.5 text-gray-400 hover:border-blue-500/40 hover:text-blue-400 disabled:opacity-50"
+                        >
+                          {testing.has(key.id)
+                            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            : <Wifi className="h-3.5 w-3.5" />}
+                        </button>
+                        {/* Toggle active/inactive */}
                         <button onClick={() => toggleStatus(key)} title={key.status === "active" ? "Desativar" : "Ativar"}
                           className="rounded-lg border border-[#2A2A2A] bg-[#0E0E16] p-1.5 text-gray-400 hover:text-white">
                           {key.status === "active" ? <CheckCircle className="h-3.5 w-3.5 text-green-400" /> : <XCircle className="h-3.5 w-3.5" />}
                         </button>
+                        {/* Edit */}
                         <button onClick={() => openEdit(key)} title="Editar"
                           className="rounded-lg border border-[#2A2A2A] bg-[#0E0E16] p-1.5 text-gray-400 hover:text-white">
                           <Edit2 className="h-3.5 w-3.5" />
                         </button>
+                        {/* Delete */}
                         <button onClick={() => deleteKey(key.id)} title="Remover"
                           className="rounded-lg border border-[#2A2A2A] bg-[#0E0E16] p-1.5 text-gray-400 hover:text-red-400">
                           <Trash2 className="h-3.5 w-3.5" />
@@ -457,47 +637,102 @@ export default function ApiKeysPage() {
         </div>
       )}
 
+      {/* ── TAB: DISCOVERY ── */}
       {activeTab === "discovery" && discovery && (
-        <div className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2">
-            {discovery.envApis.map((api) => (
-              <div key={api.key} className="rounded-xl border border-[#2A2A2A] bg-[#1A1A1A] p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <Globe className="h-4 w-4 text-blue-400" />
-                    <span className="font-semibold text-white text-sm">{api.name}</span>
-                  </div>
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${api.configured ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}>
-                    {api.configured ? "Configurada" : "Não configurada"}
-                  </span>
-                </div>
-                <p className="text-xs text-gray-400 mb-1">{api.provider}</p>
-                <p className="text-[10px] text-gray-500 mb-3">{api.baseUrl}</p>
-                <div className="flex flex-wrap gap-1">
-                  {api.usageTypes.map((t) => (
-                    <span key={t} className="rounded bg-[#2A2A2A] px-1.5 py-0.5 text-[9px] text-gray-300">
-                      {USAGE_TYPES.find((u) => u.value === t)?.label || t}
-                    </span>
-                  ))}
-                </div>
-                {(discovery.importStats.events[api.key] || discovery.importStats.lives[api.key]) && (
-                  <div className="mt-3 flex gap-3 border-t border-[#2A2A2A] pt-3">
-                    {discovery.importStats.events[api.key] && (
-                      <span className="text-xs text-gray-400">
-                        <span className="font-bold text-white">{discovery.importStats.events[api.key]}</span> eventos
-                      </span>
-                    )}
-                    {discovery.importStats.lives[api.key] && (
-                      <span className="text-xs text-gray-400">
-                        <span className="font-bold text-white">{discovery.importStats.lives[api.key]}</span> lives
-                      </span>
-                    )}
-                  </div>
-                )}
+        <div className="space-y-5">
+
+          {/* Database API Keys section */}
+          <div>
+            <div className="mb-3 flex items-center gap-2">
+              <Key className="h-4 w-4 text-[#E50914]" />
+              <h3 className="text-sm font-bold text-white">Chaves da Base de Dados</h3>
+              <span className="rounded-full bg-[#2A2A2A] px-2 py-0.5 text-[10px] font-bold text-gray-400">
+                {discovery.dbKeys.length}
+              </span>
+            </div>
+
+            {discovery.dbKeys.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-[#2A2A2A] bg-[#111118] p-6 text-center">
+                <Key className="h-7 w-7 text-gray-700 mx-auto mb-2" />
+                <p className="text-sm text-gray-500">Nenhuma API Key guardada na base de dados</p>
+                <button onClick={openCreate} className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-[#E50914] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#B00000]">
+                  <Plus className="h-3.5 w-3.5" /> Adicionar API Key
+                </button>
               </div>
-            ))}
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {discovery.dbKeys.map((k) => <DbKeyCard key={k.id} item={k} />)}
+              </div>
+            )}
           </div>
 
+          {/* Environment APIs section */}
+          <div>
+            <div className="mb-3 flex items-center gap-2">
+              <Globe className="h-4 w-4 text-blue-400" />
+              <h3 className="text-sm font-bold text-white">APIs de Ambiente</h3>
+              <span className="rounded-full bg-[#2A2A2A] px-2 py-0.5 text-[10px] font-bold text-gray-400">
+                {discovery.envApis.length}
+              </span>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              {discovery.envApis.map((api) => (
+                <div key={api.key} className="rounded-xl border border-[#2A2A2A] bg-[#1A1A1A] p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Globe className="h-4 w-4 text-blue-400 flex-shrink-0" />
+                      <span className="font-semibold text-white text-sm truncate">{api.name}</span>
+                    </div>
+                    <span className={`flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${api.configured ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}>
+                      {api.configured ? "Configurada" : "Não configurada"}
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-gray-400 mb-0.5">{api.provider}</p>
+                  <p className="text-[10px] text-gray-500 mb-3 font-mono">{api.baseUrl}</p>
+
+                  <div className="flex flex-wrap gap-1 mb-3">
+                    {api.usageTypes.map((t) => (
+                      <span key={t} className="rounded bg-[#2A2A2A] px-1.5 py-0.5 text-[9px] text-gray-300">
+                        {USAGE_TYPES.find((u) => u.value === t)?.label || t}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-[#2A2A2A] pt-3">
+                    {(discovery.importStats.events[api.key] || discovery.importStats.lives[api.key]) ? (
+                      <div className="flex gap-3">
+                        {discovery.importStats.events[api.key] && (
+                          <span className="text-xs text-gray-400">
+                            <span className="font-bold text-white">{discovery.importStats.events[api.key]}</span> eventos
+                          </span>
+                        )}
+                        {discovery.importStats.lives[api.key] && (
+                          <span className="text-xs text-gray-400">
+                            <span className="font-bold text-white">{discovery.importStats.lives[api.key]}</span> lives
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-[10px] text-gray-600">Sem dados importados</span>
+                    )}
+
+                    {!api.configured && (
+                      <button
+                        onClick={() => openCreateForEnvApi(api.key)}
+                        className="flex items-center gap-1.5 rounded-lg border border-[#E50914]/30 bg-[#E50914]/10 px-2.5 py-1.5 text-[11px] font-semibold text-[#E50914] hover:bg-[#E50914]/20 transition-colors"
+                      >
+                        <Settings className="h-3 w-3" /> Configurar
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Import Stats section */}
           <div className="rounded-xl border border-[#2A2A2A] bg-[#1A1A1A] p-4">
             <h3 className="font-semibold text-white mb-3 text-sm">Dados Importados por Fonte</h3>
             <div className="grid gap-2 sm:grid-cols-2">
@@ -551,7 +786,6 @@ export default function ApiKeysPage() {
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                {/* Step indicator (new only) */}
                 {!editKey && (
                   <div className="hidden sm:flex items-center gap-1 text-[10px] text-gray-500">
                     {(["provider", "configure"] as ModalStep[]).map((s, i) => (
@@ -571,14 +805,10 @@ export default function ApiKeysPage() {
             {/* ── STEP: PROVIDER SELECTION ── */}
             {!editKey && modalStep === "provider" && (
               <div className="p-5 space-y-4 flex-1 overflow-y-auto">
-                {/* Category filter */}
                 <div className="flex gap-1.5 flex-wrap">
                   {[["all", "Todos"], ...Object.entries(CATEGORY_META).map(([k, v]) => [k, v.label])].map(([k, label]) => (
-                    <button
-                      key={k}
-                      onClick={() => setCatFilter(k)}
-                      className={`px-3 py-1 rounded-full text-[10px] font-bold transition-all ${catFilter === k ? "bg-[#E50914] text-white" : "bg-[#111118] text-gray-400 border border-[#1E1E2A] hover:text-white"}`}
-                    >
+                    <button key={k} onClick={() => setCatFilter(k)}
+                      className={`px-3 py-1 rounded-full text-[10px] font-bold transition-all ${catFilter === k ? "bg-[#E50914] text-white" : "bg-[#111118] text-gray-400 border border-[#1E1E2A] hover:text-white"}`}>
                       {label}
                     </button>
                   ))}
@@ -589,11 +819,8 @@ export default function ApiKeysPage() {
                     const meta = CATEGORY_META[provider.category as keyof typeof CATEGORY_META];
                     const CatIcon = meta.icon;
                     return (
-                      <button
-                        key={provider.id}
-                        onClick={() => handleProviderSelect(provider)}
-                        className="w-full flex items-center gap-4 p-4 rounded-xl border border-[#1E1E2A] bg-[#111118] hover:border-[#E50914]/30 hover:bg-[#1A1A24] transition-all text-left group"
-                      >
+                      <button key={provider.id} onClick={() => handleProviderSelect(provider)}
+                        className="w-full flex items-center gap-4 p-4 rounded-xl border border-[#1E1E2A] bg-[#111118] hover:border-[#E50914]/30 hover:bg-[#1A1A24] transition-all text-left group">
                         <span className="text-2xl flex-shrink-0">{provider.logo}</span>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
@@ -618,20 +845,16 @@ export default function ApiKeysPage() {
               </div>
             )}
 
-            {/* ── STEP: CONFIGURE (new or edit) ── */}
+            {/* ── STEP: CONFIGURE ── */}
             {(editKey || modalStep === "configure") && (
               <div className="p-5 space-y-4 flex-1 overflow-y-auto">
-                {/* Back button (new only) */}
                 {!editKey && (
-                  <button
-                    onClick={() => setModalStep("provider")}
-                    className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-white transition-colors"
-                  >
+                  <button onClick={() => setModalStep("provider")}
+                    className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-white transition-colors">
                     <ArrowLeft className="h-3.5 w-3.5" /> Voltar à seleção de provedor
                   </button>
                 )}
 
-                {/* Provider URL hint */}
                 {selectedProvider?.url && (
                   <div className="flex items-center gap-2 rounded-xl bg-blue-500/5 border border-blue-500/20 px-3 py-2.5">
                     <Info className="h-3.5 w-3.5 text-blue-400 flex-shrink-0" />
@@ -654,8 +877,7 @@ export default function ApiKeysPage() {
                     <label className="mb-1 block text-xs font-semibold text-gray-300">Provedor *</label>
                     <input value={form.provider} onChange={(e) => setForm({ ...form, provider: e.target.value })}
                       className="input-dark w-full px-3 py-2 text-sm" placeholder="api-sports.io"
-                      readOnly={!editKey && !!selectedProvider}
-                    />
+                      readOnly={!editKey && !!selectedProvider} />
                   </div>
                 </div>
 
@@ -665,13 +887,10 @@ export default function ApiKeysPage() {
                     {editKey && <span className="ml-1 text-gray-600 font-normal">(deixe em branco para manter)</span>}
                   </label>
                   <div className="relative">
-                    <input
-                      type={showKeyValue ? "text" : "password"}
-                      value={form.keyValue}
+                    <input type={showKeyValue ? "text" : "password"} value={form.keyValue}
                       onChange={(e) => setForm({ ...form, keyValue: e.target.value })}
                       className="input-dark w-full px-3 py-2 pr-10 text-sm font-mono"
-                      placeholder={editKey ? "••••••••••••••" : "Insira a chave da API"}
-                    />
+                      placeholder={editKey ? "••••••••••••••" : "Insira a chave da API"} />
                     <button onClick={() => setShowKeyValue(!showKeyValue)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white">
                       {showKeyValue ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
@@ -681,13 +900,9 @@ export default function ApiKeysPage() {
                 {selectedProvider?.secretLabel && (
                   <div>
                     <label className="mb-1 block text-xs font-semibold text-gray-300">{selectedProvider.secretLabel}</label>
-                    <input
-                      type="password"
-                      value={form.secretValue}
+                    <input type="password" value={form.secretValue}
                       onChange={(e) => setForm({ ...form, secretValue: e.target.value })}
-                      className="input-dark w-full px-3 py-2 text-sm font-mono"
-                      placeholder="••••••••••••••"
-                    />
+                      className="input-dark w-full px-3 py-2 text-sm font-mono" placeholder="••••••••••••••" />
                   </div>
                 )}
 
@@ -738,8 +953,7 @@ export default function ApiKeysPage() {
                       <button key={type.value} onClick={() => toggleUsageType(type.value)}
                         className={`rounded-full px-3 py-1 text-xs font-semibold transition-all ${form.usageTypes.includes(type.value)
                           ? "bg-blue-600 text-white"
-                          : "bg-[#1A1A2A] text-gray-400 hover:bg-[#2A2A3A]"
-                        }`}>
+                          : "bg-[#1A1A2A] text-gray-400 hover:bg-[#2A2A3A]"}`}>
                         {type.label}
                       </button>
                     ))}
@@ -748,7 +962,7 @@ export default function ApiKeysPage() {
               </div>
             )}
 
-            {/* Footer (only shown in configure step) */}
+            {/* Footer */}
             {(editKey || modalStep === "configure") && (
               <div className="flex justify-end gap-3 border-t border-[#1E1E2A] p-5 flex-shrink-0">
                 <button onClick={() => setModalOpen(false)} className="rounded-xl border border-[#1E1E2A] px-4 py-2 text-sm text-gray-300 hover:text-white">
