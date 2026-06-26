@@ -12,6 +12,7 @@ import {
   Volume1,
   Volume2,
   VolumeX,
+  Youtube,
 } from "lucide-react";
 import type { Live, LiveStreamServer } from "@/types";
 import { cn, formatNumber } from "@/utils";
@@ -22,6 +23,17 @@ interface LivePlayerProps {
   live: Live;
   adOverlay?: AdOverlayMode;
   autoPlayMuted?: boolean;
+}
+
+// ── YouTube helpers ─────────────────────────────────────────────────────────
+function isYouTubeEmbedUrl(url: string): boolean {
+  return /youtube\.com\/embed\//.test(url);
+}
+
+function toYouTubePlayerUrl(url: string): string {
+  const videoId = url.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]+)/)?.[1];
+  if (!videoId) return url;
+  return `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&playsinline=1`;
 }
 
 const FALLBACK_STREAM_URL = "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8";
@@ -227,27 +239,42 @@ export default function LivePlayer({ live, adOverlay = null, autoPlayMuted = fal
 
   const VolumeIcon = muted || volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
 
+  const isYouTube = isYouTubeEmbedUrl(activeServer.url);
+
   return (
     <div ref={playerRef} className="relative flex h-full min-h-0 flex-col overflow-hidden bg-black">
       {/* ── Video area ── */}
       <div
-        className="relative min-h-0 flex-1 bg-black cursor-pointer select-none"
-        onClick={togglePlayback}
-        onDoubleClick={toggleFullscreen}
+        className="relative min-h-0 flex-1 bg-black select-none"
+        onClick={isYouTube ? undefined : togglePlayback}
+        onDoubleClick={isYouTube ? undefined : toggleFullscreen}
+        style={{ cursor: isYouTube ? "default" : "pointer" }}
       >
-        <video
-          ref={videoRef}
-          className="h-full w-full bg-black object-contain"
-          playsInline
-          muted={muted}
-          poster={live.banner || live.thumbnail}
-          onPlay={() => { setPlaying(true); setError(""); }}
-          onPause={() => setPlaying(false)}
-          onWaiting={() => setBuffering(true)}
-          onPlaying={() => setBuffering(false)}
-          onLoadedMetadata={(e) => { setDuration(e.currentTarget.duration || 0); setBuffering(false); }}
-          onTimeUpdate={(e) => { setCurrentTime(e.currentTarget.currentTime); setDuration(e.currentTarget.duration || 0); }}
-        />
+        {/* ── YouTube iframe mode ── */}
+        {isYouTube ? (
+          <iframe
+            key={activeServer.url}
+            src={toYouTubePlayerUrl(activeServer.url)}
+            className="h-full w-full bg-black border-0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+            title={live.title}
+          />
+        ) : (
+          <video
+            ref={videoRef}
+            className="h-full w-full bg-black object-contain"
+            playsInline
+            muted={muted}
+            poster={live.banner || live.thumbnail}
+            onPlay={() => { setPlaying(true); setError(""); }}
+            onPause={() => setPlaying(false)}
+            onWaiting={() => setBuffering(true)}
+            onPlaying={() => setBuffering(false)}
+            onLoadedMetadata={(e) => { setDuration(e.currentTarget.duration || 0); setBuffering(false); }}
+            onTimeUpdate={(e) => { setCurrentTime(e.currentTarget.currentTime); setDuration(e.currentTarget.duration || 0); }}
+          />
+        )}
 
         {/* Top-left badges */}
         <div className="pointer-events-none absolute left-4 top-4 flex items-center gap-2">
@@ -255,119 +282,144 @@ export default function LivePlayer({ live, adOverlay = null, autoPlayMuted = fal
             <span className="h-2 w-2 rounded-full bg-white live-badge" />
             AO VIVO
           </span>
-          <span className="hidden rounded-full bg-black/60 px-3 py-1 text-xs font-semibold text-gray-200 backdrop-blur-sm sm:inline">
-            {activeServer.name}
-          </span>
+          {isYouTube ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-red-700/90 px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm">
+              <Youtube className="h-3 w-3" />
+              YouTube
+            </span>
+          ) : (
+            <span className="hidden rounded-full bg-black/60 px-3 py-1 text-xs font-semibold text-gray-200 backdrop-blur-sm sm:inline">
+              {activeServer.name}
+            </span>
+          )}
         </div>
 
-        {/* Center overlays */}
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          {!playing && !buffering && !adOverlay && (
-            <div className="rounded-full border border-white/20 bg-black/70 p-5 shadow-2xl backdrop-blur-sm">
-              <Play className="h-10 w-10 fill-white text-white" />
-            </div>
-          )}
-          {buffering && (
-            <div className="flex items-center gap-3 rounded-full border border-white/15 bg-black/70 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur-sm">
-              <Radio className="h-4 w-4 animate-pulse text-[#E50914]" />
-              A carregar transmissao...
-            </div>
-          )}
-          {error && !playing && (
-            <div className="max-w-sm rounded-xl border border-red-500/30 bg-red-950/80 px-5 py-4 text-center text-sm font-semibold text-red-100 backdrop-blur-sm">
-              {error}
-              <p className="mt-2 text-xs text-red-300 opacity-75">Tente selecionar outro servidor abaixo</p>
-            </div>
-          )}
-          {autoPlayMuted && muted && playing && (
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); setMuted(false); }}
-              className="pointer-events-auto rounded-lg border border-white/20 bg-black/80 px-4 py-2 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:bg-black/95"
-            >
-              🔊 Ativar som
-            </button>
-          )}
-        </div>
+        {/* Center overlays — only for HLS mode */}
+        {!isYouTube && (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            {!playing && !buffering && !adOverlay && (
+              <div className="rounded-full border border-white/20 bg-black/70 p-5 shadow-2xl backdrop-blur-sm">
+                <Play className="h-10 w-10 fill-white text-white" />
+              </div>
+            )}
+            {buffering && (
+              <div className="flex items-center gap-3 rounded-full border border-white/15 bg-black/70 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur-sm">
+                <Radio className="h-4 w-4 animate-pulse text-[#E50914]" />
+                A carregar transmissao...
+              </div>
+            )}
+            {error && !playing && (
+              <div className="max-w-sm rounded-xl border border-red-500/30 bg-red-950/80 px-5 py-4 text-center text-sm font-semibold text-red-100 backdrop-blur-sm">
+                {error}
+                <p className="mt-2 text-xs text-red-300 opacity-75">Tente selecionar outro servidor abaixo</p>
+              </div>
+            )}
+            {autoPlayMuted && muted && playing && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setMuted(false); }}
+                className="pointer-events-auto rounded-lg border border-white/20 bg-black/80 px-4 py-2 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:bg-black/95"
+              >
+                🔊 Ativar som
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── Controls bar ── */}
       <div className="border-t border-white/10 bg-[#0F0F0F] px-4 py-3">
-        {/* Timeline */}
-        <div className="mb-3 flex items-center gap-3">
-          <span className="w-12 shrink-0 text-xs font-medium text-gray-400">{formatTime(currentTime)}</span>
-          <div className="relative flex-1 group">
-            <input
-              aria-label="Progresso do video"
-              type="range"
-              min="0"
-              max="100"
-              step="0.1"
-              value={progress}
-              onChange={(e) => seek(e.target.value)}
-              className="h-1 w-full accent-[#E50914] cursor-pointer"
-            />
+        {/* Timeline — HLS only */}
+        {!isYouTube && (
+          <div className="mb-3 flex items-center gap-3">
+            <span className="w-12 shrink-0 text-xs font-medium text-gray-400">{formatTime(currentTime)}</span>
+            <div className="relative flex-1 group">
+              <input
+                aria-label="Progresso do video"
+                type="range"
+                min="0"
+                max="100"
+                step="0.1"
+                value={progress}
+                onChange={(e) => seek(e.target.value)}
+                className="h-1 w-full accent-[#E50914] cursor-pointer"
+              />
+            </div>
+            <span className="w-12 shrink-0 text-right text-xs font-medium text-gray-400">
+              {Number.isFinite(duration) && duration > 0 ? formatTime(duration) : "LIVE"}
+            </span>
           </div>
-          <span className="w-12 shrink-0 text-right text-xs font-medium text-gray-400">
-            {Number.isFinite(duration) && duration > 0 ? formatTime(duration) : "LIVE"}
-          </span>
-        </div>
+        )}
 
         {/* Buttons row */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* Play/Pause */}
-          <button
-            onClick={togglePlayback}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-white text-black transition-colors hover:bg-gray-200 active:scale-95"
-            title={playing ? "Pausar (Espaço)" : "Reproduzir (Espaço)"}
-          >
-            {playing ? <Pause className="h-5 w-5 fill-black" /> : <Play className="h-5 w-5 fill-black" />}
-          </button>
+          {/* Play/Pause — HLS only */}
+          {!isYouTube && (
+            <>
+              <button
+                onClick={togglePlayback}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-white text-black transition-colors hover:bg-gray-200 active:scale-95"
+                title={playing ? "Pausar (Espaço)" : "Reproduzir (Espaço)"}
+              >
+                {playing ? <Pause className="h-5 w-5 fill-black" /> : <Play className="h-5 w-5 fill-black" />}
+              </button>
 
-          {/* Mute */}
-          <button
-            onClick={() => setMuted((v) => !v)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-white/10 text-white transition-colors hover:bg-white/15"
-            title={muted ? "Ativar som (M)" : "Silenciar (M)"}
-          >
-            <VolumeIcon className="h-5 w-5" />
-          </button>
+              <button
+                onClick={() => setMuted((v) => !v)}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-white/10 text-white transition-colors hover:bg-white/15"
+                title={muted ? "Ativar som (M)" : "Silenciar (M)"}
+              >
+                <VolumeIcon className="h-5 w-5" />
+              </button>
 
-          {/* Volume slider */}
-          <input
-            aria-label="Volume"
-            type="range"
-            min="0"
-            max="1"
-            step="0.01"
-            value={muted ? 0 : volume}
-            onChange={(e) => { setVolume(Number(e.target.value)); setMuted(false); }}
-            className="h-1 w-24 accent-[#E50914] sm:w-32 cursor-pointer"
-          />
+              <input
+                aria-label="Volume"
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={muted ? 0 : volume}
+                onChange={(e) => { setVolume(Number(e.target.value)); setMuted(false); }}
+                className="h-1 w-24 accent-[#E50914] sm:w-32 cursor-pointer"
+              />
+            </>
+          )}
+
+          {/* YouTube label */}
+          {isYouTube && (
+            <div className="flex items-center gap-1.5 rounded-lg bg-red-600/15 border border-red-600/20 px-3 py-2 text-xs font-semibold text-red-300">
+              <Youtube className="h-3.5 w-3.5" />
+              YouTube — use os controlos do player
+            </div>
+          )}
 
           {/* Server selector + fullscreen */}
           <div className="ml-auto flex min-w-0 items-center gap-2">
-            <div className="hidden items-center gap-1.5 rounded-lg bg-white/8 px-3 py-2 text-xs font-semibold text-gray-300 md:flex">
-              <Server className="h-3.5 w-3.5 text-[#E50914]" />
-              Servidores
-            </div>
-            <div className="flex max-w-full gap-1 overflow-x-auto">
-              {servers.map((server) => (
-                <button
-                  key={server.id}
-                  onClick={() => { setServerId(server.id); userPausedRef.current = false; }}
-                  className={cn(
-                    "whitespace-nowrap rounded-lg border px-3 py-2 text-xs font-bold transition-all",
-                    server.id === serverId
-                      ? "border-[#E50914] bg-[#E50914] text-white"
-                      : "border-white/10 bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white"
-                  )}
-                  title={`${server.quality} · latência ${server.latency}`}
-                >
-                  {server.name}
-                </button>
-              ))}
-            </div>
+            {servers.length > 1 && (
+              <>
+                <div className="hidden items-center gap-1.5 rounded-lg bg-white/8 px-3 py-2 text-xs font-semibold text-gray-300 md:flex">
+                  <Server className="h-3.5 w-3.5 text-[#E50914]" />
+                  Servidores
+                </div>
+                <div className="flex max-w-full gap-1 overflow-x-auto">
+                  {servers.map((server) => (
+                    <button
+                      key={server.id}
+                      onClick={() => { setServerId(server.id); userPausedRef.current = false; }}
+                      className={cn(
+                        "whitespace-nowrap rounded-lg border px-3 py-2 text-xs font-bold transition-all",
+                        server.id === serverId
+                          ? "border-[#E50914] bg-[#E50914] text-white"
+                          : "border-white/10 bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white"
+                      )}
+                      title={`${server.quality} · latência ${server.latency}`}
+                    >
+                      {server.name}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
             <button
               onClick={toggleFullscreen}
               className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/10 text-white transition-colors hover:bg-white/15"
@@ -380,7 +432,10 @@ export default function LivePlayer({ live, adOverlay = null, autoPlayMuted = fal
 
         {/* Hint row */}
         <div className="mt-2 flex items-center justify-between gap-3 text-xs text-gray-600">
-          <span>Espaço: play/pause · M: silenciar · F: ecrã inteiro · ↑↓: volume</span>
+          {isYouTube
+            ? <span>Use os controlos nativos do YouTube · F: ecrã inteiro</span>
+            : <span>Espaço: play/pause · M: silenciar · F: ecrã inteiro · ↑↓: volume</span>
+          }
           <span>{formatNumber(live.viewerCount)} espectadores</span>
         </div>
       </div>
