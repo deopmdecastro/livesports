@@ -30,7 +30,8 @@ function isEnumOwnerError(error: unknown) {
 }
 
 export async function ensureRuntimeSchema() {
-  let hasLivePrerollPosition = await enumHasValue('ad_position', 'live_preroll');
+  try {
+    let hasLivePrerollPosition = await enumHasValue('ad_position', 'live_preroll');
 
   await prisma.$executeRawUnsafe(`
     ALTER TABLE "lives"
