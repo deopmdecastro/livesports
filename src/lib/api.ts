@@ -12,6 +12,33 @@ export const API_URL =
     ? RAW_API_URL
     : `${RAW_API_URL}/api`;
 
+// ─── Retry configuration ─────────────────────────────────────────────────────
+
+const MAX_RETRIES = 1;
+const RETRY_DELAY_MS = 500;
+
+async function fetchWithRetry(url: string, options: RequestInit, retries = MAX_RETRIES): Promise<Response> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(url, options);
+      // Only retry on 5xx or network errors (not 4xx)
+      if (response.status >= 500 && attempt < retries) {
+        await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+        continue;
+      }
+      return response;
+    } catch (err) {
+      if (attempt < retries) {
+        await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+        continue;
+      }
+      throw err;
+    }
+  }
+  // Fallback — should not reach here
+  return fetch(url, options);
+}
+
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
 export interface ApiListResponse<T> {
@@ -74,7 +101,7 @@ export async function logout(): Promise<void> {
   const token = getToken();
   try {
     if (token) {
-      await fetch(`${API_URL}/auth/logout`, {
+      await fetchWithRetry(`${API_URL}/auth/logout`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

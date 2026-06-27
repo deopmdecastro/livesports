@@ -17,7 +17,7 @@ function TeamCrest({ logo, name, code, size = "md" }: { logo?: string; name?: st
   const cls = sizeClasses[size];
   const flagUrl = resolveCountryFlagUrl({ code, name, logo, size: size === "sm" ? 40 : size === "lg" ? 80 : 64 });
   const src = flagUrl || (isImageValue(logo) ? logo : null);
-  if (src) return <img src={src} alt={name || "team"} className={`${cls} rounded-full border-2 border-white/20 object-cover bg-black/50 p-0.5 shadow-xl`} />;
+  if (src) return <img loading="lazy" src={src} alt={name || "team"} className={`${cls} rounded-full border-2 border-white/20 object-cover bg-black/50 p-0.5 shadow-xl`} />;
   const initials = (name || "?").slice(0, 2).toUpperCase();
   return (
     <div className={`${cls} flex items-center justify-center rounded-full border-2 border-white/20 bg-gradient-to-br from-[#1A1A28] to-[#0E0E16] font-black text-white shadow-xl`}>
@@ -58,7 +58,7 @@ function LiveHeroCard({ live }: { live: Live }) {
         {/* Background thumbnail with overlay */}
         {(live.thumbnail || live.banner) && (
           <div className="absolute inset-0 overflow-hidden opacity-10 group-hover:opacity-15 transition-opacity duration-500">
-            <img
+            <img loading="lazy"
               src={live.banner || live.thumbnail}
               alt=""
               className="h-full w-full object-cover object-center scale-105 group-hover:scale-110 transition-transform duration-700"
@@ -72,7 +72,7 @@ function LiveHeroCard({ live }: { live: Live }) {
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2.5">
               {isImageValue(live.leagueLogo) ? (
-                <img src={live.leagueLogo} alt="" className="h-5 w-5 object-contain opacity-90 drop-shadow-sm" />
+                <img loading="lazy" src={live.leagueLogo} alt="" className="h-5 w-5 object-contain opacity-90 drop-shadow-sm" />
               ) : (
                 <Trophy className="h-4 w-4 text-gray-600" />
               )}
@@ -385,7 +385,7 @@ export default function HeroSection() {
       {/* Backgrounds */}
       {slides.map((item, index) => (
         <div key={item.id} className={`absolute inset-0 transition-all duration-700 ${index === current && !isTransitioning ? "opacity-100 scale-100" : "opacity-0 scale-105"}`} style={{ transitionTimingFunction: "cubic-bezier(0.4,0,0.2,1)" }}>
-          <img src={item.image} alt={item.title} className="h-full w-full object-cover object-center" />
+          <img loading="lazy" src={item.image} alt={item.title} className="h-full w-full object-cover object-center" />
         </div>
       ))}
 
@@ -400,7 +400,7 @@ export default function HeroSection() {
           <div className="grid lg:grid-cols-[1fr_360px] xl:grid-cols-[1fr_420px] gap-8 xl:gap-16 items-center">
 
             {/* Left: Main content */}
-            <div className="max-w-2xl">
+            <div className="max-w-2xl stagger-children">
               {/* Status Badge + League */}
               <div className="mb-5 flex flex-wrap items-center gap-3 animate-fade-in-up">
                 <div className={`flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-black uppercase tracking-widest ${slide.isLive ? "badge-live" : "badge-scheduled"}`}>
@@ -414,7 +414,7 @@ export default function HeroSection() {
                 </div>
                 {slide.kind === "live" && slide.live.league && (
                   <span className="flex items-center gap-1.5 rounded-full bg-white/8 border border-white/10 px-3 py-1 text-xs font-semibold text-gray-300">
-                    {isImageValue(slide.live.leagueLogo) && <img src={slide.live.leagueLogo} alt="" className="h-4 w-4 object-contain drop-shadow-sm" />}
+                    {isImageValue(slide.live.leagueLogo) && <img loading="lazy" src={slide.live.leagueLogo} alt="" className="h-4 w-4 object-contain drop-shadow-sm" />}
                     {slide.live.league}
                   </span>
                 )}
