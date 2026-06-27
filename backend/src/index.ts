@@ -117,6 +117,7 @@ app.use((_req, res, next) => {
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
   next();
 });
 
@@ -141,6 +142,11 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
   message: { success: false, error: 'Muitas tentativas de login, aguarde 15 minutos.' },
   skip: (req) => req.method === 'OPTIONS',
+  keyGenerator: (req) => {
+    // Use X-Forwarded-For behind proxies, fallback to IP
+    const forwarded = req.headers['x-forwarded-for'] as string;
+    return forwarded?.split(',')[0]?.trim() || req.ip || req.socket?.remoteAddress || 'unknown';
+  },
 });
 
 // Upload/mutation rate limit
@@ -151,6 +157,10 @@ const mutationLimiter = rateLimit({
   legacyHeaders: false,
   message: { success: false, error: 'Muitas operações de escrita. Aguarde um momento.' },
   skip: (req) => req.method === 'OPTIONS',
+  keyGenerator: (req) => {
+    const forwarded = req.headers['x-forwarded-for'] as string;
+    return forwarded?.split(',')[0]?.trim() || req.ip || req.socket?.remoteAddress || 'unknown';
+  },
 });
 
 // ─── Body Parsing ─────────────────────────────────────────────────────────────
@@ -338,6 +348,21 @@ app.use((err: Error & { status?: number; code?: string }, req: express.Request, 
 // Share io with routes via singleton module
 setIo(io);
 
+// ─── Socket.IO connection authentication ────────────────────────────────────
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token;
+  if (token) {
+    try {
+      const jwtLib = require('jsonwebtoken');
+      const decoded = jwtLib.verify(token, process.env.JWT_SECRET || 'livesports-secret-key');
+      (socket as any).user = decoded;
+    } catch {
+      // Token invalid — allow connection but user is anonymous
+    }
+  }
+  next();
+});
+
 // ─── Socket.IO Real-time features ────────────────────────────────────────────
 io.on('connection', (socket) => {
   // Track which live rooms this socket has joined (for disconnect cleanup)
@@ -374,14 +399,23 @@ io.on('connection', (socket) => {
 
   socket.on('chat-message', (data: { liveId: string; message: string; user: string }) => {
     if (typeof data?.liveId !== 'string' || typeof data?.message !== 'string') return;
-    const safeMessage = String(data.message).slice(0, 500);
-    const safeUser = String(data.user || 'Anônimo').slice(0, 50);
-    io.to(`live-${data.liveId}`).emit('new-message', {
+    // Anti-XSS: strip HTML tags and sanitize
+    const strippedMessage = String(data.message).replace(/<[^>]*>/g, '').slice(0, 500);
+    const safeUser = String(data.user || (socket as any).user?.name || 'Anônimo').replace(/<[^>]*>/g, '').slice(0, 50);
+    const payload = {
       id: Date.now(),
       user: safeUser,
-      message: safeMessage,
+      message: strippedMessage,
       timestamp: new Date().toISOString(),
-    });
+    };
+    io.to(`live-${data.liveId}`).emit('new-message', payload);
+    // Best-effort persistence to DB
+    try {
+      prisma.$executeRawUnsafe(
+        `INSERT INTO "live_comments" ("live_id", "client_id", "user_name", "message") VALUES ($1, $2, $3, $4)`,
+        data.liveId, socket.id, safeUser, strippedMessage
+      ).catch(() => {});
+    } catch { /* ignore persistence errors */ }
   });
 
   socket.on('disconnect', () => {

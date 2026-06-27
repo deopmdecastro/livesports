@@ -12,7 +12,7 @@ export interface AuthRequest extends Request {
 
 export const authenticateToken = (req: AuthRequest, res: Response, next: NextFunction): void => {
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+  const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
 
   if (!token) {
     res.status(401).json({ success: false, error: 'Token de acesso obrigatório' });
@@ -20,15 +20,24 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'livesports-secret-key') as {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'livesports-secret-key', {
+      algorithms: ['HS256'],
+    }) as {
       id: string;
       email: string;
       role: string;
+      iat?: number;
+      exp?: number;
     };
     req.user = decoded;
     next();
   } catch (error) {
-    res.status(403).json({ success: false, error: 'Token inválido ou expirado' });
+    const msg = error instanceof jwt.TokenExpiredError
+      ? 'Token expirado'
+      : error instanceof jwt.JsonWebTokenError
+        ? 'Token inválido'
+        : 'Token inválido ou expirado';
+    res.status(403).json({ success: false, error: msg });
   }
 };
 

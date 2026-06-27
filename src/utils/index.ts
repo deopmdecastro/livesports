@@ -112,3 +112,80 @@ export function debounce<T extends (...args: unknown[]) => unknown>(
     timeout = setTimeout(() => func(...args), wait);
   };
 }
+
+/**
+ * Throttle — ensures a function is called at most once per `wait` ms.
+ */
+export function throttle<T extends (...args: unknown[]) => unknown>(
+  func: T,
+  wait: number
+): (...args: Parameters<T>) => void {
+  let lastCall = 0;
+  let timeout: NodeJS.Timeout | null = null;
+  return (...args: Parameters<T>) => {
+    const now = Date.now();
+    const remaining = wait - (now - lastCall);
+    if (remaining <= 0) {
+      lastCall = now;
+      func(...args);
+    } else if (!timeout) {
+      timeout = setTimeout(() => {
+        lastCall = Date.now();
+        timeout = null;
+        func(...args);
+      }, remaining);
+    }
+  };
+}
+
+/**
+ * Clamp a number between min and max.
+ */
+export function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}
+
+/**
+ * Get initials from a name (e.g., "Cristiano Ronaldo" → "CR").
+ */
+export function getInitials(name: string, maxLen = 2): string {
+  return name
+    .split(' ')
+    .map((n) => n[0])
+    .filter(Boolean)
+    .slice(0, maxLen)
+    .join('')
+    .toUpperCase();
+}
+
+/**
+ * Safely parse JSON, returning the fallback on failure.
+ */
+export function safeJsonParse<T>(str: string, fallback: T): T {
+  try {
+    return JSON.parse(str) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+/**
+ * Format bytes to human-readable string.
+ */
+export function formatBytes(bytes: number): string {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+}
+
+/**
+ * Check if code is running on the client (browser).
+ */
+export const isClient = typeof window !== 'undefined';
+
+/**
+ * Check if code is running on the server.
+ */
+export const isServer = typeof window === 'undefined';
