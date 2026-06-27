@@ -141,27 +141,48 @@ router.get('/', async (req, res, next) => {
       conditions.push(`league ILIKE $${values.length}`);
     }
     values.push(String(archived ?? 'false') === 'true');
-    conditions.push(`archived = $${values.length}`);
+    conditions.push(`archived = $${values.length}::boolean`);
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
     const pagination = parsePagination(req.query as Record<string, unknown>);
-    const rows = await prisma.$queryRawUnsafe<any[]>(
-      `${selectLiveSql} ${where} ORDER BY featured DESC, scheduled_at DESC LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
-      ...values,
-      pagination.limit,
-      pagination.offset
-    );
-    const countRows = await prisma.$queryRawUnsafe<Array<{ total: bigint }>>(
-      `SELECT COUNT(*)::bigint AS total FROM "lives" ${where}`,
-      ...values
-    );
-    const total = Number(countRows[0]?.total || 0);
-    res.json({
-      success: true,
-      data: {
-        items: rows.map(mapLive),
-        pagination: buildPaginationMeta(pagination, total),
-      },
-    });
+
+    // IMPORTANT: build deterministic placeholder indices.
+    // We generate placeholders for the LIMIT/OFFSET based on the number of already-bound params.
+    const limitPlaceholder = values.length + 1;
+    const offsetPlaceholder = values.length + 2;
+
+    try {
+      const rows = await prisma.$queryRawUnsafe<any[]>(
+        `${selectLiveSql} ${where} ORDER BY featured DESC, scheduled_at DESC LIMIT $${limitPlaceholder} OFFSET $${offsetPlaceholder}`,
+        ...values,
+        pagination.limit,
+        pagination.offset
+      );
+
+      const countRows = await prisma.$queryRawUnsafe<Array<{ total: bigint }>>(
+        `SELECT COUNT(*)::bigint AS total FROM "lives" ${where}`,
+        ...values
+      );
+
+      const total = Number(countRows[0]?.total || 0);
+      res.json({
+        success: true,
+        data: {
+          items: rows.map(mapLive),
+          pagination: buildPaginationMeta(pagination, total),
+        },
+      });
+    } catch (dbErr: any) {
+      console.error('[DB ERROR] GET /api/lives', {
+        query: req.query,
+        where,
+        values,
+        pagination,
+        limitPlaceholder,
+        offsetPlaceholder,
+        message: dbErr?.message,
+      });
+      throw dbErr;
+    }
   } catch (error) {
     next(error);
   }
