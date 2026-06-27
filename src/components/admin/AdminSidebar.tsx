@@ -143,9 +143,9 @@ export default function AdminSidebar() {
   };
 
   return (
-    <aside className="w-60 h-screen bg-[#0A0A0F] border-r border-[#1A1A24] flex flex-col overflow-hidden">
+    <aside className="w-60 h-screen bg-[#030409] border-r border-white/[0.04] flex flex-col overflow-hidden">
       {/* Logo */}
-      <div className="p-4 border-b border-[#1A1A24]">
+      <div className="p-4 border-b border-white/[0.04]">
         <Link href="/" className="flex items-center gap-3 group">
           <div className="relative">
             <div className="bg-gradient-to-br from-[#E50914] to-[#B00000] rounded-xl p-2 shadow-[0_0_16px_rgba(229,9,20,0.35)] group-hover:shadow-[0_0_24px_rgba(229,9,20,0.5)] transition-all">
