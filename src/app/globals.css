@@ -514,3 +514,114 @@ input[type="checkbox"] {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MODERN ANIMATIONS — 2026 refresh
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Fade in up */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out both;
+}
+
+/* Fade in */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out both;
+}
+
+/* Scale in */
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.animate-scale-in {
+  animation: scaleIn 0.35s ease-out both;
+}
+
+/* Slide in from right */
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.animate-slide-in-right {
+  animation: slideInRight 0.4s ease-out both;
+}
+
+/* Shimmer loading effect */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.shimmer {
+  background: linear-gradient(90deg, #1E1E2A 25%, #2A2A3A 50%, #1E1E2A 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* Smooth hover lift */
+.hover-lift {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+/* Card hover glow */
+.hover-glow {
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.hover-glow:hover {
+  border-color: rgba(229, 9, 20, 0.3);
+  box-shadow: 0 0 24px rgba(229, 9, 20, 0.08);
+}
+
+/* Stagger children animation */
+.stagger-children > * {
+  opacity: 0;
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+.stagger-children > *:nth-child(1) { animation-delay: 0.05s; }
+.stagger-children > *:nth-child(2) { animation-delay: 0.10s; }
+.stagger-children > *:nth-child(3) { animation-delay: 0.15s; }
+.stagger-children > *:nth-child(4) { animation-delay: 0.20s; }
+.stagger-children > *:nth-child(5) { animation-delay: 0.25s; }
+.stagger-children > *:nth-child(6) { animation-delay: 0.30s; }
+.stagger-children > *:nth-child(7) { animation-delay: 0.35s; }
+.stagger-children > *:nth-child(8) { animation-delay: 0.40s; }
+
+/* Smooth page transition */
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.page-transition {
+  animation: pageEnter 0.35s ease-out;
+}
+
+/* Premium glass card */
+.glass-card {
+  background: rgba(17, 17, 24, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+}
+
+/* Skeleton pulse */
+@keyframes skeletonPulse {
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 0.7; }
+}
+.skeleton-pulse {
+  animation: skeletonPulse 2s ease-in-out infinite;
+}

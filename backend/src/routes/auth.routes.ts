@@ -24,36 +24,45 @@ const registerSchema = z.object({
 });
 
 function publicUser(user: any) {
-  const { password, ...safeUser } = user;
+  if (!user) return null;
   return {
-    id: safeUser.id,
-    name: safeUser.name,
-    email: safeUser.email,
-    avatar: safeUser.avatar,
-    country: safeUser.country,
-    phone: safeUser.phone,
-    role: safeUser.role,
-    status: safeUser.status,
-    emailVerified: safeUser.email_verified,
-    twoFactorEnabled: safeUser.two_factor_enabled,
-    createdAt: safeUser.created_at,
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    avatar: user.avatar,
+    country: user.country,
+    phone: user.phone,
+    role: user.role,
+    status: user.status,
+    emailVerified: user.emailVerified ?? user.email_verified,
+    twoFactorEnabled: user.twoFactorEnabled ?? user.two_factor_enabled,
+    createdAt: user.createdAt ?? user.created_at,
   };
 }
 
+// ─── Prisma-based helpers (safer than raw SQL) ─────────────────────────────
+// These replace the old $queryRawUnsafe calls for standard CRUD operations.
+
 async function findUserByEmail(email: string) {
-  const rows = await prisma.$queryRawUnsafe<any[]>(
-    `SELECT id, name, email, password, avatar, country, phone, role::text, status::text, email_verified, two_factor_enabled, created_at FROM "users" WHERE email = $1 LIMIT 1`,
-    email
-  );
-  return rows[0];
+  return prisma.user.findUnique({
+    where: { email },
+    select: {
+      id: true, name: true, email: true, password: true, avatar: true,
+      country: true, phone: true, role: true, status: true,
+      emailVerified: true, twoFactorEnabled: true, createdAt: true,
+    },
+  });
 }
 
 async function findUserById(id: string) {
-  const rows = await prisma.$queryRawUnsafe<any[]>(
-    `SELECT id, name, email, password, avatar, country, phone, role::text, status::text, email_verified, two_factor_enabled, created_at FROM "users" WHERE id = $1 LIMIT 1`,
-    id
-  );
-  return rows[0];
+  return prisma.user.findUnique({
+    where: { id },
+    select: {
+      id: true, name: true, email: true, password: true, avatar: true,
+      country: true, phone: true, role: true, status: true,
+      emailVerified: true, twoFactorEnabled: true, createdAt: true,
+    },
+  });
 }
 
 // ─── Refresh token persistence ────────────────────────────────────────────────
@@ -108,7 +117,7 @@ router.post('/login', async (req: Request, res: Response) => {
     const refreshToken = jwt.sign({ id: user.id }, JWT_REFRESH_SECRET, { expiresIn: '30d' });
     const refreshExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
     await persistRefreshToken(user.id, refreshToken, refreshExpiresAt);
-    await prisma.$executeRawUnsafe(`UPDATE "users" SET "last_login_at" = NOW() WHERE id = $1`, user.id);
+    await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
     res.json({ success: true, data: { user: publicUser(user), accessToken, refreshToken } });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -136,18 +145,21 @@ router.post('/register', async (req: Request, res: Response) => {
       return;
     }
     const hashedPassword = bcrypt.hashSync(data.password, 12);
-    const rows = await prisma.$queryRawUnsafe<any[]>(
-      `
-        INSERT INTO "users" ("name", "email", "password", "country", "role", "status")
-        VALUES ($1, $2, $3, $4, 'user', 'active')
-        RETURNING id, name, email, avatar, country, phone, role::text, status::text, email_verified, two_factor_enabled, created_at
-      `,
-      data.name,
-      data.email,
-      hashedPassword,
-      data.country || null
-    );
-    const user = rows[0];
+    const user = await prisma.user.create({
+      data: {
+        name: data.name,
+        email: data.email,
+        password: hashedPassword,
+        country: data.country || null,
+        role: 'user',
+        status: 'active',
+      },
+      select: {
+        id: true, name: true, email: true, avatar: true, country: true,
+        phone: true, role: true, status: true, emailVerified: true,
+        twoFactorEnabled: true, createdAt: true,
+      },
+    });
     const accessToken = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
     const refreshToken = jwt.sign({ id: user.id }, JWT_REFRESH_SECRET, { expiresIn: '30d' });
     await persistRefreshToken(user.id, refreshToken, new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
@@ -230,13 +242,13 @@ router.post('/change-password', authenticateToken, async (req: AuthRequest, res:
     }
 
     const hashed = bcrypt.hashSync(newPassword, 12);
-    await prisma.$executeRawUnsafe(
-      `UPDATE "users" SET "password" = $2, "updated_at" = NOW() WHERE "id" = $1`,
-      user.id, hashed,
-    );
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { password: hashed },
+    });
 
     // Changing the password invalidates all existing sessions for this user.
-    await prisma.$executeRawUnsafe(`DELETE FROM "refresh_tokens" WHERE "user_id" = $1`, user.id);
+    await prisma.refreshToken.deleteMany({ where: { userId: user.id } });
 
     res.json({ success: true, message: 'Senha alterada com sucesso' });
   } catch (error) {
