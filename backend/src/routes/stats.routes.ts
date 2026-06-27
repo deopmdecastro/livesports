@@ -72,7 +72,12 @@ router.get('/public', async (_req, res, next) => {
         updatedAt: new Date().toISOString(),
       },
     });
-  } catch (error) {
+  } catch (error: any) {
+    console.error('[DB ERROR] GET /api/stats/public', {
+      message: error?.message,
+      code: error?.code,
+      stack: process.env.NODE_ENV !== 'production' ? error?.stack : undefined,
+    });
     next(error);
   }
 });
@@ -176,7 +181,12 @@ router.get('/imported-leagues', async (_req, res, next) => {
         updatedAt: new Date().toISOString(),
       },
     });
-  } catch (error) {
+  } catch (error: any) {
+    console.error('[DB ERROR] GET /api/stats/imported-leagues', {
+      message: error?.message,
+      code: error?.code,
+      stack: process.env.NODE_ENV !== 'production' ? error?.stack : undefined,
+    });
     next(error);
   }
 });

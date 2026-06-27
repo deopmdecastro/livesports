@@ -297,12 +297,20 @@ app.use((err: Error & { status?: number; code?: string }, req: express.Request, 
     level: statusCode >= 500 ? 'error' : 'warn',
     service: 'api',
     message: `${req.method} ${req.path} → ${statusCode}: ${err.message}`,
-    details: { method: req.method, path: req.path, status: statusCode },
+    details: {
+      method: req.method,
+      path: req.path,
+      status: statusCode,
+      error: err.message,
+      code: (err as any).code,
+      stack: process.env.NODE_ENV !== 'production' ? err.stack : undefined,
+    },
     userId: (req as any).user?.id,
     requestId: (req as any).requestId,
     ip: req.ip,
     userAgent: req.headers['user-agent'],
   });
+
 
   // CORS error
   if (err.message?.includes('CORS')) {

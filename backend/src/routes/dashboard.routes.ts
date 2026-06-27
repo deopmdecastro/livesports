@@ -32,7 +32,12 @@ router.get('/stats', authenticateToken, requireAdmin, async (_req, res, next) =>
         revenueGrowth: 0,
       },
     });
-  } catch (error) {
+  } catch (error: any) {
+    console.error('[DB ERROR] GET /api/dashboard/stats', {
+      message: error?.message,
+      code: error?.code,
+      stack: process.env.NODE_ENV !== 'production' ? error?.stack : undefined,
+    });
     next(error);
   }
 });
@@ -60,7 +65,12 @@ router.get('/sidebar-stats', authenticateToken, requireAdmin, async (_req, res, 
         countries: Number(row?.countries ?? 0),
       },
     });
-  } catch (error) {
+  } catch (error: any) {
+    console.error('[DB ERROR] GET /api/dashboard/sidebar-stats', {
+      message: error?.message,
+      code: error?.code,
+      stack: process.env.NODE_ENV !== 'production' ? error?.stack : undefined,
+    });
     next(error);
   }
 });
@@ -83,7 +93,12 @@ router.get('/charts/views', authenticateToken, requireAdmin, async (_req, res, n
       ORDER BY day
     `);
     res.json({ success: true, data: rows.map((row) => ({ date: row.date, views: Number(row.views), revenue: Number(row.revenue || 0) })) });
-  } catch (error) {
+  } catch (error: any) {
+    console.error('[DB ERROR] GET /api/dashboard/charts/views', {
+      message: error?.message,
+      code: error?.code,
+      stack: process.env.NODE_ENV !== 'production' ? error?.stack : undefined,
+    });
     next(error);
   }
 });
@@ -117,7 +132,12 @@ router.get('/charts/devices', authenticateToken, requireAdmin, async (_req, res,
     });
 
     res.json({ success: true, data: percentages });
-  } catch (error) {
+  } catch (error: any) {
+    console.error('[DB ERROR] GET /api/dashboard/charts/devices', {
+      message: error?.message,
+      code: error?.code,
+      stack: process.env.NODE_ENV !== 'production' ? error?.stack : undefined,
+    });
     next(error);
   }
 });
