@@ -89,6 +89,7 @@ const navGroups: { title: string; items: NavItem[] }[] = [
     title: "Ads / Anúncios",
     items: [
       { label: "Gerenciar Ads", href: "/admin/ads", icon: Megaphone },
+      { label: "Campanhas", href: "/admin/campaigns", icon: Zap, badge: "NOVO", badgeColor: "#F59E0B" },
       { label: "Posições", href: "/admin/ads/positions", icon: MapPin },
       { label: "Relatórios", href: "/admin/reports", icon: BarChart3 },
     ],
@@ -97,6 +98,7 @@ const navGroups: { title: string; items: NavItem[] }[] = [
     title: "Sistema",
     items: [
       { label: "Configurações", href: "/admin/settings", icon: Settings },
+      { label: "Perfil Admin", href: "/admin/profile", icon: UserCheck, badge: "NOVO", badgeColor: "#E50914" },
       { label: "API Keys", href: "/admin/api-keys", icon: Key },
       { label: "Notificações", href: "/admin/notifications", icon: Bell },
       { label: "Logs", href: "/admin/logs", icon: ScrollText },
