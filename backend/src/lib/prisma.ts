@@ -42,13 +42,21 @@ export async function ensureRuntimeSchema() {
 
   if (!hasLivePrerollPosition) {
     try {
+      // ALTER TYPE ... ADD VALUE does NOT support IF NOT EXISTS in PostgreSQL.
+      // The enumHasValue check above already guards this — but if the enum was
+      // created in a different transaction or by another process, we catch the
+      // duplicate gracefully.
       await prisma.$executeRawUnsafe(`
-        ALTER TYPE "ad_position" ADD VALUE IF NOT EXISTS 'live_preroll'
+        ALTER TYPE "ad_position" ADD VALUE 'live_preroll'
       `);
       hasLivePrerollPosition = true;
-    } catch (error) {
-      if (!isEnumOwnerError(error)) throw error;
-      console.warn('Skipping live_preroll ad seed: database user is not the owner of ad_position.');
+    } catch (error: any) {
+      const msg: string = error?.message || String(error);
+      if (isEnumOwnerError(error) || msg.includes('already exists') || msg.includes('duplicate')) {
+        hasLivePrerollPosition = true; // it's already there
+      } else {
+        throw error;
+      }
     }
   }
 
@@ -429,5 +437,9 @@ export async function ensureRuntimeSchema() {
       defaultAdmin.id
     );
     console.warn('[ensureRuntimeSchema] admin@livesports.com password reset to documented default');
+  }
+  } catch (_error: any) {
+    console.error('[ensureRuntimeSchema] Non-fatal error:', _error?.message || String(_error));
+    console.error('  The server will continue, but some features may not work.');
   }
 }

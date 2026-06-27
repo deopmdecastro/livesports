@@ -217,6 +217,27 @@ app.get('/', (_req, res) => {
   });
 });
 
+
+// ─── Debug endpoint (only in development) ────────────────────────────────────
+app.get('/api/debug', async (_req, res) => {
+  const info: Record<string, unknown> = {
+    nodeEnv: process.env.NODE_ENV || 'development',
+    databaseUrl: process.env.DATABASE_URL ? '(set — hidden)' : '(NOT SET)',
+    redisUrl: process.env.REDIS_URL ? '(set — hidden)' : '(NOT SET)',
+    jwtSecret: process.env.JWT_SECRET ? '(set — length ' + process.env.JWT_SECRET.length + ')' : '(NOT SET)',
+    port: process.env.PORT || '3001',
+  };
+  // Test DB connection
+  try {
+    await prisma.$queryRaw`SELECT 1 AS db_check`;
+    info.dbConnection = 'ok';
+  } catch (err: any) {
+    info.dbConnection = 'error';
+    info.dbError = err?.message?.split('\n')[0] || String(err);
+  }
+  res.json({ success: true, data: info });
+});
+
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/health', async (_req, res) => {
   const startTime = Date.now();
