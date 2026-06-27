@@ -233,10 +233,11 @@ app.get('/health', async (_req, res) => {
 
   const memUsage = process.memoryUsage();
 
-  res.status(dbStatus === 'ok' ? 200 : 503).json({
-    status: dbStatus === 'ok' ? 'ok' : 'degraded',
+  const healthy = dbStatus === 'ok';
+  res.status(healthy ? 200 : 503).json({
+    status: healthy ? 'ok' : 'degraded',
     timestamp: new Date().toISOString(),
-    version: '1.0.0',
+    version: '2.0.0',
     service: 'LiveSports API',
     environment: process.env.NODE_ENV || 'development',
     uptime: Math.floor(process.uptime()),
@@ -244,6 +245,9 @@ app.get('/health', async (_req, res) => {
     database: {
       status: dbStatus,
       latencyMs: dbLatencyMs,
+      ...(dbStatus === 'error' ? {
+        hint: 'Verifique se o PostgreSQL está a correr e DATABASE_URL está correto. docker-compose up -d postgres para iniciar.',
+      } : {}),
     },
     memory: {
       heapUsedMb: Math.round(memUsage.heapUsed / 1024 / 1024),
@@ -430,9 +434,19 @@ io.on('connection', (socket) => {
 
 // ─── Server Startup ───────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3001;
-ensureRuntimeSchema().catch((error) => {
-  console.error('Failed to prepare database schema:', error);
-});
+
+// Non-blocking schema sync — the server starts regardless, and the health
+// endpoint reports DB status. If the DB is unavailable, routes will return
+// 503 (not 500) so the frontend can handle it gracefully.
+ensureRuntimeSchema()
+  .then(() => console.log('✅ Database schema verified'))
+  .catch((error: any) => {
+    const msg = error?.message || String(error);
+    const code = error?.code;
+    console.error(`⛔ Database schema sync failed (code: ${code || 'unknown'})`);
+    console.error(`   ${msg.split('\n')[0]}`);
+    console.error('   The server will start but API routes may return 503.');
+  });
 
 httpServer.listen(PORT, () => {
   console.log(`🚀 LiveSports API running on port ${PORT}`);

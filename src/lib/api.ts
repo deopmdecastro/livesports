@@ -279,7 +279,15 @@ async function coreFetch<T>(
   const payload = await response!.json().catch(() => ({}));
 
   if (!response!.ok || payload.success === false) {
-    const error = new Error(payload.error || `Erro ${response!.status}`) as Error & { status?: number; requestId?: string };
+    let message = payload.error || `Erro ${response!.status}`;
+    // Friendlier messages for common errors
+    if (response!.status === 503) {
+      message = `Serviço indisponível — a base de dados não está acessível.
+Inicie o PostgreSQL: docker-compose up -d postgres`;
+    } else if (response!.status === 500) {
+      message = `${message} (Erro interno — verifique os logs do servidor)`;
+    }
+    const error = new Error(message) as Error & { status?: number; requestId?: string };
     error.status = response!.status;
     error.requestId = payload.requestId;
     throw error;
