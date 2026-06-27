@@ -196,6 +196,17 @@ app.use((req: express.Request, res: express.Response, next) => {
   next();
 });
 
+// ─── Root handler ─────────────────────────────────────────────────────────────
+app.get('/', (_req, res) => {
+  res.json({
+    success: true,
+    service: 'LiveSports API',
+    version: '1.0.0',
+    status: 'running',
+    docs: '/health',
+  });
+});
+
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/health', async (_req, res) => {
   const startTime = Date.now();

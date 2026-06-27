@@ -1,7 +1,16 @@
 // ─── Configuration ────────────────────────────────────────────────────────────
 
 const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-export const API_URL = RAW_API_URL.endsWith("/api") ? RAW_API_URL : `${RAW_API_URL}/api`;
+
+// In the browser always use a relative path (/api) so the Next.js rewrite rules
+// (next.config.ts) proxy the request to the backend. This prevents calls to
+// localhost:3001 from breaking in production or deployed environments.
+export const API_URL =
+  typeof window !== "undefined"
+    ? "/api"
+    : RAW_API_URL.endsWith("/api")
+    ? RAW_API_URL
+    : `${RAW_API_URL}/api`;
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
