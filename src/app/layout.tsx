@@ -141,7 +141,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
         />
       </head>
-      <body className="bg-[#060609] text-white antialiased">
+      <body className="bg-[#060609] text-white antialiased" suppressHydrationWarning>
         <LangProvider>
           {children}
           <Toaster
