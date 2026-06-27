@@ -8,11 +8,9 @@ out/
 dist/
 
 # Environment
-.env
 .env.local
 .env.development
 .env.production
-*.env
 
 # Build outputs
 build/
