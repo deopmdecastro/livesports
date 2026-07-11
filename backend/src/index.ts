@@ -3,7 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import morgan from 'morgan';
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import dotenv from 'dotenv';
 import path from 'path';
 import { createServer } from 'http';
@@ -61,9 +61,21 @@ const app = express();
 const httpServer = createServer(app);
 
 // ─── CORS configuration (multi-origin support) ────────────────────────────────
-const rawOrigins = process.env.ALLOWED_ORIGINS || process.env.FRONTEND_URL || 'http://localhost:3000,http://localhost:3002';
+const rawOrigins = [
+  process.env.ALLOWED_ORIGINS,
+  process.env.FRONTEND_URL,
+  'http://localhost:3000,http://localhost:3002,http://127.0.0.1:3000,http://127.0.0.1:3002',
+].filter(Boolean).join(',');
 const allowedOrigins = rawOrigins.split(',').map((o) => o.trim()).filter(Boolean);
 const isDev = (process.env.NODE_ENV || 'development') !== 'production';
+const localhostOriginPattern = /^https?:\/\/(?:localhost|127\.0\.0\.1)(:\d+)?$/;
+
+const getRateLimitKey = (req: express.Request) => {
+  const forwarded = req.headers['x-forwarded-for'] as string | undefined;
+  const firstForwardedIp = forwarded?.split(',')[0]?.trim();
+  const sourceIp = firstForwardedIp || req.ip || req.socket?.remoteAddress || 'unknown';
+  return ipKeyGenerator(sourceIp);
+};
 
 // ─── CORS FIRST — before Helmet and everything else ──────────────────────────
 // Preflight OPTIONS requests must receive CORS headers before any auth or security
@@ -73,8 +85,8 @@ app.use(
     origin: (origin, callback) => {
       // Allow requests with no origin (server-to-server, curl, mobile apps)
       if (!origin) return callback(null, true);
-      // In development, allow any localhost origin regardless of port
-      if (isDev && /^https?:\/\/localhost(:\d+)?$/.test(origin)) {
+      // Allow local browser origins in both development and production containers.
+      if (localhostOriginPattern.test(origin)) {
         return callback(null, true);
       }
       if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
@@ -142,11 +154,7 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
   message: { success: false, error: 'Muitas tentativas de login, aguarde 15 minutos.' },
   skip: (req) => req.method === 'OPTIONS',
-  keyGenerator: (req) => {
-    // Use X-Forwarded-For behind proxies, fallback to IP
-    const forwarded = req.headers['x-forwarded-for'] as string;
-    return forwarded?.split(',')[0]?.trim() || req.ip || req.socket?.remoteAddress || 'unknown';
-  },
+  keyGenerator: (req) => getRateLimitKey(req),
 });
 
 // Upload/mutation rate limit
@@ -157,10 +165,7 @@ const mutationLimiter = rateLimit({
   legacyHeaders: false,
   message: { success: false, error: 'Muitas operações de escrita. Aguarde um momento.' },
   skip: (req) => req.method === 'OPTIONS',
-  keyGenerator: (req) => {
-    const forwarded = req.headers['x-forwarded-for'] as string;
-    return forwarded?.split(',')[0]?.trim() || req.ip || req.socket?.remoteAddress || 'unknown';
-  },
+  keyGenerator: (req) => getRateLimitKey(req),
 });
 
 // ─── Body Parsing ─────────────────────────────────────────────────────────────

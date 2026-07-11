@@ -6,8 +6,11 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.frontend
+      args:
+        NEXT_PUBLIC_API_URL: http://backend:3001
+        API_INTERNAL_URL: http://backend:3001
     ports:
-      - "3000:3000"
+      - "3002:3000"
     environment:
       - NODE_ENV=production
       # use service name for inter-container calls
@@ -34,6 +37,7 @@ services:
       - JWT_SECRET=${JWT_SECRET:-livesports-super-secret-key-change-in-production}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-livesports-refresh-secret-key-change-in-production}
       - FRONTEND_URL=http://localhost:3000
+      - ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3002
       - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
       - SMTP_PORT=${SMTP_PORT:-587}
       - SMTP_USER=${SMTP_USER:-}
@@ -60,12 +64,9 @@ services:
   postgres:
     image: postgres:16-alpine
     ports:
-      # Must match DATABASE_URL in .env.example (port 5432). Previously this was
-      # remapped to 5433 on the host, which silently broke any process running
-      # outside docker-compose (e.g. `npm run dev` for the backend) that connects
-      # to "localhost:5432" per .env.example — causing every DB call, including
-      # login, to fail with a connection error (surfaced as a generic 500).
-      - "5432:5432"
+      # Host 5433 avoids conflict when another local Postgres already binds 5432.
+      # Containers still reach this service at postgres:5432 on the compose network.
+      - "5433:5432"
     environment:
       - POSTGRES_USER=livesports
       - POSTGRES_PASSWORD=livesports123

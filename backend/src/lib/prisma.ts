@@ -37,6 +37,8 @@ export async function ensureRuntimeSchema() {
     ALTER TABLE "lives"
       ADD COLUMN IF NOT EXISTS "league_logo" TEXT,
       ADD COLUMN IF NOT EXISTS "stream_servers" JSONB,
+      ADD COLUMN IF NOT EXISTS "youtube_url" TEXT,
+      ADD COLUMN IF NOT EXISTS "youtube_embed" TEXT,
       ADD COLUMN IF NOT EXISTS "like_count" INTEGER NOT NULL DEFAULT 0,
       ADD COLUMN IF NOT EXISTS "share_count" INTEGER NOT NULL DEFAULT 0
   `);

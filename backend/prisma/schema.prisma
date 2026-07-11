@@ -15,19 +15,19 @@ model User {
   id               String    @id @default(cuid())
   name             String
   email            String    @unique
-  emailVerified    Boolean   @default(false)
-  emailVerifiedAt  DateTime?
+  emailVerified    Boolean   @default(false) @map("email_verified")
+  emailVerifiedAt  DateTime? @map("email_verified_at")
   password         String
   avatar           String?
   country          String?
   phone            String?
   role             UserRole  @default(user)
   status           UserStatus @default(active)
-  twoFactorEnabled Boolean   @default(false)
-  twoFactorSecret  String?
-  lastLoginAt      DateTime?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  twoFactorEnabled Boolean   @default(false) @map("two_factor_enabled")
+  twoFactorSecret  String?   @map("two_factor_secret")
+  lastLoginAt      DateTime? @map("last_login_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
 
   refreshTokens    RefreshToken[]
   subscriptions    Subscription[]

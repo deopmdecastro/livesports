@@ -98,9 +98,20 @@ ALTER TABLE "lives"
   ADD COLUMN IF NOT EXISTS "archived"        BOOLEAN NOT NULL DEFAULT FALSE;
 
 -- add archived column to competitions if not present
-ALTER TABLE "competitions"
-  ADD COLUMN IF NOT EXISTS "archived" BOOLEAN NOT NULL DEFAULT FALSE;
+DO $$
+BEGIN
+  IF to_regclass('public.competitions') IS NOT NULL THEN
+    EXECUTE '
+      ALTER TABLE "competitions"
+        ADD COLUMN IF NOT EXISTS "archived" BOOLEAN NOT NULL DEFAULT FALSE
+    ';
+
+    EXECUTE '
+      CREATE INDEX IF NOT EXISTS "competitions_archived_idx"
+      ON "competitions"("archived")
+    ';
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS "events_archived_idx"       ON "events"("archived");
 CREATE INDEX IF NOT EXISTS "lives_archived_idx"        ON "lives"("archived");
-CREATE INDEX IF NOT EXISTS "competitions_archived_idx" ON "competitions"("archived");
