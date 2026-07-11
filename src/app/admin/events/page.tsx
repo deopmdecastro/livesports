@@ -233,7 +233,7 @@ export default function EventsPage() {
 
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-xl border border-[#2A2A2A] bg-[#1A1A1A] p-4"><p className="text-2xl font-black text-white">{events.length}</p><p className="text-xs text-gray-400">Total</p></div>
-        <div className="rounded-xl border border-[#2A2A2A] bg-[#1A1A1A] p-4"><p className="text-2xl font-black text-blue-400">{events.filter((event) => event.status === "upcoming").length}</p><p className="text-xs text-gray-400">Agendados</p></div>
+        <div className="rounded-xl border border-[#2A2A2A] bg-[#1A1A1A] p-4"><p className="text-2xl font-black text-red-400">{events.filter((event) => event.status === "upcoming").length}</p><p className="text-xs text-gray-400">Agendados</p></div>
         <div className="rounded-xl border border-[#2A2A2A] bg-[#1A1A1A] p-4"><p className="text-2xl font-black text-red-400">{events.filter((event) => event.status === "live").length}</p><p className="text-xs text-gray-400">Ao vivo</p></div>
       </div>
 
@@ -247,7 +247,7 @@ export default function EventsPage() {
       {/* ── Active Events Table ── */}
       <div className="overflow-hidden rounded-xl border border-[#2A2A2A] bg-[#1A1A1A]">
         <div className="flex items-center justify-between px-4 py-3 border-b border-[#2A2A2A]">
-          <h3 className="text-sm font-bold text-white">Eventos Ativos <span className="ml-1 rounded-full bg-blue-500/20 px-2 py-0.5 text-[10px] text-blue-400">{filteredNormalEvents.length}</span></h3>
+          <h3 className="text-sm font-bold text-white">Eventos Ativos <span className="ml-1 rounded-full bg-red-500/20 px-2 py-0.5 text-[10px] text-red-400">{filteredNormalEvents.length}</span></h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[820px]">
@@ -283,7 +283,7 @@ export default function EventsPage() {
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-300">{sportOptions.find((sport) => sport.value === event.sport)?.label}</td>
                   <td className="whitespace-nowrap px-4 py-3 text-xs text-gray-300">{formatDateTime(event.scheduledAt)}</td>
-                  <td className="px-4 py-3"><span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${event.status === "live" ? "bg-red-500/20 text-red-400" : event.status === "finished" ? "bg-gray-500/20 text-gray-400" : event.status === "cancelled" ? "bg-yellow-500/20 text-yellow-400" : "bg-blue-500/20 text-blue-400"}`}>{statusOptions.find((status) => status.value === event.status)?.label}</span></td>
+                  <td className="px-4 py-3"><span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${event.status === "live" ? "bg-red-500/20 text-red-400" : event.status === "finished" ? "bg-gray-500/20 text-gray-400" : event.status === "cancelled" ? "bg-yellow-500/20 text-yellow-400" : "bg-red-500/20 text-red-400"}`}>{statusOptions.find((status) => status.value === event.status)?.label}</span></td>
                   <td className="px-4 py-3"><div className="flex gap-1.5">
                     <AdminActionButton title="Visualizar" onClick={() => openModal("view", event)} tone="view"><Eye className="h-3.5 w-3.5" /></AdminActionButton>
                     <AdminActionButton title="Editar" onClick={() => openModal("edit", event)} tone="edit"><Edit2 className="h-3.5 w-3.5" /></AdminActionButton>
@@ -351,8 +351,8 @@ export default function EventsPage() {
             {/* Header */}
             <div className="flex items-center justify-between border-b border-[#1E1E2A] p-5">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10 border border-blue-500/20">
-                  <Calendar className="h-4 w-4 text-blue-400" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-500/10 border border-red-500/20">
+                  <Calendar className="h-4 w-4 text-red-400" />
                 </div>
                 <div>
                   <h3 className="font-black text-white">
@@ -372,7 +372,7 @@ export default function EventsPage() {
                   key={tab}
                   onClick={() => setEventModalTab(tab)}
                   className={`rounded-t-lg px-4 py-2.5 text-xs font-bold transition-all ${
-                    eventModalTab === tab ? "bg-blue-600 text-white shadow" : "text-gray-500 hover:text-gray-300 hover:bg-white/5"
+                    eventModalTab === tab ? "bg-red-600 text-white shadow" : "text-gray-500 hover:text-gray-300 hover:bg-white/5"
                   }`}
                 >
                   {tab}
@@ -467,18 +467,17 @@ export default function EventsPage() {
                   <textarea disabled={modalMode === "view"} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={5} className="input-dark w-full resize-none px-3 py-2.5 text-sm" placeholder="Informações sobre o evento, contexto, fase da competição..." />
                 </div>
               )}
-              <div><label className="mb-1.5 block text-xs font-medium text-gray-300">Descricao</label><textarea disabled={modalMode === "view"} value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} rows={3} className="input-dark w-full resize-none px-3 py-2.5 text-sm" /></div>
             </div>
             <div className="flex items-center justify-between gap-3 border-t border-[#1E1E2A] p-5">
               <div className="flex gap-1">
                 {(["Geral", "Equipas", "Detalhes"] as const).map((tab) => (
-                  <button key={tab} onClick={() => setEventModalTab(tab)} className={`h-1.5 rounded-full transition-all ${eventModalTab === tab ? "w-6 bg-blue-500" : "w-1.5 bg-white/20"}`} />
+                  <button key={tab} onClick={() => setEventModalTab(tab)} className={`h-1.5 rounded-full transition-all ${eventModalTab === tab ? "w-6 bg-red-500" : "w-1.5 bg-white/20"}`} />
                 ))}
               </div>
               <div className="flex gap-3">
                 <button onClick={() => setModalMode(null)} className="rounded-xl border border-[#1E1E2A] bg-[#111118] px-4 py-2.5 text-sm text-gray-300 hover:text-white transition-colors">{modalMode === "view" ? "Fechar" : "Cancelar"}</button>
                 {modalMode !== "view" && (
-                  <button onClick={saveEvent} className="rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-5 py-2.5 text-sm font-bold text-white shadow-[0_4px_16px_rgba(59,130,246,0.3)] hover:from-blue-500 hover:to-blue-600 transition-all">
+                  <button onClick={saveEvent} className="rounded-xl bg-gradient-to-r from-red-600 to-red-700 px-5 py-2.5 text-sm font-bold text-white shadow-[0_4px_16px_rgba(229,9,20,0.3)] hover:from-red-500 hover:to-red-600 transition-all">
                     {modalMode === "edit" ? "Guardar Evento" : "Criar Evento"}
                   </button>
                 )}

@@ -147,14 +147,14 @@ export default function CreatorDashboard() {
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatCard title="Lives Totais" value={stats?.totalLives || 0} subtitle={`${stats?.liveNow || 0} ao vivo agora`} icon={Radio} />
         <StatCard title="Visualizações" value={(stats?.totalViews || 0).toLocaleString()} subtitle="últimos 30 dias" icon={Eye} color="#22C55E" />
-        <StatCard title="Subscritores" value={(stats?.subscribers || 0).toLocaleString()} icon={Users} color="#3B82F6" />
+        <StatCard title="Subscritores" value={(stats?.subscribers || 0).toLocaleString()} icon={Users} color="#E50914" />
         <StatCard title="Espectadores" value={(stats?.currentViewers || 0).toLocaleString()} subtitle="ao vivo agora" icon={Zap} color="#F59E0B" />
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {[
           { href: "/creator/lives", label: "Gerir Lives", desc: "Criar e gerir transmissões", icon: Radio, color: "text-[#E50914]" },
-          { href: "/creator/analytics", label: "Analíticas", desc: "Ver métricas detalhadas", icon: BarChart3, color: "text-blue-400" },
+          { href: "/creator/analytics", label: "Analíticas", desc: "Ver métricas detalhadas", icon: BarChart3, color: "text-red-400" },
           { href: "/creator/channel", label: "Canal", desc: "Configurar o meu canal", icon: Tv2, color: "text-yellow-400" },
         ].map(({ href, label, desc, icon: Icon, color }) => (
           <Link key={href} href={href} className="group flex items-center gap-4 rounded-xl border border-[#1E1E2A] bg-[#0E0E16] p-4 hover:border-[#E50914]/20 transition-all">

@@ -559,7 +559,7 @@ export default function SyncCompetitionsModal({
                         <span className="text-gray-300 font-medium">{r.provider}</span>
                         <div className="flex gap-3 text-[10px]">
                           <span className="text-emerald-400">+{r.added} adicionadas</span>
-                          <span className="text-blue-400">~{r.updated} atualizadas</span>
+                          <span className="text-red-400">~{r.updated} atualizadas</span>
                           <span className="text-gray-600">{r.skipped} sem alteração</span>
                         </div>
                       </div>

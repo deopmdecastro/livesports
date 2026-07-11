@@ -21,8 +21,8 @@ export default function BenefitsSection() {
       icon: Monitor,
       title: t.benefit_quality_title,
       desc: t.benefit_quality_desc,
-      color: "#3B82F6",
-      glow: "rgba(59,130,246,0.12)",
+      color: "#E50914",
+      glow: "rgba(229,9,20,0.12)",
     },
     {
       icon: Smartphone,
@@ -42,7 +42,7 @@ export default function BenefitsSection() {
 
   const features = [
     { icon: Wifi, label: t.feat_no_interruption, color: "#22C55E" },
-    { icon: Shield, label: t.feat_secure, color: "#3B82F6" },
+    { icon: Shield, label: t.feat_secure, color: "#E50914" },
     { icon: Star, label: t.feat_premium, color: "#F59E0B" },
     { icon: Tv, label: t.feat_smarttv, color: "#8B5CF6" },
   ];

@@ -141,7 +141,7 @@ const PROVIDER_CATALOGUE = [
 const CATEGORY_META = {
   sports:  { label: "Dados Desportivos", color: "#22C55E", icon: Trophy },
   live:    { label: "Streaming / Live",  color: "#E50914", icon: Tv2 },
-  results: { label: "Resultados",        color: "#3B82F6", icon: BarChart3 },
+  results: { label: "Resultados",        color: "#E50914", icon: BarChart3 },
   media:   { label: "Media / CDN",       color: "#8B5CF6", icon: Cloud },
   other:   { label: "Outros",            color: "#6B7280", icon: Zap },
 };
@@ -402,7 +402,7 @@ export default function ApiKeysPage() {
   const TestIndicator = ({ id }: { id: string }) => {
     const isTesting = testing.has(id);
     const result = testResults[id];
-    if (isTesting) return <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-400" />;
+    if (isTesting) return <Loader2 className="h-3.5 w-3.5 animate-spin text-red-400" />;
     if (!result) return null;
     return result.reachable
       ? <span className="flex items-center gap-1 text-[10px] text-green-400"><Wifi className="h-3 w-3" />{result.latencyMs}ms</span>
@@ -419,7 +419,7 @@ export default function ApiKeysPage() {
       <div className="rounded-xl border border-[#2A2A2A] bg-[#1A1A1A] p-4 flex flex-col gap-3">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-lg">
+            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-red-500/10 text-lg">
               {providerLogo(k.provider)}
             </div>
             <div className="min-w-0">
@@ -438,7 +438,7 @@ export default function ApiKeysPage() {
         {(isTesting || result) && (
           <div className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-[11px] font-medium ${
             isTesting
-              ? "bg-blue-500/10 text-blue-300"
+              ? "bg-red-500/10 text-red-300"
               : result?.reachable
                 ? "bg-green-500/10 text-green-300"
                 : "bg-red-500/10 text-red-300"
@@ -476,7 +476,7 @@ export default function ApiKeysPage() {
               onClick={() => testKey(k.id)}
               disabled={isTesting}
               title="Testar conectividade"
-              className="flex items-center gap-1 rounded-lg border border-[#2A2A2A] bg-[#0E0E16] px-2.5 py-1.5 text-[10px] font-semibold text-gray-400 hover:border-blue-500/40 hover:text-blue-400 disabled:opacity-50"
+              className="flex items-center gap-1 rounded-lg border border-[#2A2A2A] bg-[#0E0E16] px-2.5 py-1.5 text-[10px] font-semibold text-gray-400 hover:border-red-500/40 hover:text-red-400 disabled:opacity-50"
             >
               {isTesting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wifi className="h-3 w-3" />}
               Testar
@@ -561,7 +561,7 @@ export default function ApiKeysPage() {
                   <tr key={key.id} className="border-b border-[#2A2A2A] last:border-0 hover:bg-white/[0.02]">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 text-base">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-500/10 text-base">
                           {providerLogo(key.provider)}
                         </div>
                         <div>
@@ -598,7 +598,7 @@ export default function ApiKeysPage() {
                       {key.requestLimit ? <span className="text-gray-500"> / {key.requestLimit.toLocaleString()}</span> : null}
                       {key.requestLimit ? (
                         <div className="mt-1 h-1 w-16 overflow-hidden rounded-full bg-[#2A2A2A]">
-                          <div className="h-full rounded-full bg-blue-500" style={{ width: `${Math.min(100, (key.requestsUsed / key.requestLimit) * 100)}%` }} />
+                          <div className="h-full rounded-full bg-red-500" style={{ width: `${Math.min(100, (key.requestsUsed / key.requestLimit) * 100)}%` }} />
                         </div>
                       ) : null}
                     </td>
@@ -616,7 +616,7 @@ export default function ApiKeysPage() {
                           onClick={() => testKey(key.id)}
                           disabled={testing.has(key.id)}
                           title="Testar conectividade"
-                          className="rounded-lg border border-[#2A2A2A] bg-[#0E0E16] p-1.5 text-gray-400 hover:border-blue-500/40 hover:text-blue-400 disabled:opacity-50"
+                          className="rounded-lg border border-[#2A2A2A] bg-[#0E0E16] p-1.5 text-gray-400 hover:border-red-500/40 hover:text-red-400 disabled:opacity-50"
                         >
                           {testing.has(key.id)
                             ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -679,7 +679,7 @@ export default function ApiKeysPage() {
           {/* Environment APIs section */}
           <div>
             <div className="mb-3 flex items-center gap-2">
-              <Globe className="h-4 w-4 text-blue-400" />
+              <Globe className="h-4 w-4 text-red-400" />
               <h3 className="text-sm font-bold text-white">APIs de Ambiente</h3>
               <span className="rounded-full bg-[#2A2A2A] px-2 py-0.5 text-[10px] font-bold text-gray-400">
                 {discovery.envApis.length}
@@ -699,8 +699,8 @@ export default function ApiKeysPage() {
                   />
                   <div className="relative flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-blue-500/10 border border-blue-500/15">
-                        <Globe className="h-4 w-4 text-blue-400" />
+                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-red-500/10 border border-red-500/15">
+                        <Globe className="h-4 w-4 text-red-400" />
                       </div>
                       <span className="font-bold text-white text-sm truncate">{api.name}</span>
                     </div>
@@ -747,7 +747,7 @@ export default function ApiKeysPage() {
                       onClick={() => openEnvEdit(api)}
                       className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold transition-colors border ${
                         api.configured
-                          ? "border-[#2A2A38] bg-white/[0.03] text-gray-300 hover:border-blue-500/30 hover:text-blue-400"
+                          ? "border-[#2A2A38] bg-white/[0.03] text-gray-300 hover:border-red-500/30 hover:text-red-400"
                           : "border-[#E50914]/30 bg-[#E50914]/10 text-[#E50914] hover:bg-[#E50914]/20"
                       }`}
                     >
@@ -884,11 +884,11 @@ export default function ApiKeysPage() {
                 )}
 
                 {selectedProvider?.url && (
-                  <div className="flex items-center gap-2 rounded-xl bg-blue-500/5 border border-blue-500/20 px-3 py-2.5">
-                    <Info className="h-3.5 w-3.5 text-blue-400 flex-shrink-0" />
-                    <p className="text-xs text-blue-300">
+                  <div className="flex items-center gap-2 rounded-xl bg-red-500/5 border border-red-500/20 px-3 py-2.5">
+                    <Info className="h-3.5 w-3.5 text-red-400 flex-shrink-0" />
+                    <p className="text-xs text-red-300">
                       Obtenha a sua chave em{" "}
-                      <a href={selectedProvider.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-200">
+                      <a href={selectedProvider.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-red-200">
                         {selectedProvider.url}
                       </a>
                     </p>
@@ -980,7 +980,7 @@ export default function ApiKeysPage() {
                     {USAGE_TYPES.map((type) => (
                       <button key={type.value} onClick={() => toggleUsageType(type.value)}
                         className={`rounded-full px-3 py-1 text-xs font-semibold transition-all ${form.usageTypes.includes(type.value)
-                          ? "bg-blue-600 text-white"
+                          ? "bg-red-600 text-white"
                           : "bg-[#1A1A2A] text-gray-400 hover:bg-[#2A2A3A]"}`}>
                         {type.label}
                       </button>
@@ -1011,8 +1011,8 @@ export default function ApiKeysPage() {
           <div className="w-full max-w-md rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] shadow-2xl">
             <div className="flex items-center justify-between border-b border-[#1E1E2A] p-5">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10 border border-blue-500/20">
-                  <Globe className="h-4 w-4 text-blue-400" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-500/10 border border-red-500/20">
+                  <Globe className="h-4 w-4 text-red-400" />
                 </div>
                 <div>
                   <h3 className="font-black text-white">{envModalTarget.configured ? "Editar" : "Configurar"} {envModalTarget.name}</h3>
@@ -1023,9 +1023,9 @@ export default function ApiKeysPage() {
             </div>
 
             <div className="p-5 space-y-4">
-              <div className="flex items-center gap-2 rounded-xl bg-blue-500/5 border border-blue-500/20 px-3 py-2.5">
-                <Info className="h-3.5 w-3.5 text-blue-400 flex-shrink-0" />
-                <p className="text-xs text-blue-300">
+              <div className="flex items-center gap-2 rounded-xl bg-red-500/5 border border-red-500/20 px-3 py-2.5">
+                <Info className="h-3.5 w-3.5 text-red-400 flex-shrink-0" />
+                <p className="text-xs text-red-300">
                   Esta chave é usada em todo o sistema para importar dados via {envModalTarget.provider}.
                   {envModalTarget.configured && " Insira um novo valor para a substituir."}
                 </p>

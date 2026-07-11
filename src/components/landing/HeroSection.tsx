@@ -291,7 +291,7 @@ export default function HeroSection() {
 
       {/* Decorative glow orbs */}
       <div className="absolute top-20 right-20 w-80 h-80 rounded-full bg-[#E50914]/4 blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-10 left-10 w-60 h-60 rounded-full bg-blue-500/3 blur-[80px] pointer-events-none" />
+      <div className="absolute bottom-10 left-10 w-60 h-60 rounded-full bg-red-500/3 blur-[80px] pointer-events-none" />
 
       {/* ── Content ── */}
       <div className="relative z-10 flex h-full items-center">

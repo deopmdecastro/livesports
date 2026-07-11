@@ -65,7 +65,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
                   );
                 })}
                 <div className="mt-2 pt-2 border-t border-[#1E1E2A] space-y-0.5">
-                  <Link href="/" className="flex items-center gap-3 px-3 py-2 text-xs text-gray-500 hover:text-blue-400 rounded-lg transition-colors">
+                  <Link href="/" className="flex items-center gap-3 px-3 py-2 text-xs text-gray-500 hover:text-red-400 rounded-lg transition-colors">
                     <ChevronLeft className="w-4 h-4" /> Voltar ao Site
                   </Link>
                   {user?.role !== 'user' && (

@@ -74,7 +74,7 @@ const navGroups: { title: string; items: NavItem[] }[] = [
   {
     title: "Criadores",
     items: [
-      { label: "Criadores / Canais", href: "/admin/creators", icon: UserCheck, badge: "NOVO", badgeColor: "#3B82F6" },
+      { label: "Criadores / Canais", href: "/admin/creators", icon: UserCheck, badge: "NOVO", badgeColor: "#E50914" },
     ],
   },
   {
@@ -133,7 +133,7 @@ export default function AdminSidebar() {
   const quickStats = [
     { icon: Zap, label: "Lives", value: stats ? String(stats.livesLiveNow) : "—", color: "#E50914" },
     { icon: Users, label: "Online", value: stats ? formatCompact(stats.onlineViewers) : "—", color: "#22C55E" },
-    { icon: Globe, label: "Países", value: stats ? String(stats.countries) : "—", color: "#3B82F6" },
+    { icon: Globe, label: "Países", value: stats ? String(stats.countries) : "—", color: "#E50914" },
   ];
 
   const toggleGroup = (title: string) => {
@@ -242,7 +242,7 @@ export default function AdminSidebar() {
       <div className="p-3 border-t border-[#1A1A24] space-y-1">
         <Link
           href="/"
-          className="flex items-center gap-3 px-3 py-2 text-xs font-medium text-gray-500 hover:text-blue-400 hover:bg-[#111118] rounded-lg transition-all"
+          className="flex items-center gap-3 px-3 py-2 text-xs font-medium text-gray-500 hover:text-red-400 hover:bg-[#111118] rounded-lg transition-all"
         >
           <Globe className="w-4 h-4" />
           <span>Ver Site</span>

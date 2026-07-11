@@ -123,8 +123,8 @@ export default function AdminImageField({
       </div>
 
       {sizeHint ? (
-        <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 px-3 py-2">
-          <p className="text-[11px] font-semibold text-blue-300">Tamanho recomendado</p>
+        <div className="rounded-xl border border-red-500/20 bg-red-500/5 px-3 py-2">
+          <p className="text-[11px] font-semibold text-red-300">Tamanho recomendado</p>
           <p className="mt-0.5 text-[11px] text-gray-400">{formatSizeHint(sizeHint)}</p>
           {sizeHint.notes ? <p className="mt-1 text-[10px] text-gray-500">{sizeHint.notes}</p> : null}
         </div>

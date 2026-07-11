@@ -94,7 +94,7 @@ export default function CreatorLayout({ children }: { children: React.ReactNode 
       </nav>
 
       <div className="p-3 border-t border-[#1A1A24] space-y-1">
-        <Link href="/" className="flex items-center gap-3 px-3 py-2 text-xs text-gray-500 hover:text-blue-400 hover:bg-[#111118] rounded-lg transition-all">
+        <Link href="/" className="flex items-center gap-3 px-3 py-2 text-xs text-gray-500 hover:text-red-400 hover:bg-[#111118] rounded-lg transition-all">
           <ChevronLeft className="w-4 h-4" /> Ver Site
         </Link>
         <Link href="/admin/dashboard" className="flex items-center gap-3 px-3 py-2 text-xs text-gray-500 hover:text-yellow-400 hover:bg-[#111118] rounded-lg transition-all">

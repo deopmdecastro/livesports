@@ -147,7 +147,7 @@ function StatisticRow({ label, home, away }: { label: string; home: number | str
           <div className="ml-auto h-full rounded-l-full bg-[#E50914]" style={{ width: homeWidth }} />
         </div>
         <div className="h-2 overflow-hidden rounded-r-full bg-white/10">
-          <div className="h-full rounded-r-full bg-blue-500" style={{ width: awayWidth }} />
+          <div className="h-full rounded-r-full bg-red-500" style={{ width: awayWidth }} />
         </div>
       </div>
     </div>

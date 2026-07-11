@@ -15,7 +15,7 @@ interface Message { id: string; message: string; isAdmin: boolean; userName?: st
 
 const STATUS_COLORS: Record<string, string> = {
   open: "bg-yellow-500/20 text-yellow-400",
-  pending: "bg-blue-500/20 text-blue-400",
+  pending: "bg-red-500/20 text-red-400",
   resolved: "bg-green-500/20 text-green-400",
   closed: "bg-gray-500/20 text-gray-400",
 };

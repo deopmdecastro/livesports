@@ -38,7 +38,7 @@ const roleLabels: Record<UserRole, string> = {
 const roleColors: Record<UserRole, string> = {
   super_admin: "border-purple-500/30 bg-purple-500/15 text-purple-200",
   admin: "border-red-500/30 bg-red-500/15 text-red-200",
-  moderator: "border-blue-500/30 bg-blue-500/15 text-blue-200",
+  moderator: "border-red-500/30 bg-red-500/15 text-red-200",
   editor: "border-emerald-500/30 bg-emerald-500/15 text-emerald-200",
   user: "border-white/10 bg-white/5 text-gray-300",
 };
@@ -230,7 +230,7 @@ export default function UsersPage() {
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {[
-              { label: "Total", value: users.length, helper: `${filtered.length} resultados ativos`, icon: Users, tone: "text-sky-300" },
+              { label: "Total", value: users.length, helper: `${filtered.length} resultados ativos`, icon: Users, tone: "text-red-300" },
               { label: "Ativos", value: activeCount, helper: `${users.length ? Math.round((activeCount / users.length) * 100) : 0}% da base`, icon: CheckCircle2, tone: "text-emerald-300" },
               { label: "Com 2FA", value: protectedCount, helper: "Contas protegidas", icon: LockKeyhole, tone: "text-violet-300" },
               { label: "Alertas", value: suspendedCount + bannedCount, helper: `${suspendedCount} suspensos · ${bannedCount} banidos`, icon: ShieldCheck, tone: "text-amber-300" },
@@ -321,7 +321,7 @@ export default function UsersPage() {
                       <span className={cn("inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold", user.twoFactorEnabled ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-200" : "border-white/10 bg-white/5 text-gray-400")}>
                         2FA {user.twoFactorEnabled ? "Ativo" : "Inativo"}
                       </span>
-                      <span className={cn("inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold", user.emailVerified ? "border-sky-500/30 bg-sky-500/15 text-sky-200" : "border-amber-500/30 bg-amber-500/15 text-amber-200")}>
+                      <span className={cn("inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold", user.emailVerified ? "border-red-500/30 bg-red-500/15 text-red-200" : "border-amber-500/30 bg-amber-500/15 text-amber-200")}>
                         Email {user.emailVerified ? "OK" : "Pendente"}
                       </span>
                     </div>

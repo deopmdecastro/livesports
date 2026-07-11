@@ -58,7 +58,7 @@ export default function AdminHeader({ title = "Dashboard", onMenuToggle }: Admin
     live: "#E50914",
     user: "#22C55E",
     ad: "#F59E0B",
-    report: "#3B82F6",
+    report: "#E50914",
   };
 
   return (

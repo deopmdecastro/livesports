@@ -70,7 +70,7 @@ export default function CreatorAnalyticsPage() {
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <MetricCard title="Lives" value={stats?.totalLives || 0} icon={Radio} />
         <MetricCard title="Views Totais" value={(stats?.totalViews || 0).toLocaleString()} icon={Eye} color="#22C55E" />
-        <MetricCard title="Subscritores" value={(stats?.subscribers || 0).toLocaleString()} icon={Users} color="#3B82F6" />
+        <MetricCard title="Subscritores" value={(stats?.subscribers || 0).toLocaleString()} icon={Users} color="#E50914" />
         <MetricCard title="Gostos" value={(stats?.totalLikes || 0).toLocaleString()} icon={Heart} color="#F59E0B" />
       </div>
 
@@ -99,7 +99,7 @@ export default function CreatorAnalyticsPage() {
           <h3 className="text-sm font-bold text-white mb-4">Espectadores por Dia</h3>
           <ResponsiveContainer width="100%" height={160}>
             <BarChart data={mockViewsData}>
-              <Bar dataKey="viewers" fill="#3B82F6" radius={[4, 4, 0, 0]} maxBarSize={28} />
+              <Bar dataKey="viewers" fill="#E50914" radius={[4, 4, 0, 0]} maxBarSize={28} />
               <Tooltip contentStyle={{ background: "#111118", border: "1px solid #1E1E2A", borderRadius: "10px" }}
                 labelStyle={{ color: "#9CA3AF" }} />
             </BarChart>
@@ -130,7 +130,7 @@ export default function CreatorAnalyticsPage() {
 
       <div className="rounded-xl border border-[#1E1E2A] bg-[#0E0E16] p-5">
         <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
-          <Calendar className="h-4 w-4 text-blue-400" /> Dicas para Melhorar
+          <Calendar className="h-4 w-4 text-red-400" /> Dicas para Melhorar
         </h3>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           {[

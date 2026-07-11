@@ -94,11 +94,11 @@ export default function CreatorChannelPage() {
       </div>
 
       {!hasChannel && (
-        <div className="rounded-xl border border-blue-500/30 bg-blue-500/5 p-4 flex gap-3">
-          <AlertCircle className="h-5 w-5 text-blue-400 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-blue-300">
+        <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-4 flex gap-3">
+          <AlertCircle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-red-300">
             Preenche os dados e cria o teu canal. Após criado, o canal ficará em análise antes de ser ativado.
-            Também podes <button onClick={handleApply} className="text-blue-400 font-bold underline">enviar candidatura para criador</button>.
+            Também podes <button onClick={handleApply} className="text-red-400 font-bold underline">enviar candidatura para criador</button>.
           </p>
         </div>
       )}

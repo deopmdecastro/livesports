@@ -114,7 +114,7 @@ const PROVIDER_CATALOGUE = [
 const CATEGORY_META = {
   sports:  { label: "Dados Desportivos", color: "#22C55E", icon: Trophy },
   live:    { label: "Streaming / Live",  color: "#E50914", icon: Tv2 },
-  results: { label: "Resultados",        color: "#3B82F6", icon: BarChart3 },
+  results: { label: "Resultados",        color: "#E50914", icon: BarChart3 },
   media:   { label: "Media / CDN",       color: "#8B5CF6", icon: Cloud },
   other:   { label: "Outros",            color: "#6B7280", icon: Zap },
 };
@@ -261,7 +261,7 @@ export default function ApiKeyRequiredModal({
               >
                 <div className="flex items-center gap-3">
                   <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#1A1A24] border border-[#1E1E2A]">
-                    <Shield className="h-4 w-4 text-blue-400" />
+                    <Shield className="h-4 w-4 text-red-400" />
                   </div>
                   <div className="text-left">
                     <p className="text-sm font-bold text-white">Gestão completa de API Keys</p>
@@ -330,11 +330,11 @@ export default function ApiKeyRequiredModal({
             </button>
 
             {selected.url && (
-              <div className="flex items-center gap-2 rounded-xl bg-blue-500/5 border border-blue-500/20 px-3 py-2.5">
-                <Info className="h-3.5 w-3.5 text-blue-400 flex-shrink-0" />
-                <p className="text-xs text-blue-300">
+              <div className="flex items-center gap-2 rounded-xl bg-red-500/5 border border-red-500/20 px-3 py-2.5">
+                <Info className="h-3.5 w-3.5 text-red-400 flex-shrink-0" />
+                <p className="text-xs text-red-300">
                   Obtenha a sua chave em{" "}
-                  <a href={selected.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-200">
+                  <a href={selected.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-red-200">
                     {selected.url}
                   </a>
                 </p>
@@ -397,7 +397,7 @@ export default function ApiKeyRequiredModal({
                 <p className="text-xs text-gray-500 mb-1.5">Tipos de utilização configurados automaticamente:</p>
                 <div className="flex flex-wrap gap-1.5">
                   {selected.usageTypes.map((t) => (
-                    <span key={t} className="rounded-full bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 text-[9px] font-semibold text-blue-300">
+                    <span key={t} className="rounded-full bg-red-500/10 border border-red-500/20 px-2 py-0.5 text-[9px] font-semibold text-red-300">
                       {USAGE_TYPES.find((u) => u.value === t)?.label || t}
                     </span>
                   ))}

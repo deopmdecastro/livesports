@@ -20,7 +20,7 @@ interface ChatStats { totalMessages: number; adminMessages: number; uniqueUsers:
 interface PinnedMessage { id: string; message: string; active: boolean; createdAt: string; }
 
 const STATUS_COLORS: Record<string, string> = {
-  live: "bg-[#E50914]/15 text-[#E50914]", scheduled: "bg-blue-500/15 text-blue-400",
+  live: "bg-[#E50914]/15 text-[#E50914]", scheduled: "bg-red-500/15 text-red-400",
   ended: "bg-gray-500/15 text-gray-400",
 };
 
@@ -211,7 +211,7 @@ export default function AdminChatPage() {
               {stats && (
                 <div className="flex items-center gap-3 mt-1">
                   {[
-                    { icon: MessageCircle, label: stats.totalMessages + " msgs", color: "text-blue-400" },
+                    { icon: MessageCircle, label: stats.totalMessages + " msgs", color: "text-red-400" },
                     { icon: Users, label: stats.uniqueUsers + " users", color: "text-emerald-400" },
                     { icon: Clock, label: stats.recentMessages + " recentes", color: "text-yellow-400" },
                   ].map(({ icon: Icon, label, color }) => (

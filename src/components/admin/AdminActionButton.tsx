@@ -14,7 +14,7 @@ interface AdminActionButtonProps {
 
 const toneClasses: Record<AdminActionTone, string> = {
   neutral: "hover:border-white/20 hover:bg-white/10 hover:text-white",
-  view: "hover:border-sky-400/30 hover:bg-sky-400/10 hover:text-sky-300",
+  view: "hover:border-white/25 hover:bg-white/10 hover:text-white",
   edit: "hover:border-emerald-400/30 hover:bg-emerald-400/10 hover:text-emerald-300",
   success: "hover:border-emerald-400/30 hover:bg-emerald-400/10 hover:text-emerald-300",
   warning: "hover:border-amber-400/30 hover:bg-amber-400/10 hover:text-amber-300",

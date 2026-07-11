@@ -18,7 +18,7 @@ import Link from "next/link";
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
-const DEVICE_COLORS = ["#E50914", "#3B82F6", "#22C55E", "#F59E0B"];
+const DEVICE_COLORS = ["#E50914", "#E50914", "#22C55E", "#F59E0B"];
 
 const emptyStats: DashboardStats = {
   totalUsers: 0, totalUsersGrowth: 0,
@@ -152,7 +152,7 @@ function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
     live: "bg-[#E50914]/15 text-[#E50914] border-[#E50914]/20",
     active: "bg-emerald-500/15 text-emerald-400 border-emerald-500/20",
-    scheduled: "bg-blue-500/15 text-blue-400 border-blue-500/20",
+    scheduled: "bg-red-500/15 text-red-400 border-red-500/20",
     ended: "bg-gray-500/15 text-gray-400 border-gray-500/20",
     paused: "bg-yellow-500/15 text-yellow-400 border-yellow-500/20",
     expired: "bg-gray-600/15 text-gray-500 border-gray-600/20",
@@ -394,7 +394,7 @@ export default function DashboardPage() {
         />
         <StatCard
           title="Lives Transmitidas" value={stats.livesTransmitted} growth={stats.livesGrowth}
-          icon={Radio} accentColor="#3B82F6"
+          icon={Radio} accentColor="#E50914"
           subtitle={liveLives.length > 0 ? `${liveLives.length} ao vivo agora` : "Nenhuma ao vivo"}
         />
         <StatCard
@@ -412,7 +412,7 @@ export default function DashboardPage() {
       {/* ── Ad Metrics summary row ───────────────────────────────────────────── */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {[
-          { label: "Impressoes", value: formatNumber(totalImpressions), icon: Activity, color: "text-blue-400" },
+          { label: "Impressoes", value: formatNumber(totalImpressions), icon: Activity, color: "text-red-400" },
           { label: "Cliques", value: formatNumber(totalClicks), icon: MousePointerClick, color: "text-emerald-400" },
           { label: "CTR Global", value: `${overallCtr}%`, icon: BarChart3, color: "text-yellow-400" },
           { label: "Receita Total", value: formatCurrency(totalRevenue), icon: DollarSign, color: "text-purple-400" },
@@ -572,7 +572,7 @@ export default function DashboardPage() {
         <div className="overflow-hidden rounded-xl border border-[#1E1E2A] bg-[#0E0E16]">
           <div className="flex items-center justify-between border-b border-[#1E1E2A] p-4">
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <Clock className="h-3.5 w-3.5 text-blue-400" /> Proximos Eventos
+              <Clock className="h-3.5 w-3.5 text-red-400" /> Proximos Eventos
             </h3>
             <Link href="/admin/events" className="flex items-center gap-1 text-xs text-[#E50914] hover:underline">
               Ver todos <ArrowUpRight className="h-3 w-3" />
@@ -691,7 +691,7 @@ export default function DashboardPage() {
                   <td className="px-4 py-3"><StatusBadge status={ad.status} /></td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5">
-                      <Link href="/admin/ads" className="p-1.5 rounded-lg text-gray-500 hover:text-blue-400 hover:bg-blue-400/10 transition-all">
+                      <Link href="/admin/ads" className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-400/10 transition-all">
                         <Edit2 className="h-3.5 w-3.5" />
                       </Link>
                       <Link href="/admin/ads" className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-400/10 transition-all">
@@ -783,7 +783,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
           { href: "/admin/lives", label: "Gerenciar Lives", icon: Radio, count: lives.length, color: "text-[#E50914]" },
-          { href: "/admin/events", label: "Gerenciar Eventos", icon: Zap, count: events.length, color: "text-blue-400" },
+          { href: "/admin/events", label: "Gerenciar Eventos", icon: Zap, count: events.length, color: "text-red-400" },
           { href: "/admin/users", label: "Gerenciar Utilizadores", icon: Users, count: users.length, color: "text-emerald-400" },
           { href: "/admin/ads", label: "Gerenciar Anuncios", icon: BarChart3, count: ads.length, color: "text-yellow-400" },
         ].map(({ href, label, icon: Icon, count, color }) => (

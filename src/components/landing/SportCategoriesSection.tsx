@@ -25,7 +25,7 @@ const sportMeta: Record<string, {
   football:   { pt: "Futebol",    en: "Football",   gradient: "from-green-500/30 to-emerald-500/5",  bg: "#22C55E",  glow: "rgba(34,197,94,0.2)" },
   basketball: { pt: "Basquete",   en: "Basketball", gradient: "from-orange-500/30 to-amber-500/5",   bg: "#F59E0B",  glow: "rgba(245,158,11,0.2)" },
   tennis:     { pt: "Tênis",      en: "Tennis",     gradient: "from-lime-500/30 to-green-500/5",     bg: "#84CC16",  glow: "rgba(132,204,22,0.2)" },
-  volleyball: { pt: "Vôlei",      en: "Volleyball", gradient: "from-blue-500/30 to-indigo-500/5",    bg: "#3B82F6",  glow: "rgba(59,130,246,0.2)" },
+  volleyball: { pt: "Vôlei",      en: "Volleyball", gradient: "from-red-500/30 to-zinc-500/5",    bg: "#E50914",  glow: "rgba(229,9,20,0.2)" },
   ufc:        { pt: "UFC / MMA",  en: "UFC / MMA",  gradient: "from-red-600/30 to-rose-500/5",       bg: "#E50914",  glow: "rgba(229,9,20,0.2)" },
   f1:         { pt: "Fórmula 1",  en: "Formula 1",  gradient: "from-red-500/30 to-orange-500/5",     bg: "#EF4444",  glow: "rgba(239,68,68,0.2)" },
   baseball:   { pt: "Beisebol",   en: "Baseball",   gradient: "from-purple-500/30 to-violet-500/5",  bg: "#8B5CF6",  glow: "rgba(139,92,246,0.2)" },

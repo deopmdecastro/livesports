@@ -26,7 +26,7 @@ interface AdminContentPageProps {
 const toneClasses: Record<NonNullable<AdminMetric["tone"]>, string> = {
   red: "bg-[#E50914]/10 text-[#E50914]",
   green: "bg-green-500/10 text-green-400",
-  blue: "bg-blue-500/10 text-blue-400",
+  blue: "bg-red-500/10 text-red-400",
   yellow: "bg-yellow-500/10 text-yellow-400",
 };
 
@@ -41,7 +41,7 @@ function statusClass(status: string) {
   if (["pausado", "arquivado", "bloqueado"].includes(normalized)) {
     return "bg-gray-500/15 text-gray-300";
   }
-  return "bg-blue-500/15 text-blue-400";
+  return "bg-red-500/15 text-red-400";
 }
 
 export default function AdminContentPage({

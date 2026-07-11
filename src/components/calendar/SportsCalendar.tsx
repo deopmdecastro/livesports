@@ -27,7 +27,7 @@ import { TeamSearch } from "@/components/thesportsdb/TeamSearch";
 import type { SportsTeamSearchResult } from "@/lib/thesportsdb";
 
 const STATUS_STYLES = {
-  upcoming: "bg-blue-500/15 text-blue-300 border-blue-500/30",
+  upcoming: "bg-red-500/15 text-red-300 border-red-500/30",
   live: "bg-red-500/15 text-red-300 border-red-500/30",
   finished: "bg-gray-500/15 text-gray-300 border-gray-500/30",
   cancelled: "bg-yellow-500/15 text-yellow-300 border-yellow-500/30",

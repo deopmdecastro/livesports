@@ -33,13 +33,13 @@ interface Stats {
 
 const PRIORITY_COLORS: Record<string, string> = {
   low: "bg-gray-500/20 text-gray-400",
-  medium: "bg-blue-500/20 text-blue-400",
+  medium: "bg-red-500/20 text-red-400",
   high: "bg-orange-500/20 text-orange-400",
   critical: "bg-red-500/20 text-red-400",
 };
 const STATUS_COLORS: Record<string, string> = {
   open: "bg-yellow-500/20 text-yellow-400",
-  pending: "bg-blue-500/20 text-blue-400",
+  pending: "bg-red-500/20 text-red-400",
   resolved: "bg-green-500/20 text-green-400",
   closed: "bg-gray-500/20 text-gray-400",
 };
@@ -133,7 +133,7 @@ export default function SupportPage() {
           {[
             { label: "Abertos", value: stats.open, color: "text-yellow-400" },
             { label: "Resolvidos", value: stats.resolved, color: "text-green-400" },
-            { label: "Total", value: stats.total, color: "text-blue-400" },
+            { label: "Total", value: stats.total, color: "text-red-400" },
             { label: "Críticos", value: stats.critical, color: "text-red-400" },
           ].map(({ label, value, color }) => (
             <div key={label} className="rounded-xl border border-[#2A2A2A] bg-[#1A1A1A] p-4">

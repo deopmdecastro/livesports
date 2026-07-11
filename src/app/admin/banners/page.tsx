@@ -380,7 +380,7 @@ export default function BannersPage() {
       <div className="rounded-xl border border-[#1E1E2A] bg-[#0E0E16] p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-300">
+            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-red-500/20 bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-300">
               <LayoutTemplate className="h-3.5 w-3.5" />
               Gestao Visual
             </div>
@@ -423,10 +423,10 @@ export default function BannersPage() {
 
       {activeTab === "Hero / Carrossel" && (
         <div className="space-y-4">
-          <div className="flex gap-3 rounded-xl border border-blue-500/20 bg-blue-500/5 p-4">
-            <Info className="h-4 w-4 text-blue-400 flex-shrink-0 mt-0.5" />
-            <div className="text-xs text-blue-300 leading-relaxed">
-              <strong className="text-blue-200">Como funciona:</strong> Estes slides aparecem no carrossel principal da landing page
+          <div className="flex gap-3 rounded-xl border border-red-500/20 bg-red-500/5 p-4">
+            <Info className="h-4 w-4 text-red-400 flex-shrink-0 mt-0.5" />
+            <div className="text-xs text-red-300 leading-relaxed">
+              <strong className="text-red-200">Como funciona:</strong> Estes slides aparecem no carrossel principal da landing page
               <strong className="text-white"> quando nao ha lives ao vivo ou em destaque</strong>.
               Ordene-os por prioridade - o slide com menor numero de ordem aparece primeiro.
             </div>
@@ -485,7 +485,7 @@ export default function BannersPage() {
                   <div className="mb-3 flex items-center gap-2">
                     <StatusBadge active={slide.active} />
                     {slide.linkUrl && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 text-[10px] font-semibold text-blue-400">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 border border-red-500/20 px-2 py-0.5 text-[10px] font-semibold text-red-400">
                         <ExternalLink className="h-2.5 w-2.5" />
                         {slide.ctaText}
                       </span>
@@ -541,7 +541,7 @@ export default function BannersPage() {
             {[
               { label: "Total", value: banners.length, color: "text-white" },
               { label: "Ativos", value: banners.filter((b) => b.active).length, color: "text-emerald-400" },
-              { label: "Sidebar", value: banners.filter((b) => b.position === "sidebar").length, color: "text-blue-400" },
+              { label: "Sidebar", value: banners.filter((b) => b.position === "sidebar").length, color: "text-red-400" },
             ].map(({ label, value, color }) => (
               <div key={label} className="rounded-xl border border-[#1E1E2A] bg-[#0E0E16] p-4">
                 <p className={`text-2xl font-black ${color}`}>{value}</p>
@@ -570,7 +570,7 @@ export default function BannersPage() {
                 <div className="p-4">
                   <div className="mb-3 flex items-center gap-2 flex-wrap">
                     <StatusBadge active={banner.active} />
-                    <span className="rounded-full bg-blue-500/10 border border-blue-500/20 px-2.5 py-0.5 text-[10px] font-bold text-blue-400">
+                    <span className="rounded-full bg-red-500/10 border border-red-500/20 px-2.5 py-0.5 text-[10px] font-bold text-red-400">
                       {positionOptions.find((o) => o.value === banner.position)?.label}
                     </span>
                   </div>
@@ -705,8 +705,8 @@ export default function BannersPage() {
           <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] shadow-2xl">
             <div className="flex items-center justify-between border-b border-[#1E1E2A] p-5">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10 border border-blue-500/20">
-                  <Image className="h-4 w-4 text-blue-400" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-500/10 border border-red-500/20">
+                  <Image className="h-4 w-4 text-red-400" />
                 </div>
                 <div>
                   <h3 className="font-bold text-white">

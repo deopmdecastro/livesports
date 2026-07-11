@@ -14,7 +14,7 @@ interface UserProfile {
 
 const ROLE_BADGES: Record<string, string> = {
   super_admin: "bg-[#E50914]/15 text-[#E50914] border-[#E50914]/20",
-  admin: "bg-blue-500/15 text-blue-400 border-blue-500/20",
+  admin: "bg-red-500/15 text-red-400 border-red-500/20",
   moderator: "bg-emerald-500/15 text-emerald-400 border-emerald-500/20",
   editor: "bg-yellow-500/15 text-yellow-400 border-yellow-500/20",
 };
@@ -201,8 +201,8 @@ export default function AdminProfilePage() {
       {/* Session Info */}
       <div className="rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] p-5 shadow-lg">
         <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500/10 border border-blue-500/20">
-            <ShieldCheck className="h-3.5 w-3.5 text-blue-400" />
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-red-500/10 border border-red-500/20">
+            <ShieldCheck className="h-3.5 w-3.5 text-red-400" />
           </div>
           Informações da Sessão
         </h3>

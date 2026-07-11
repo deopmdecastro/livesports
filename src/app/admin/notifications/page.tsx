@@ -18,7 +18,7 @@ interface Notification {
 }
 
 const TYPE_COLORS: Record<string, string> = {
-  info: "bg-blue-500/15 text-blue-400 border-blue-500/20",
+  info: "bg-red-500/15 text-red-400 border-red-500/20",
   success: "bg-emerald-500/15 text-emerald-400 border-emerald-500/20",
   warning: "bg-yellow-500/15 text-yellow-400 border-yellow-500/20",
   error: "bg-red-500/15 text-red-400 border-red-500/20",
@@ -111,7 +111,7 @@ export default function NotificationsPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         {[
-          { label: "Total", value: stats.total, color: "text-blue-400" },
+          { label: "Total", value: stats.total, color: "text-red-400" },
           { label: "Não Lidas", value: stats.unread, color: "text-[#E50914]" },
           { label: "Hoje", value: stats.today, color: "text-emerald-400" },
           { label: "Sucesso", value: stats.byType?.success || 0, color: "text-emerald-400" },

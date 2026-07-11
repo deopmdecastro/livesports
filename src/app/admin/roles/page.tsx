@@ -123,7 +123,7 @@ export default function RolesPage() {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
           { label: "Total Funções", value: roles.length, icon: Shield, color: "text-[#E50914]" },
-          { label: "Total Admins", value: roles.reduce((s, r) => s + r.userCount, 0), icon: Users, color: "text-blue-400" },
+          { label: "Total Admins", value: roles.reduce((s, r) => s + r.userCount, 0), icon: Users, color: "text-red-400" },
           { label: "Permissões", value: PERMISSION_MODULES.length, icon: Key, color: "text-emerald-400" },
           { label: "Restritas", value: roles.filter(r => r.permissions.includes("settings.write")).length, icon: Lock, color: "text-yellow-400" },
         ].map(({ label, value, icon: Icon, color }) => (
@@ -160,7 +160,7 @@ export default function RolesPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1 flex-shrink-0">
-                    <button onClick={() => openEdit(role)} className="p-2 rounded-lg text-gray-500 hover:text-blue-400 hover:bg-blue-400/10 transition-all">
+                    <button onClick={() => openEdit(role)} className="p-2 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-400/10 transition-all">
                       <Edit2 className="h-3.5 w-3.5" />
                     </button>
                     <button onClick={() => handleDelete(role.id)} className="p-2 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-400/10 transition-all">

@@ -280,7 +280,7 @@ function MidrollAd({ ad, onComplete, label = "Intervalo" }: { ad: Ad; onComplete
 
 
 const CHAT_COLORS = [
-  "text-sky-400", "text-emerald-400", "text-violet-400",
+  "text-red-400", "text-emerald-400", "text-violet-400",
   "text-amber-400", "text-pink-400", "text-teal-400",
 ];
 

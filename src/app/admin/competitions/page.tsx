@@ -172,7 +172,7 @@ export default function CompetitionsPage() {
                         c.status === "active"
                           ? "bg-emerald-500/20 text-emerald-400"
                           : c.status === "draft"
-                            ? "bg-blue-500/20 text-blue-400"
+                            ? "bg-red-500/20 text-red-400"
                             : "bg-gray-500/20 text-gray-400"
                       }`}
                     >

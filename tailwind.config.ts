@@ -33,7 +33,7 @@ const config: Config = {
           foreground: "#80849C",
         },
         accent: {
-          blue: "#2D7BFF",
+          blue: "#E50914",
           emerald: "#10B981",
           amber: "#F59E0B",
           purple: "#8B5CF6",
@@ -58,7 +58,7 @@ const config: Config = {
       boxShadow: {
         brand: "0 0 24px rgba(229, 9, 20, 0.30)",
         "brand-lg": "0 0 40px rgba(229, 9, 20, 0.35)",
-        blue: "0 0 24px rgba(45, 123, 255, 0.2)",
+        blue: "0 0 24px rgba(229, 9, 20, 0.2)",
         gold: "0 0 24px rgba(255, 215, 0, 0.15)",
       },
       animation: {

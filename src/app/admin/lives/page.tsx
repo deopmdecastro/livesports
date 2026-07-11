@@ -50,7 +50,7 @@ const statusConfig: Record<
   scheduled: {
     label: "Agendada",
     icon: <Clock className="h-3.5 w-3.5" />,
-    className: "border-sky-500/30 bg-sky-500/15 text-sky-200",
+    className: "border-red-500/30 bg-red-500/15 text-red-200",
   },
   ended: {
     label: "Encerrada",
@@ -513,9 +513,9 @@ export default function LivesPage() {
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {[
-              { label: "Transmissoes", value: lives.length, helper: `${filtered.length} visiveis nos filtros`, icon: Radio, tone: "text-sky-300" },
+              { label: "Transmissoes", value: lives.length, helper: `${filtered.length} visiveis nos filtros`, icon: Radio, tone: "text-red-300" },
               { label: "Ao vivo agora", value: liveNowCount, helper: `${formatNumber(totalViewers)} espectadores`, icon: Users, tone: "text-red-300" },
-              { label: "Agendadas", value: scheduledCount, helper: nextLive ? `Proxima: ${formatDateTime(nextLive.scheduledAt)}` : "Sem proximas lives", icon: CalendarClock, tone: "text-blue-300" },
+              { label: "Agendadas", value: scheduledCount, helper: nextLive ? `Proxima: ${formatDateTime(nextLive.scheduledAt)}` : "Sem proximas lives", icon: CalendarClock, tone: "text-red-300" },
               { label: "Destaques", value: featuredCount, helper: `${endedCount} encerradas no arquivo`, icon: Star, tone: "text-amber-300" },
             ].map(({ label, value, helper, icon: Icon, tone }) => (
               <div key={label} className="rounded-lg border border-white/10 bg-black/20 p-4">
@@ -783,13 +783,13 @@ export default function LivesPage() {
 
                   {/* Optional event linking section */}
                   {!editingLive && (
-                    <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-4">
+                    <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
                       <div className="mb-3 flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
-                          <CalendarClock className="h-4 w-4 text-blue-400" />
+                          <CalendarClock className="h-4 w-4 text-red-400" />
                           <span className="text-sm font-bold text-white">Vincular a Evento (opcional)</span>
                         </div>
-                        {eventSearchLoading && <span className="text-[10px] text-blue-400 animate-pulse">A pesquisar...</span>}
+                        {eventSearchLoading && <span className="text-[10px] text-red-400 animate-pulse">A pesquisar...</span>}
                       </div>
                       <p className="mb-3 text-xs text-gray-500">Vincule a um evento existente para preencher automaticamente os dados.</p>
                       <div className="relative mb-3">

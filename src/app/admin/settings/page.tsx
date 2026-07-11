@@ -342,7 +342,7 @@ export default function SettingsPage() {
             </div>
           </Section>
 
-          <Section title="Telegram Bot" icon={Bell} color="#3B82F6">
+          <Section title="Telegram Bot" icon={Bell} color="#E50914">
             <div className="space-y-4">
               <Toggle checked={notifs.telegramEnabled} onChange={(v) => setNotifs({ ...notifs, telegramEnabled: v })} label="Ativar notificações via Telegram" />
               {notifs.telegramEnabled && (

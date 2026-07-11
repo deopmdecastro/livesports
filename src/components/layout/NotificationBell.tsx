@@ -11,7 +11,7 @@ import { useNotifications, type Notification } from '@/hooks/useNotifications';
 
 const TYPE_CONFIG: Record<string, { icon: React.ElementType; color: string; bg: string }> = {
   new_ticket:           { icon: Ticket,       color: 'text-yellow-400', bg: 'bg-yellow-500/10' },
-  ticket_reply:         { icon: Ticket,       color: 'text-blue-400',   bg: 'bg-blue-500/10'   },
+  ticket_reply:         { icon: Ticket,       color: 'text-red-400',   bg: 'bg-red-500/10'   },
   ticket_status_change: { icon: Ticket,       color: 'text-green-400',  bg: 'bg-green-500/10'  },
   poll_milestone:       { icon: BarChart2,    color: 'text-purple-400', bg: 'bg-purple-500/10' },
   creator_application:  { icon: Tv2,          color: 'text-orange-400', bg: 'bg-orange-500/10' },

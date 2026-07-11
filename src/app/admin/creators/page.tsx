@@ -259,7 +259,7 @@ export default function AdminCreatorsPage() {
       <div className="grid grid-cols-3 gap-3">
         {[
           { label: "Candidaturas Pendentes", value: pendingCount, color: "text-yellow-400" },
-          { label: "Total de Canais", value: channels.length, color: "text-blue-400" },
+          { label: "Total de Canais", value: channels.length, color: "text-red-400" },
           { label: "Canais Ativos", value: channels.filter(c => c.status === "active").length, color: "text-emerald-400" },
         ].map(({ label, value, color }) => (
           <div key={label} className="rounded-xl border border-[#2A2A2A] bg-[#0E0E16] p-4">
@@ -406,7 +406,7 @@ export default function AdminCreatorsPage() {
                   <td className="px-4 py-3">
                     <div className="space-y-1">
                       <div className="flex items-center gap-1.5 text-[10px] text-gray-400">
-                        <Users className="h-3 w-3 text-blue-400" />
+                        <Users className="h-3 w-3 text-red-400" />
                         <span className="font-bold text-white">{ch.subscriberCount.toLocaleString()}</span> sub.
                       </div>
                       <div className="flex items-center gap-1.5 text-[10px] text-gray-400">
@@ -437,7 +437,7 @@ export default function AdminCreatorsPage() {
                   <td className="px-4 py-3">
                     <button
                       onClick={() => openEditChannel(ch)}
-                      className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 font-semibold hover:underline"
+                      className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 font-semibold hover:underline"
                     >
                       <Edit2 className="h-3.5 w-3.5" /> Editar
                     </button>
@@ -711,7 +711,7 @@ export default function AdminCreatorsPage() {
           <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] shadow-2xl">
             <div className="flex items-center justify-between border-b border-[#1E1E2A] p-4 sticky top-0 bg-[#0E0E16] z-10">
               <div>
-                <h3 className="font-black text-white flex items-center gap-2"><Edit2 className="h-4 w-4 text-blue-400" /> Editar Canal</h3>
+                <h3 className="font-black text-white flex items-center gap-2"><Edit2 className="h-4 w-4 text-red-400" /> Editar Canal</h3>
                 <p className="text-[10px] text-gray-500 mt-0.5">{editingChannel.name}</p>
               </div>
               <button onClick={() => setEditingChannel(null)} className="p-2 text-gray-400 hover:text-white rounded-xl hover:bg-white/5"><X className="h-4 w-4" /></button>
@@ -722,19 +722,19 @@ export default function AdminCreatorsPage() {
                 <div>
                   <label className="block text-xs font-bold text-gray-300 mb-1.5 uppercase tracking-wider">Nome *</label>
                   <input value={editForm.name || ""} onChange={e => setEditForm({ ...editForm, name: e.target.value })}
-                    className="w-full px-3 py-2.5 text-sm bg-[#1A1A2A] border border-[#2A2A2A] rounded-lg text-white focus:outline-none focus:border-blue-500/50" />
+                    className="w-full px-3 py-2.5 text-sm bg-[#1A1A2A] border border-[#2A2A2A] rounded-lg text-white focus:outline-none focus:border-red-500/50" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-300 mb-1.5 uppercase tracking-wider">Slug</label>
                   <input value={editForm.slug || ""} onChange={e => setEditForm({ ...editForm, slug: slugify(e.target.value) })}
-                    className="w-full px-3 py-2.5 text-sm bg-[#1A1A2A] border border-[#2A2A2A] rounded-lg text-white focus:outline-none focus:border-blue-500/50 font-mono" />
+                    className="w-full px-3 py-2.5 text-sm bg-[#1A1A2A] border border-[#2A2A2A] rounded-lg text-white focus:outline-none focus:border-red-500/50 font-mono" />
                 </div>
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-gray-300 mb-1.5 uppercase tracking-wider">Descrição</label>
                 <textarea value={editForm.description || ""} onChange={e => setEditForm({ ...editForm, description: e.target.value })}
-                  rows={2} className="w-full px-3 py-2.5 text-sm bg-[#1A1A2A] border border-[#2A2A2A] rounded-lg text-white focus:outline-none focus:border-blue-500/50 resize-none" />
+                  rows={2} className="w-full px-3 py-2.5 text-sm bg-[#1A1A2A] border border-[#2A2A2A] rounded-lg text-white focus:outline-none focus:border-red-500/50 resize-none" />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -744,7 +744,7 @@ export default function AdminCreatorsPage() {
                   </label>
                   <input value={editForm.avatar || ""} onChange={e => setEditForm({ ...editForm, avatar: e.target.value })}
                     placeholder="https://..."
-                    className="w-full px-3 py-2.5 text-sm bg-[#1A1A2A] border border-[#2A2A2A] rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-blue-500/50" />
+                    className="w-full px-3 py-2.5 text-sm bg-[#1A1A2A] border border-[#2A2A2A] rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-red-500/50" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-300 mb-1.5 uppercase tracking-wider flex items-center gap-1">
@@ -752,7 +752,7 @@ export default function AdminCreatorsPage() {
                   </label>
                   <input value={editForm.banner || ""} onChange={e => setEditForm({ ...editForm, banner: e.target.value })}
                     placeholder="https://..."
-                    className="w-full px-3 py-2.5 text-sm bg-[#1A1A2A] border border-[#2A2A2A] rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-blue-500/50" />
+                    className="w-full px-3 py-2.5 text-sm bg-[#1A1A2A] border border-[#2A2A2A] rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-red-500/50" />
                 </div>
               </div>
 
@@ -760,7 +760,7 @@ export default function AdminCreatorsPage() {
                 <div>
                   <label className="block text-xs font-bold text-gray-300 mb-1.5 uppercase tracking-wider">Desporto</label>
                   <select value={editForm.sport || ""} onChange={e => setEditForm({ ...editForm, sport: e.target.value })}
-                    className="w-full px-3 py-2.5 text-sm bg-[#1A1A2A] border border-[#2A2A2A] rounded-lg text-white focus:outline-none focus:border-blue-500/50">
+                    className="w-full px-3 py-2.5 text-sm bg-[#1A1A2A] border border-[#2A2A2A] rounded-lg text-white focus:outline-none focus:border-red-500/50">
                     {SPORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 </div>
@@ -768,7 +768,7 @@ export default function AdminCreatorsPage() {
                   <label className="block text-xs font-bold text-gray-300 mb-1.5 uppercase tracking-wider">País</label>
                   <input value={editForm.country || ""} onChange={e => setEditForm({ ...editForm, country: e.target.value })}
                     placeholder="Ex: PT, BR, AO"
-                    className="w-full px-3 py-2.5 text-sm bg-[#1A1A2A] border border-[#2A2A2A] rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-blue-500/50" />
+                    className="w-full px-3 py-2.5 text-sm bg-[#1A1A2A] border border-[#2A2A2A] rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-red-500/50" />
                 </div>
               </div>
 
@@ -778,7 +778,7 @@ export default function AdminCreatorsPage() {
                 </label>
                 <input value={editForm.website_url || ""} onChange={e => setEditForm({ ...editForm, website_url: e.target.value })}
                   placeholder="https://..."
-                  className="w-full px-3 py-2.5 text-sm bg-[#1A1A2A] border border-[#2A2A2A] rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-blue-500/50" />
+                  className="w-full px-3 py-2.5 text-sm bg-[#1A1A2A] border border-[#2A2A2A] rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-red-500/50" />
               </div>
 
               {/* Preview */}
@@ -802,7 +802,7 @@ export default function AdminCreatorsPage() {
                 Cancelar
               </button>
               <button onClick={saveEditChannel} disabled={savingEdit}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 disabled:opacity-60 transition-colors">
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-600 text-white text-sm font-bold hover:bg-red-700 disabled:opacity-60 transition-colors">
                 {savingEdit ? <div className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /> : <Check className="h-4 w-4" />}
                 Guardar Alterações
               </button>

@@ -90,7 +90,7 @@ export function getStatusColor(status: string): string {
   const colors: Record<string, string> = {
     live: 'bg-red-500 text-white',
     active: 'bg-green-500 text-white',
-    scheduled: 'bg-blue-500 text-white',
+    scheduled: 'bg-red-500 text-white',
     ended: 'bg-gray-500 text-white',
     paused: 'bg-yellow-500 text-black',
     cancelled: 'bg-red-700 text-white',

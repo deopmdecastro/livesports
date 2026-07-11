@@ -23,7 +23,7 @@ const STATUS_COLORS: Record<string, string> = {
   active: "bg-emerald-500/15 text-emerald-400 border-emerald-500/20",
   paused: "bg-yellow-500/15 text-yellow-400 border-yellow-500/20",
   completed: "bg-gray-500/15 text-gray-400 border-gray-500/20",
-  draft: "bg-blue-500/15 text-blue-400 border-blue-500/20",
+  draft: "bg-red-500/15 text-red-400 border-red-500/20",
 };
 
 const POSITION_LABELS: Record<string, string> = {
@@ -76,7 +76,7 @@ export default function CampaignsPage() {
         {[
           { label: "Orçamento Total", value: `R$ ${(stats.totalBudget / 1000).toFixed(0)}K`, icon: DollarSign, color: "text-yellow-400" },
           { label: "Gasto", value: `R$ ${(stats.totalSpent / 1000).toFixed(0)}K`, icon: TrendingUp, color: "text-[#E50914]" },
-          { label: "Impressões", value: `${(stats.totalImpressions / 1000000).toFixed(1)}M`, icon: Eye, color: "text-blue-400" },
+          { label: "Impressões", value: `${(stats.totalImpressions / 1000000).toFixed(1)}M`, icon: Eye, color: "text-red-400" },
           { label: "CTR Médio", value: `${stats.avgCtr}%`, icon: BarChart3, color: "text-emerald-400" },
         ].map(({ label, value, icon: Icon, color }) => (
           <div key={label} className="rounded-xl border border-[#1E1E2A] bg-[#0E0E16] p-4">
@@ -107,7 +107,7 @@ export default function CampaignsPage() {
                     <p className="text-[11px] text-gray-500">{campaign.advertiser}</p>
                   </div>
                   <div className="flex items-center gap-1">
-                    <button className="p-2 rounded-lg text-gray-500 hover:text-blue-400 hover:bg-blue-400/10"><Edit2 className="h-3.5 w-3.5" /></button>
+                    <button className="p-2 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-400/10"><Edit2 className="h-3.5 w-3.5" /></button>
                     <button className="p-2 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-400/10"><Trash2 className="h-3.5 w-3.5" /></button>
                   </div>
                 </div>

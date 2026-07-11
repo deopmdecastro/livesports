@@ -60,7 +60,7 @@ export default function PermissionsPage() {
         {[
           { label: "Permissões", value: stats.total, icon: Key, color: "text-[#E50914]" },
           { label: "Críticas", value: stats.critical, icon: Lock, color: "text-red-400" },
-          { label: "Módulos", value: stats.modules, icon: Eye, color: "text-blue-400" },
+          { label: "Módulos", value: stats.modules, icon: Eye, color: "text-red-400" },
           { label: "Funções", value: stats.roles, icon: Shield, color: "text-emerald-400" },
         ].map(({ label, value, icon: Icon, color }) => (
           <div key={label} className="rounded-xl border border-[#1E1E2A] bg-[#0E0E16] p-4 flex items-center gap-3">

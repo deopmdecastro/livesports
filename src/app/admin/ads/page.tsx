@@ -398,7 +398,7 @@ export default function AdsPage() {
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {[
           { label: "Receita Total", value: formatCurrency(totalRevenue), icon: DollarSign, color: "text-green-400" },
-          { label: "Impressoes", value: formatNumber(totalImpressions), icon: Eye, color: "text-blue-400" },
+          { label: "Impressoes", value: formatNumber(totalImpressions), icon: Eye, color: "text-red-400" },
           { label: "Cliques", value: formatNumber(totalClicks), icon: BarChart3, color: "text-purple-400" },
           { label: "CTR Medio", value: `${avgCtr}%`, icon: TrendingUp, color: "text-yellow-400" },
         ].map(({ label, value, icon: Icon, color }) => (

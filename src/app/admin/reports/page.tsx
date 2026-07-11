@@ -107,7 +107,7 @@ export default function ReportsPage() {
               { label: "Total", value: gamesReport.summary.total, color: "text-white" },
               { label: "Ao vivo", value: gamesReport.summary.liveNow, color: "text-red-400" },
               { label: "Finalizados", value: gamesReport.summary.finished, color: "text-green-400" },
-              { label: "Agendados", value: gamesReport.summary.upcoming, color: "text-blue-400" },
+              { label: "Agendados", value: gamesReport.summary.upcoming, color: "text-red-400" },
             ].map(({ label, value, color }) => (
               <div key={label} className="rounded-xl border border-[#2A2A2A] bg-[#1A1A1A] p-4">
                 <p className={`text-2xl font-black ${color}`}>{value.toLocaleString()}</p>
@@ -162,7 +162,7 @@ export default function ReportsPage() {
               { label: "Total", value: livesReport.summary.total, color: "text-white" },
               { label: "Ao vivo", value: livesReport.summary.liveNow, color: "text-red-400" },
               { label: "Finalizadas", value: livesReport.summary.ended, color: "text-gray-400" },
-              { label: "Visualizações", value: livesReport.summary.totalViews.toLocaleString(), color: "text-blue-400" },
+              { label: "Visualizações", value: livesReport.summary.totalViews.toLocaleString(), color: "text-red-400" },
               { label: "Espectadores", value: livesReport.summary.currentViewers.toLocaleString(), color: "text-green-400" },
               { label: "Likes", value: livesReport.summary.totalLikes.toLocaleString(), color: "text-pink-400" },
             ].map(({ label, value, color }) => (
@@ -229,7 +229,7 @@ export default function ReportsPage() {
             {[
               { label: "Total", value: usersReport.summary.total, color: "text-white" },
               { label: "Ativos", value: usersReport.summary.active, color: "text-green-400" },
-              { label: "Verificados", value: usersReport.summary.verified, color: "text-blue-400" },
+              { label: "Verificados", value: usersReport.summary.verified, color: "text-red-400" },
               { label: "Suspensos", value: usersReport.summary.suspended, color: "text-yellow-400" },
               { label: "Novos (período)", value: usersReport.summary.newThisPeriod, color: "text-purple-400" },
             ].map(({ label, value, color }) => (
@@ -262,7 +262,7 @@ export default function ReportsPage() {
                     <XAxis dataKey="date" tick={{ fill: "#6B7280", fontSize: 9 }} />
                     <YAxis tick={{ fill: "#6B7280", fontSize: 9 }} />
                     <Tooltip contentStyle={{ background: "#111118", border: "1px solid #1E1E2A", borderRadius: 8 }} />
-                    <Bar dataKey="count" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="count" fill="#E50914" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

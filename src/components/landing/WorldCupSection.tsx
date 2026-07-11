@@ -37,7 +37,7 @@ interface WCTeam {
 }
 
 const STATUS_COLOR = {
-  scheduled: "text-blue-400 bg-blue-400/10 border-blue-400/20",
+  scheduled: "text-red-400 bg-red-400/10 border-red-400/20",
   in_play: "text-[#E50914] bg-[#E50914]/10 border-[#E50914]/30",
   finished: "text-gray-400 bg-gray-400/10 border-gray-400/20",
 };
