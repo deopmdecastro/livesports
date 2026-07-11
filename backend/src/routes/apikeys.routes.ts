@@ -20,6 +20,7 @@ const ENV_KEY_META: Record<string, { name: string; envFile: string }> = {
   FOOTBALL_DATA_API_TOKEN: { name: 'Football-Data.org', envFile: 'FOOTBALL_DATA_API_TOKEN' },
   RAPIDAPI_KEY: { name: 'RapidAPI Live Streams', envFile: 'RAPIDAPI_KEY' },
   THESPORTSDB_API_KEY: { name: 'TheSportsDB', envFile: 'THESPORTSDB_API_KEY' },
+  NEWSDATA_API_KEY: { name: 'NewsData.io', envFile: 'NEWSDATA_API_KEY' },
 };
 
 function persistEnvValue(key: string, value: string) {
@@ -161,6 +162,14 @@ router.get('/discovery', async (_req, res, next) => {
         baseUrl: 'https://www.thesportsdb.com/api',
         usageTypes: ['teams', 'competitions', 'game_events', 'logos', 'shields'],
         configured: true, // free tier always available
+      },
+      {
+        key: 'NEWSDATA_API_KEY',
+        name: 'NewsData.io',
+        provider: 'newsdata.io',
+        baseUrl: 'https://newsdata.io/api/1',
+        usageTypes: ['news'],
+        configured: !!process.env.NEWSDATA_API_KEY && process.env.NEWSDATA_API_KEY !== 'your-newsdata-api-key',
       },
     ];
 

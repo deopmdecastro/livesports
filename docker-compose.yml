@@ -49,6 +49,7 @@ services:
       - FOOTBALL_DATA_API_TOKEN=${FOOTBALL_DATA_API_TOKEN:-}
       - API_FOOTBALL_KEY=${API_FOOTBALL_KEY:-}
       - RAPIDAPI_KEY=${RAPIDAPI_KEY:-}
+      - NEWSDATA_API_KEY=${NEWSDATA_API_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy

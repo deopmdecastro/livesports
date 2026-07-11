@@ -125,6 +125,18 @@ const PROVIDER_CATALOGUE = [
     defaultUsageTypes: ["live_streams"],
   },
   {
+    id: "newsdata",
+    label: "NewsData.io",
+    logo: "📰",
+    category: "news" as const,
+    url: "https://newsdata.io/documentation",
+    description: "Noticias desportivas em tempo real, em Portugues e Ingles, para o blog",
+    keyLabel: "apikey",
+    secretLabel: "",
+    baseUrl: "https://newsdata.io/api/1",
+    defaultUsageTypes: ["news"],
+  },
+  {
     id: "custom",
     label: "Provedor Personalizado",
     logo: "🔧",
@@ -142,6 +154,7 @@ const CATEGORY_META = {
   sports:  { label: "Dados Desportivos", color: "#22C55E", icon: Trophy },
   live:    { label: "Streaming / Live",  color: "#E50914", icon: Tv2 },
   results: { label: "Resultados",        color: "#E50914", icon: BarChart3 },
+  news:    { label: "Noticias / Blog",   color: "#F59E0B", icon: Globe },
   media:   { label: "Media / CDN",       color: "#8B5CF6", icon: Cloud },
   other:   { label: "Outros",            color: "#6B7280", icon: Zap },
 };

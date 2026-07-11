@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { authenticateToken, requireEditor, AuthRequest } from '../middleware/auth.middleware';
 import { prisma } from '../lib/prisma';
+import { cached } from '../lib/cache';
+import { fetchNewsdataLatest, mapNewsdataArticle, isMissingNewsdataKey } from '../lib/newsdata';
 
 const router = Router();
 
@@ -83,6 +85,110 @@ router.get('/', async (req: AuthRequest, res, next) => {
       },
     });
   } catch (error) {
+    next(error);
+  }
+});
+
+// ─── External sports news (NewsData.io) — PT + EN, used to power the blog ─────
+// Placed before `/:id` so the literal "external" segment isn't swallowed by
+// the id/slug lookup route below.
+
+// GET /external — live sports headlines in Portuguese and/or English
+router.get('/external', async (req, res, next) => {
+  try {
+    const apiKey = process.env.NEWSDATA_API_KEY;
+    if (isMissingNewsdataKey(apiKey)) {
+      res.status(400).json({
+        success: false,
+        error: 'NEWSDATA_API_KEY nao configurada. Define a chave em Admin > API Keys.',
+      });
+      return;
+    }
+
+    const { q, language = 'pt,en', category = 'sports', country, page } = req.query as Record<string, string | undefined>;
+
+    const cacheKey = `newsdata:${q || ''}:${language}:${category}:${country || ''}:${page || ''}`;
+    const data = await cached(cacheKey, 10 * 60 * 1000, () =>
+      fetchNewsdataLatest({ apiKey: apiKey!, q, language, category, country, page })
+    );
+
+    if (data.status !== 'success') {
+      res.status(502).json({ success: false, error: 'Nao foi possivel obter noticias externas de momento.' });
+      return;
+    }
+
+    res.json({
+      success: true,
+      data: {
+        items: (data.results || []).map(mapNewsdataArticle),
+        nextPage: data.nextPage || null,
+        totalResults: data.totalResults ?? data.results?.length ?? 0,
+      },
+    });
+  } catch (error: any) {
+    if (error?.response?.status === 429) {
+      res.status(429).json({ success: false, error: 'Limite de pedidos da NewsData.io atingido. Tenta novamente mais tarde.' });
+      return;
+    }
+    if (error?.response?.status === 401 || error?.response?.status === 403) {
+      res.status(502).json({ success: false, error: 'Chave da NewsData.io invalida ou sem permissoes.' });
+      return;
+    }
+    next(error);
+  }
+});
+
+// POST /external/import — copy an external article into the blog as an editable draft
+router.post('/external/import', authenticateToken, requireEditor, async (req: AuthRequest, res, next) => {
+  try {
+    const body = req.body || {};
+
+    if (!body.title?.trim()) {
+      res.status(400).json({ success: false, error: 'Titulo obrigatorio' });
+      return;
+    }
+
+    const slug = String(body.slug || body.title).trim().toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+    const sourceNote = body.sourceUrl
+      ? `<p><em>Fonte: <a href="${body.sourceUrl}" target="_blank" rel="noopener noreferrer">${body.sourceName || body.sourceUrl}</a></em></p>`
+      : '';
+    const content = `${body.content || body.excerpt || ''}${sourceNote}`;
+
+    const inserted = await prisma.$queryRawUnsafe<any[]>(
+      `
+        INSERT INTO "news_articles" (
+          title, slug, excerpt, content, thumbnail, sport, tags, author_id,
+          published, featured, published_at, meta_title, meta_desc, og_image
+        )
+        VALUES (
+          $1, $2, $3, $4, $5, $6::sport_category, $7, $8,
+          FALSE, FALSE, NULL, $9, $10, $11
+        )
+        RETURNING id
+      `,
+      body.title.trim(),
+      slug,
+      body.excerpt || null,
+      content,
+      body.thumbnail || null,
+      body.sport || 'other',
+      Array.isArray(body.tags) ? body.tags : [],
+      req.user!.id,
+      body.title.trim(),
+      body.excerpt || null,
+      body.thumbnail || null
+    );
+
+    const rows = await prisma.$queryRawUnsafe<any[]>(`${selectNewsSql} WHERE n.id = $1`, inserted[0].id);
+    res.status(201).json({ success: true, data: mapNews(rows[0]) });
+  } catch (error: any) {
+    if (error?.code === '23505') {
+      res.status(409).json({ success: false, error: 'Ja existe uma noticia com este slug (talvez ja tenha sido importada)' });
+      return;
+    }
     next(error);
   }
 });

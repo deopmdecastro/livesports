@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Edit2, Eye, Plus, Search, Trash2, X } from "lucide-react";
+import { Edit2, Eye, Plus, Rss, Search, Trash2, X } from "lucide-react";
 import { formatDate, slugify } from "@/utils";
 import type { NewsArticle, SportCategory } from "@/types";
 import AdminSelect from "@/components/admin/AdminSelect";
@@ -26,6 +26,29 @@ const booleanOptions = [
   { value: "false", label: "Nao" },
 ];
 
+const languageOptions = [
+  { value: "pt,en", label: "Portugues + Ingles" },
+  { value: "pt", label: "Apenas Portugues" },
+  { value: "en", label: "Apenas Ingles" },
+];
+
+interface ExternalNewsItem {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  content: string;
+  thumbnail: string | null;
+  sport: string;
+  tags: string[];
+  sourceUrl: string;
+  sourceName: string | null;
+  sourceIcon: string | null;
+  language: string | null;
+  country: string[];
+  publishedAt: string | null;
+}
+
 const emptyForm = {
   title: "",
   slug: "",
@@ -46,6 +69,16 @@ export default function NewsPage() {
   const [modalMode, setModalMode] = useState<"create" | "edit" | "view" | null>(null);
   const [selected, setSelected] = useState<NewsArticle | null>(null);
   const [form, setForm] = useState(emptyForm);
+
+  // ── External NewsData.io import panel ──
+  const [importOpen, setImportOpen] = useState(false);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importQuery, setImportQuery] = useState("sports");
+  const [importLanguage, setImportLanguage] = useState("pt,en");
+  const [importItems, setImportItems] = useState<ExternalNewsItem[]>([]);
+  const [importingIds, setImportingIds] = useState<Set<string>>(new Set());
+  const [importedIds, setImportedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     // Editors/admins should see drafts too, not just published articles —
@@ -138,6 +171,57 @@ export default function NewsPage() {
     }
   };
 
+  const fetchExternalNews = async () => {
+    setImportLoading(true);
+    setImportError(null);
+    try {
+      const params = new URLSearchParams({ q: importQuery || "sports", language: importLanguage, category: "sports" });
+      const res = await apiRequest<{ items: ExternalNewsItem[] }>(`/news/external?${params.toString()}`);
+      setImportItems(res.items || []);
+    } catch (error) {
+      setImportError(error instanceof Error ? error.message : "Nao foi possivel obter noticias externas.");
+      setImportItems([]);
+    } finally {
+      setImportLoading(false);
+    }
+  };
+
+  const openImportPanel = () => {
+    setImportOpen(true);
+    if (importItems.length === 0) void fetchExternalNews();
+  };
+
+  const importExternalArticle = async (item: ExternalNewsItem) => {
+    setImportingIds((current) => new Set(current).add(item.id));
+    try {
+      const created = await apiRequest<NewsArticle>("/news/external/import", {
+        method: "POST",
+        body: JSON.stringify({
+          title: item.title,
+          slug: item.slug,
+          excerpt: item.excerpt,
+          content: item.content,
+          thumbnail: item.thumbnail,
+          sport: item.sport,
+          tags: item.tags,
+          sourceUrl: item.sourceUrl,
+          sourceName: item.sourceName,
+        }),
+      });
+      setNews((current) => [created, ...current]);
+      setImportedIds((current) => new Set(current).add(item.id));
+      toast.success("Noticia importada como rascunho! Edita e publica quando quiseres.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel importar esta noticia.");
+    } finally {
+      setImportingIds((current) => {
+        const next = new Set(current);
+        next.delete(item.id);
+        return next;
+      });
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -145,7 +229,10 @@ export default function NewsPage() {
           <h2 className="text-lg font-bold text-white">Noticias</h2>
           <p className="text-xs text-gray-400">{loading ? "A carregar noticias..." : `${news.length} artigos cadastrados`}</p>
         </div>
-        <button onClick={openCreate} className="inline-flex items-center gap-2 rounded-lg bg-[#E50914] px-4 py-2 text-sm font-bold text-white hover:bg-[#B00000]"><Plus className="h-4 w-4" />Nova Noticia</button>
+        <div className="flex gap-2">
+          <button onClick={openImportPanel} className="inline-flex items-center gap-2 rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-4 py-2 text-sm font-bold text-gray-200 hover:border-red-500/30 hover:text-white"><Rss className="h-4 w-4" />Importar Noticias</button>
+          <button onClick={openCreate} className="inline-flex items-center gap-2 rounded-lg bg-[#E50914] px-4 py-2 text-sm font-bold text-white hover:bg-[#B00000]"><Plus className="h-4 w-4" />Nova Noticia</button>
+        </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
@@ -226,6 +313,98 @@ export default function NewsPage() {
                 <button onClick={saveArticle} disabled={saving} className="rounded-lg bg-[#E50914] px-4 py-2 text-sm font-bold text-white hover:bg-[#B00000] disabled:opacity-50">
                   {saving ? "A guardar..." : "Salvar"}
                 </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {importOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-[#2A2A2A] bg-[#1A1A1A]">
+            <div className="flex items-center justify-between border-b border-[#2A2A2A] p-5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-red-500/20 bg-red-500/10">
+                  <Rss className="h-4 w-4 text-red-400" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-white">Importar Noticias (NewsData.io)</h3>
+                  <p className="text-[11px] text-gray-500">Noticias de desporto em Portugues e Ingles, prontas a rever e publicar</p>
+                </div>
+              </div>
+              <button onClick={() => setImportOpen(false)} className="text-gray-400 hover:text-white"><X className="h-4 w-4" /></button>
+            </div>
+
+            <div className="flex flex-col gap-3 border-b border-[#2A2A2A] p-5 sm:flex-row sm:items-end">
+              <div className="flex-1">
+                <label className="mb-1.5 block text-xs font-medium text-gray-300">Pesquisa</label>
+                <input
+                  value={importQuery}
+                  onChange={(event) => setImportQuery(event.target.value)}
+                  onKeyDown={(event) => event.key === "Enter" && fetchExternalNews()}
+                  className="input-dark w-full px-3 py-2.5 text-sm"
+                  placeholder="Ex: futebol, ronaldo, nba..."
+                />
+              </div>
+              <div className="sm:w-56">
+                <label className="mb-1.5 block text-xs font-medium text-gray-300">Idioma</label>
+                <AdminSelect value={importLanguage} onChange={setImportLanguage} options={languageOptions} />
+              </div>
+              <button
+                onClick={fetchExternalNews}
+                disabled={importLoading}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#E50914] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#B00000] disabled:opacity-50"
+              >
+                {importLoading ? "A pesquisar..." : "Pesquisar"}
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-5">
+              {importLoading ? (
+                <div className="py-10 text-center text-sm text-gray-400">A carregar noticias externas...</div>
+              ) : importError ? (
+                <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 text-sm text-amber-300">{importError}</div>
+              ) : importItems.length === 0 ? (
+                <div className="py-10 text-center text-sm text-gray-400">Nenhuma noticia encontrada. Tenta outra pesquisa.</div>
+              ) : (
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {importItems.map((item) => {
+                    const isImporting = importingIds.has(item.id);
+                    const isImported = importedIds.has(item.id);
+                    return (
+                      <div key={item.id} className="flex gap-3 rounded-xl border border-[#2A2A2A] bg-[#111118] p-3">
+                        <div className="h-16 w-24 flex-shrink-0 overflow-hidden rounded-lg bg-black/30">
+                          {item.thumbnail ? (
+                            <img src={item.thumbnail} alt="" className="h-full w-full object-cover" />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-gray-600"><Rss className="h-5 w-5" /></div>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="line-clamp-2 text-xs font-semibold text-white">{item.title}</p>
+                          <p className="mt-1 flex items-center gap-1.5 text-[10px] text-gray-500">
+                            {item.sourceName || "Fonte desconhecida"}
+                            {item.language ? <span className="rounded bg-white/5 px-1.5 py-0.5 uppercase">{item.language}</span> : null}
+                          </p>
+                          <div className="mt-2 flex items-center justify-between">
+                            <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] text-gray-500 hover:text-gray-300 underline">Ver original</a>
+                            <button
+                              onClick={() => importExternalArticle(item)}
+                              disabled={isImporting || isImported}
+                              className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition-colors ${
+                                isImported
+                                  ? "bg-emerald-500/15 text-emerald-300 cursor-default"
+                                  : "bg-[#E50914]/15 text-red-300 hover:bg-[#E50914]/25"
+                              } disabled:opacity-60`}
+                            >
+                              {isImported ? "Importada ✓" : isImporting ? "A importar..." : "Importar"}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </div>
           </div>

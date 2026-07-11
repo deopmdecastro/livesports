@@ -189,6 +189,22 @@ GET    /api/dashboard/charts/views
 GET    /api/dashboard/charts/devices
 ```
 
+### Notícias / Blog
+```
+GET    /api/news                     # Listar artigos publicados no blog
+GET    /api/news/:id                 # Detalhe (id ou slug)
+POST   /api/news                     # Criar artigo (editor+)
+PUT    /api/news/:id                 # Atualizar (editor+)
+DELETE /api/news/:id                 # Remover (editor+)
+
+GET    /api/news/external            # Notícias de desporto ao vivo via NewsData.io (PT + EN)
+                                      # query: q, language (ex: "pt,en"), category, country, page
+POST   /api/news/external/import     # Importa um artigo externo como rascunho no blog (editor+)
+```
+Requer `NEWSDATA_API_KEY` (grátis em https://newsdata.io/register), configurável em
+`Admin → API Keys` ou diretamente no `.env`. Sem a chave, `/api/news/external` responde 400
+e o resto do blog continua a funcionar normalmente com os artigos já cadastrados.
+
 ---
 
 ## 🗄️ Banco de Dados
