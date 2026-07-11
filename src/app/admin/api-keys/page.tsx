@@ -138,14 +138,6 @@ const PROVIDER_CATALOGUE = [
   },
 ];
 
-// Map env key names to provider catalogue IDs
-const ENV_KEY_TO_PROVIDER: Record<string, string> = {
-  API_FOOTBALL_KEY: "api_football",
-  FOOTBALL_DATA_API_TOKEN: "football_data",
-  RAPIDAPI_KEY: "api_football",
-  THESPORTSDB_API_KEY: "thesportsdb",
-};
-
 const CATEGORY_META = {
   sports:  { label: "Dados Desportivos", color: "#22C55E", icon: Trophy },
   live:    { label: "Streaming / Live",  color: "#E50914", icon: Tv2 },
@@ -217,6 +209,12 @@ export default function ApiKeysPage() {
   const [testResults, setTestResults] = useState<Record<string, TestResult>>({});
   const [testing, setTesting] = useState<Set<string>>(new Set());
 
+  // Env-backed API key edit modal
+  const [envModalTarget, setEnvModalTarget] = useState<Discovery["envApis"][number] | null>(null);
+  const [envKeyValue, setEnvKeyValue] = useState("");
+  const [envShowValue, setEnvShowValue] = useState(false);
+  const [envSaving, setEnvSaving] = useState(false);
+
   const load = async () => {
     try {
       const [keysData, discData] = await Promise.all([
@@ -260,28 +258,6 @@ export default function ApiKeysPage() {
     setEditKey(null);
     setForm({ ...emptyForm });
     setModalStep("provider");
-    setCatFilter("all");
-    setShowKeyValue(false);
-    setModalOpen(true);
-  };
-
-  const openCreateForEnvApi = (envKey: string) => {
-    const providerId = ENV_KEY_TO_PROVIDER[envKey];
-    const provider = PROVIDER_CATALOGUE.find((p) => p.id === providerId);
-    setEditKey(null);
-    if (provider) {
-      setForm({
-        ...emptyForm,
-        name: provider.label,
-        provider: provider.id,
-        baseUrl: provider.baseUrl,
-        usageTypes: provider.defaultUsageTypes,
-      });
-      setModalStep("configure");
-    } else {
-      setForm({ ...emptyForm });
-      setModalStep("provider");
-    }
     setCatFilter("all");
     setShowKeyValue(false);
     setModalOpen(true);
@@ -370,6 +346,35 @@ export default function ApiKeysPage() {
       load();
     } catch {
       toast.error("Erro ao remover");
+    }
+  };
+
+  const openEnvEdit = (api: Discovery["envApis"][number]) => {
+    setEnvModalTarget(api);
+    setEnvKeyValue("");
+    setEnvShowValue(false);
+  };
+
+  const saveEnvKey = async () => {
+    if (!envModalTarget) return;
+    if (!envKeyValue.trim()) {
+      toast.error("Insere um valor para a chave");
+      return;
+    }
+    setEnvSaving(true);
+    try {
+      await apiRequest(`/api-keys/env/${envModalTarget.key}`, {
+        method: "PUT",
+        body: JSON.stringify({ keyValue: envKeyValue.trim() }),
+      });
+      toast.success(`${envModalTarget.name} atualizada!`);
+      setEnvModalTarget(null);
+      setEnvKeyValue("");
+      load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao guardar chave");
+    } finally {
+      setEnvSaving(false);
     }
   };
 
@@ -497,18 +502,23 @@ export default function ApiKeysPage() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-bold text-white">Gestão de API Keys</h2>
-          <p className="text-xs text-gray-400">{keys.length} chave{keys.length !== 1 ? "s" : ""} configurada{keys.length !== 1 ? "s" : ""}</p>
+      <div className="flex flex-col gap-3 rounded-2xl border border-[#1E1E2A] bg-gradient-to-br from-[#151520] to-[#0E0E16] p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-[#E50914]/10 border border-[#E50914]/20">
+            <Key className="h-5 w-5 text-[#E50914]" />
+          </div>
+          <div>
+            <h2 className="text-lg font-black text-white">Gestão de API Keys</h2>
+            <p className="text-xs text-gray-400">{keys.length} chave{keys.length !== 1 ? "s" : ""} na base de dados · {discovery?.envApis.filter((a) => a.configured).length ?? 0} de {discovery?.envApis.length ?? 0} APIs de ambiente configuradas</p>
+          </div>
         </div>
         <div className="flex gap-2">
-          <button onClick={load} className="inline-flex items-center gap-2 rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2 text-sm text-white hover:bg-[#2A2A2A]">
+          <button onClick={load} title="Atualizar" className="inline-flex items-center gap-2 rounded-xl border border-[#2A2A2A] bg-white/[0.02] px-3 py-2 text-sm text-white hover:bg-white/5 transition-colors">
             <RefreshCw className="h-4 w-4" />
           </button>
-          <button onClick={openCreate} className="inline-flex items-center gap-2 rounded-lg bg-[#E50914] px-4 py-2 text-sm font-bold text-white hover:bg-[#B00000]">
+          <button onClick={openCreate} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#E50914] to-[#B00000] px-4 py-2 text-sm font-bold text-white shadow-lg shadow-[#E50914]/20 hover:shadow-[#E50914]/30 transition-shadow">
             <Plus className="h-4 w-4" /> Nova API Key
           </button>
         </div>
@@ -678,29 +688,44 @@ export default function ApiKeysPage() {
 
             <div className="grid gap-3 sm:grid-cols-2">
               {discovery.envApis.map((api) => (
-                <div key={api.key} className="rounded-xl border border-[#2A2A2A] bg-[#1A1A1A] p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Globe className="h-4 w-4 text-blue-400 flex-shrink-0" />
-                      <span className="font-semibold text-white text-sm truncate">{api.name}</span>
+                <div
+                  key={api.key}
+                  className="group relative overflow-hidden rounded-2xl border border-[#22222E] bg-gradient-to-b from-[#151520] to-[#101018] p-4 transition-all hover:-translate-y-0.5 hover:border-[#E50914]/25 hover:shadow-[0_12px_32px_rgba(0,0,0,0.4)]"
+                >
+                  <div
+                    className={`pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full blur-2xl transition-opacity ${
+                      api.configured ? "bg-emerald-500/10" : "bg-red-500/10"
+                    } opacity-70 group-hover:opacity-100`}
+                  />
+                  <div className="relative flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-blue-500/10 border border-blue-500/15">
+                        <Globe className="h-4 w-4 text-blue-400" />
+                      </div>
+                      <span className="font-bold text-white text-sm truncate">{api.name}</span>
                     </div>
-                    <span className={`flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${api.configured ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}>
+                    <span
+                      className={`flex flex-shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                        api.configured ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/20" : "bg-red-500/15 text-red-400 border border-red-500/20"
+                      }`}
+                    >
+                      {api.configured ? <CheckCircle className="h-2.5 w-2.5" /> : <XCircle className="h-2.5 w-2.5" />}
                       {api.configured ? "Configurada" : "Não configurada"}
                     </span>
                   </div>
 
-                  <p className="text-xs text-gray-400 mb-0.5">{api.provider}</p>
-                  <p className="text-[10px] text-gray-500 mb-3 font-mono">{api.baseUrl}</p>
+                  <p className="relative text-xs text-gray-400 mb-0.5">{api.provider}</p>
+                  <p className="relative text-[10px] text-gray-600 mb-3 font-mono truncate">{api.baseUrl}</p>
 
-                  <div className="flex flex-wrap gap-1 mb-3">
+                  <div className="relative flex flex-wrap gap-1 mb-3">
                     {api.usageTypes.map((t) => (
-                      <span key={t} className="rounded bg-[#2A2A2A] px-1.5 py-0.5 text-[9px] text-gray-300">
+                      <span key={t} className="rounded bg-white/5 px-1.5 py-0.5 text-[9px] text-gray-300 border border-white/5">
                         {USAGE_TYPES.find((u) => u.value === t)?.label || t}
                       </span>
                     ))}
                   </div>
 
-                  <div className="flex items-center justify-between border-t border-[#2A2A2A] pt-3">
+                  <div className="relative flex items-center justify-between border-t border-[#22222E] pt-3">
                     {(discovery.importStats.events[api.key] || discovery.importStats.lives[api.key]) ? (
                       <div className="flex gap-3">
                         {discovery.importStats.events[api.key] && (
@@ -718,14 +743,17 @@ export default function ApiKeysPage() {
                       <span className="text-[10px] text-gray-600">Sem dados importados</span>
                     )}
 
-                    {!api.configured && (
-                      <button
-                        onClick={() => openCreateForEnvApi(api.key)}
-                        className="flex items-center gap-1.5 rounded-lg border border-[#E50914]/30 bg-[#E50914]/10 px-2.5 py-1.5 text-[11px] font-semibold text-[#E50914] hover:bg-[#E50914]/20 transition-colors"
-                      >
-                        <Settings className="h-3 w-3" /> Configurar
-                      </button>
-                    )}
+                    <button
+                      onClick={() => openEnvEdit(api)}
+                      className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold transition-colors border ${
+                        api.configured
+                          ? "border-[#2A2A38] bg-white/[0.03] text-gray-300 hover:border-blue-500/30 hover:text-blue-400"
+                          : "border-[#E50914]/30 bg-[#E50914]/10 text-[#E50914] hover:bg-[#E50914]/20"
+                      }`}
+                    >
+                      {api.configured ? <Edit2 className="h-3 w-3" /> : <Settings className="h-3 w-3" />}
+                      {api.configured ? "Editar" : "Configurar"}
+                    </button>
                   </div>
                 </div>
               ))}
@@ -973,6 +1001,64 @@ export default function ApiKeysPage() {
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ── ENV API KEY EDIT MODAL ── */}
+      {envModalTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] shadow-2xl">
+            <div className="flex items-center justify-between border-b border-[#1E1E2A] p-5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10 border border-blue-500/20">
+                  <Globe className="h-4 w-4 text-blue-400" />
+                </div>
+                <div>
+                  <h3 className="font-black text-white">{envModalTarget.configured ? "Editar" : "Configurar"} {envModalTarget.name}</h3>
+                  <p className="text-[11px] text-gray-500">{envModalTarget.provider}</p>
+                </div>
+              </div>
+              <button onClick={() => setEnvModalTarget(null)} className="rounded-xl p-2 text-gray-400 hover:bg-white/5 hover:text-white">✕</button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div className="flex items-center gap-2 rounded-xl bg-blue-500/5 border border-blue-500/20 px-3 py-2.5">
+                <Info className="h-3.5 w-3.5 text-blue-400 flex-shrink-0" />
+                <p className="text-xs text-blue-300">
+                  Esta chave é usada em todo o sistema para importar dados via {envModalTarget.provider}.
+                  {envModalTarget.configured && " Insira um novo valor para a substituir."}
+                </p>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-gray-300">Valor da chave *</label>
+                <div className="relative">
+                  <input
+                    type={envShowValue ? "text" : "password"}
+                    value={envKeyValue}
+                    onChange={(e) => setEnvKeyValue(e.target.value)}
+                    autoFocus
+                    className="input-dark w-full px-3 py-2 pr-10 text-sm font-mono"
+                    placeholder={envModalTarget.configured ? "Insira o novo valor" : "Insira a chave da API"}
+                  />
+                  <button onClick={() => setEnvShowValue(!envShowValue)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white">
+                    {envShowValue ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <p className="text-[10px] text-gray-600 font-mono">{envModalTarget.baseUrl}</p>
+            </div>
+
+            <div className="flex justify-end gap-3 border-t border-[#1E1E2A] p-5">
+              <button onClick={() => setEnvModalTarget(null)} className="rounded-xl border border-[#1E1E2A] px-4 py-2 text-sm text-gray-300 hover:text-white">
+                Cancelar
+              </button>
+              <button onClick={saveEnvKey} disabled={envSaving} className="rounded-xl bg-[#E50914] px-5 py-2 text-sm font-bold text-white hover:bg-[#B00000] disabled:opacity-60">
+                {envSaving ? "A guardar..." : "Guardar"}
+              </button>
+            </div>
           </div>
         </div>
       )}

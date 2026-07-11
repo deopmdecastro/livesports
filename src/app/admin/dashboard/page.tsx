@@ -73,8 +73,14 @@ function StatCard({
 }: StatCardProps) {
   const isPositive = growth >= 0;
   return (
-    <div className="stat-card p-5 hover:border-[#E50914]/20 transition-colors group">
-      <div className="mb-4 flex items-start justify-between">
+    <div
+      className="group relative overflow-hidden rounded-2xl border border-[#1E1E2A] bg-gradient-to-b from-[#12121B] to-[#0E0E16] p-5 transition-all hover:-translate-y-0.5 hover:border-[#2A2A3A] hover:shadow-[0_12px_32px_rgba(0,0,0,0.4)]"
+    >
+      <div
+        className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full blur-3xl opacity-20 transition-opacity group-hover:opacity-35"
+        style={{ background: accentColor }}
+      />
+      <div className="relative mb-4 flex items-start justify-between">
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{title}</p>
           <p className="mt-1 font-heading text-2xl font-black text-white">
@@ -84,13 +90,13 @@ function StatCard({
           {subtitle && <p className="mt-0.5 text-[10px] text-gray-600">{subtitle}</p>}
         </div>
         <div
-          className="flex h-10 w-10 items-center justify-center rounded-xl transition-transform group-hover:scale-110"
-          style={{ backgroundColor: `${accentColor}15` }}
+          className="flex h-11 w-11 items-center justify-center rounded-xl border transition-transform group-hover:scale-110"
+          style={{ backgroundColor: `${accentColor}15`, borderColor: `${accentColor}25` }}
         >
           <Icon className="h-5 w-5" style={{ color: accentColor }} />
         </div>
       </div>
-      <div className="flex items-center gap-1.5">
+      <div className="relative flex items-center gap-1.5">
         {isPositive
           ? <TrendingUp className="h-3.5 w-3.5 text-emerald-400" />
           : <TrendingDown className="h-3.5 w-3.5 text-red-400" />}
@@ -373,7 +379,7 @@ export default function DashboardPage() {
           </button>
           <Link
             href="/admin/lives/new"
-            className="flex items-center gap-2 rounded-xl bg-[#E50914] px-3 py-2 text-xs font-bold text-white hover:bg-[#B00000] transition-colors"
+            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#E50914] to-[#B00000] px-3 py-2 text-xs font-bold text-white shadow-lg shadow-[#E50914]/20 hover:shadow-[#E50914]/30 transition-shadow"
           >
             <Plus className="h-3.5 w-3.5" /> Nova Live
           </Link>
@@ -411,9 +417,11 @@ export default function DashboardPage() {
           { label: "CTR Global", value: `${overallCtr}%`, icon: BarChart3, color: "text-yellow-400" },
           { label: "Receita Total", value: formatCurrency(totalRevenue), icon: DollarSign, color: "text-purple-400" },
         ].map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="flex items-center gap-3 rounded-xl border border-[#1E1E2A] bg-[#0E0E16] px-4 py-3">
-            <Icon className={`h-4 w-4 flex-shrink-0 ${color}`} />
-            <div>
+          <div key={label} className="flex items-center gap-3 rounded-2xl border border-[#1E1E2A] bg-gradient-to-b from-[#12121B] to-[#0E0E16] px-4 py-3.5 transition-colors hover:border-[#2A2A3A]">
+            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-white/[0.03] border border-white/5">
+              <Icon className={`h-4 w-4 ${color}`} />
+            </div>
+            <div className="min-w-0">
               <p className="text-[10px] text-gray-600 uppercase tracking-wide">{label}</p>
               <p className={`text-sm font-black ${color}`}>{value}</p>
             </div>
@@ -782,9 +790,11 @@ export default function DashboardPage() {
           <Link
             key={href}
             href={href}
-            className="group flex items-center gap-3 rounded-xl border border-[#1E1E2A] bg-[#0E0E16] p-4 hover:border-[#E50914]/20 transition-all"
+            className="group flex items-center gap-3 rounded-2xl border border-[#1E1E2A] bg-gradient-to-b from-[#12121B] to-[#0E0E16] p-4 transition-all hover:-translate-y-0.5 hover:border-[#E50914]/25 hover:shadow-[0_8px_24px_rgba(0,0,0,0.35)]"
           >
-            <Icon className={`h-5 w-5 ${color} flex-shrink-0`} />
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-white/[0.03] border border-white/5 transition-transform group-hover:scale-110">
+              <Icon className={`h-5 w-5 ${color}`} />
+            </div>
             <div className="min-w-0">
               <p className="text-xs font-semibold text-white truncate">{label}</p>
               <p className="text-[10px] text-gray-600">{count} registos</p>

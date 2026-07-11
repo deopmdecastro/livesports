@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import axios from 'axios';
+import fs from 'fs';
+import path from 'path';
 import { authenticateToken, requireAdmin } from '../middleware/auth.middleware';
 import { prisma } from '../lib/prisma';
 
@@ -8,6 +10,65 @@ const router = Router();
 
 // All routes require admin
 router.use(authenticateToken, requireAdmin);
+
+// ── Env-backed API keys (API-Football, Football-Data.org, RapidAPI, TheSportsDB) ──
+// These providers are configured via process.env rather than the DB-backed
+// api_keys table. Editing them here updates the running process immediately
+// and persists the change to the backend .env file so it survives restarts.
+const ENV_KEY_META: Record<string, { name: string; envFile: string }> = {
+  API_FOOTBALL_KEY: { name: 'API-Football', envFile: 'API_FOOTBALL_KEY' },
+  FOOTBALL_DATA_API_TOKEN: { name: 'Football-Data.org', envFile: 'FOOTBALL_DATA_API_TOKEN' },
+  RAPIDAPI_KEY: { name: 'RapidAPI Live Streams', envFile: 'RAPIDAPI_KEY' },
+  THESPORTSDB_API_KEY: { name: 'TheSportsDB', envFile: 'THESPORTSDB_API_KEY' },
+};
+
+function persistEnvValue(key: string, value: string) {
+  const envPath = path.resolve(__dirname, '../../.env');
+  let contents = '';
+  try {
+    contents = fs.readFileSync(envPath, 'utf8');
+  } catch {
+    contents = '';
+  }
+  const line = `${key}=${value}`;
+  const pattern = new RegExp(`^${key}=.*$`, 'm');
+  if (pattern.test(contents)) {
+    contents = contents.replace(pattern, line);
+  } else {
+    contents = contents.length && !contents.endsWith('\n') ? `${contents}\n${line}\n` : `${contents}${line}\n`;
+  }
+  fs.writeFileSync(envPath, contents, 'utf8');
+}
+
+// PUT /api/api-keys/env/:envKey — update an environment-backed API key
+router.put('/env/:envKey', async (req, res, next) => {
+  try {
+    const { envKey } = req.params;
+    const meta = ENV_KEY_META[envKey];
+    if (!meta) {
+      res.status(400).json({ success: false, error: 'Chave de ambiente desconhecida' });
+      return;
+    }
+    const schema = z.object({ keyValue: z.string().trim().min(1, 'A chave não pode estar vazia') });
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ success: false, error: parsed.error.errors[0].message });
+      return;
+    }
+    const { keyValue } = parsed.data;
+    process.env[envKey] = keyValue;
+    try {
+      persistEnvValue(meta.envFile, keyValue);
+    } catch (writeErr) {
+      // Non-fatal: the running process still has the new value in memory
+      console.error('Falha ao persistir .env:', writeErr);
+    }
+    res.json({ success: true, data: { key: envKey, name: meta.name, configured: true } });
+  } catch (error) {
+    next(error);
+  }
+});
+
 
 const apiKeySchema = z.object({
   name: z.string().trim().min(1).max(200),
