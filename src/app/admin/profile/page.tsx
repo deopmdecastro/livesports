@@ -78,31 +78,33 @@ export default function AdminProfilePage() {
           <div className="absolute inset-0 bg-gradient-to-t from-[#0E0E16] to-transparent" />
         </div>
         <div className="px-6 pb-6">
-          <div className="flex items-end gap-4 -mt-14 mb-5">
-            <div className="relative w-24 h-24 rounded-2xl border-4 border-[#0E0E16] bg-gradient-to-br from-[#E50914] to-[#B00000] flex items-center justify-center text-4xl font-black text-white flex-shrink-0 shadow-2xl">
+          <div className="flex items-start gap-4 mb-5">
+            <div className="relative z-10 -mt-14 w-24 h-24 rounded-2xl border-4 border-[#0E0E16] bg-gradient-to-br from-[#E50914] to-[#B00000] flex items-center justify-center text-4xl font-black text-white flex-shrink-0 shadow-2xl">
               {profile.name?.slice(0, 1).toUpperCase() || "A"}
               <span className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-[#0E0E16] bg-emerald-500">
                 <span className="h-2 w-2 rounded-full bg-white" />
               </span>
             </div>
-            <div className="pb-1 flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-xl font-black text-white">{profile.name}</h1>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${ROLE_BADGES[profile.role] || "bg-gray-500/15 text-gray-400"}`}>
-                  {profile.role?.replace("_", " ").replace(/\b\w/g, (c) => c.toUpperCase())}
-                </span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
-                  {profile.status}
-                </span>
+            <div className="flex-1 min-w-0 pt-1 flex items-start justify-between gap-3 flex-wrap">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-xl font-black text-white">{profile.name}</h1>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${ROLE_BADGES[profile.role] || "bg-gray-500/15 text-gray-400"}`}>
+                    {profile.role?.replace("_", " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                  </span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
+                    {profile.status}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-400 mt-0.5 flex items-center gap-1.5">
+                  <Mail className="h-3.5 w-3.5 text-gray-600" /> {profile.email}
+                </p>
               </div>
-              <p className="text-sm text-gray-400 mt-0.5 flex items-center gap-1.5">
-                <Mail className="h-3.5 w-3.5 text-gray-600" /> {profile.email}
-              </p>
-            </div>
             <button onClick={() => setEditing(!editing)}
               className="flex items-center gap-1.5 rounded-xl border border-[#2A2A2A] bg-white/[0.02] px-4 py-2 text-sm text-gray-300 hover:text-white hover:border-[#E50914]/30 hover:bg-white/5 transition-all">
               {editing ? <><X className="h-4 w-4" /> Cancelar</> : <><Edit2 className="h-4 w-4" /> Editar</>}
             </button>
+            </div>
           </div>
 
           {editing ? (
