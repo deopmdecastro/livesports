@@ -172,13 +172,25 @@ export default function NewsPage() {
     }
   };
 
+  // Existing slugs (including the "-pt"/"-en" translated siblings) so re-opening the
+  // import panel or reloading the page doesn't lose track of what's already imported.
+  const existingSlugs = new Set(news.map((article) => article.slug));
+
   const fetchExternalNews = async () => {
     setImportLoading(true);
     setImportError(null);
     try {
       const params = new URLSearchParams({ q: importQuery || "sports", language: importLanguage, category: "sports" });
       const res = await apiRequest<{ items: ExternalNewsItem[] }>(`/news/external?${params.toString()}`);
-      setImportItems(res.items || []);
+      const items = res.items || [];
+      setImportItems(items);
+      setImportedIds((current) => {
+        const next = new Set(current);
+        items.forEach((item) => {
+          if (existingSlugs.has(item.slug)) next.add(item.id);
+        });
+        return next;
+      });
     } catch (error) {
       setImportError(error instanceof Error ? error.message : "Nao foi possivel obter noticias externas.");
       setImportItems([]);
@@ -195,7 +207,7 @@ export default function NewsPage() {
   const importExternalArticle = async (item: ExternalNewsItem) => {
     setImportingIds((current) => new Set(current).add(item.id));
     try {
-      const created = await apiRequest<NewsArticle>("/news/external/import", {
+      const created = await apiRequest<NewsArticle & { translationWarning?: string | null }>("/news/external/import", {
         method: "POST",
         body: JSON.stringify({
           title: item.title,
@@ -207,13 +219,31 @@ export default function NewsPage() {
           tags: item.tags,
           sourceUrl: item.sourceUrl,
           sourceName: item.sourceName,
+          language: item.language,
         }),
       });
       setNews((current) => [created, ...current]);
       setImportedIds((current) => new Set(current).add(item.id));
-      toast.success("Noticia importada como rascunho! Edita e publica quando quiseres.");
+      if (created.translationWarning) {
+        toast.error(created.translationWarning);
+      } else if (item.language === "pt" || item.language === "en") {
+        toast.success(
+          `Noticia importada como rascunho, com versao ${item.language === "pt" ? "Ingles" : "Portugues"} gerada automaticamente!`
+        );
+      } else {
+        toast.success("Noticia importada como rascunho! Edita e publica quando quiseres.");
+      }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel importar esta noticia.");
+      // A duplicate-slug 409 means this story was already imported previously
+      // (e.g. the "Importada" badge was lost after a page reload) — treat it
+      // as already-imported instead of a scary error.
+      const status = (error as { status?: number })?.status;
+      if (status === 409) {
+        setImportedIds((current) => new Set(current).add(item.id));
+        toast("Esta noticia ja tinha sido importada anteriormente.", { icon: "ℹ️" });
+      } else {
+        toast.error(error instanceof Error ? error.message : "Nao foi possivel importar esta noticia.");
+      }
     } finally {
       setImportingIds((current) => {
         const next = new Set(current);

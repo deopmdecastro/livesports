@@ -79,7 +79,7 @@ router.post('/', authenticateToken, requireEditor, async (req, res, next) => {
 
     res.status(201).json({ success: true, data: mapCategory(rows[0]) });
   } catch (error: any) {
-    if (error?.code === '23505') {
+    if (error?.code === '23505' || error?.meta?.code === '23505') {
       res.status(409).json({ success: false, error: 'Ja existe uma categoria com este nome ou slug' });
       return;
     }

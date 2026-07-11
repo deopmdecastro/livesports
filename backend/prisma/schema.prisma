@@ -297,6 +297,10 @@ model NewsArticle {
   metaTitle   String?
   metaDesc    String?
   ogImage     String?
+  language        String?        // 'pt' | 'en' | null (unknown / pre-dates this field)
+  translationOfId String?        @map("translation_of_id")
+  translationOf   NewsArticle?   @relation("NewsArticleTranslation", fields: [translationOfId], references: [id], onDelete: SetNull)
+  translations    NewsArticle[]  @relation("NewsArticleTranslation")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

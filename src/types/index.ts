@@ -284,6 +284,8 @@ export interface NewsArticle {
   featured: boolean;
   views: number;
   publishedAt?: string;
+  language?: string | null;
+  translationOfId?: string | null;
   createdAt: string;
   updatedAt: string;
   seo?: {

@@ -4,6 +4,16 @@ import { prisma } from '../lib/prisma';
 import { cached } from '../lib/cache';
 import { fetchNewsdataLatest, mapNewsdataArticle, isMissingNewsdataKey } from '../lib/newsdata';
 import { fetchNewsApiTopHeadlines, mapNewsApiArticle, isMissingNewsApiKey, NEWSAPI_LANGUAGE_COUNTRY } from '../lib/newsapi';
+import { isTranslatablePair, oppositeLanguage, translateArticleFields } from '../lib/translate';
+
+/** True when a Postgres/Prisma error is a unique-constraint violation (code 23505).
+ *  $queryRawUnsafe wraps raw DB errors in a PrismaClientKnownRequestError whose
+ *  OWN `.code` is always "P2010" ("raw query failed") — the real Postgres code
+ *  lives in `.meta.code` instead. Checking only `error.code` here silently
+ *  missed every duplicate-slug re-import and fell through to a 500. */
+function isUniqueViolation(error: any): boolean {
+  return error?.code === '23505' || error?.meta?.code === '23505';
+}
 
 const router = Router();
 
@@ -25,6 +35,8 @@ function mapNews(row: any) {
     metaTitle: row.meta_title,
     metaDesc: row.meta_desc,
     ogImage: row.og_image,
+    language: row.language,
+    translationOfId: row.translation_of_id,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -33,7 +45,8 @@ function mapNews(row: any) {
 const selectNewsSql = `
   SELECT n.id, n.title, n.slug, n.excerpt, n.content, n.thumbnail, n.sport::text, n.tags, n.author_id,
     u.name AS author_name,
-    n.published, n.featured, n.views, n.published_at, n.meta_title, n.meta_desc, n.og_image, n.created_at, n.updated_at
+    n.published, n.featured, n.views, n.published_at, n.meta_title, n.meta_desc, n.og_image,
+    n.language, n.translation_of_id, n.created_at, n.updated_at
   FROM "news_articles" n
   LEFT JOIN "users" u ON u.id = n.author_id
 `;
@@ -191,7 +204,66 @@ router.get('/external', async (req, res, next) => {
   }
 });
 
-// POST /external/import — copy an external article into the blog as an editable draft
+async function insertNewsArticle(params: {
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  content: string;
+  thumbnail: string | null;
+  sport: string;
+  tags: string[];
+  authorId: string;
+  language: string | null;
+  translationOfId: string | null;
+}): Promise<any[]> {
+  return prisma.$queryRawUnsafe<any[]>(
+    `
+      INSERT INTO "news_articles" (
+        title, slug, excerpt, content, thumbnail, sport, tags, author_id,
+        published, featured, published_at, meta_title, meta_desc, og_image, language, translation_of_id
+      )
+      VALUES (
+        $1, $2, $3, $4, $5, $6::sport_category, $7, $8,
+        FALSE, FALSE, NULL, $9, $10, $11, $12, $13
+      )
+      RETURNING id
+    `,
+    params.title,
+    params.slug,
+    params.excerpt,
+    params.content,
+    params.thumbnail,
+    params.sport,
+    params.tags,
+    params.authorId,
+    params.title,
+    params.excerpt,
+    params.thumbnail,
+    params.language,
+    params.translationOfId
+  );
+}
+
+/** Appends a numeric suffix until the slug is free, so translated siblings never collide. */
+async function uniqueSlug(baseSlug: string): Promise<string> {
+  let candidate = baseSlug;
+  let attempt = 1;
+  // Small bound — this only loops in the (rare) case of repeated re-imports of the same story.
+  while (attempt < 50) {
+    const existing = await prisma.$queryRawUnsafe<any[]>(
+      `SELECT id FROM "news_articles" WHERE slug = $1 LIMIT 1`,
+      candidate
+    );
+    if (!existing[0]) return candidate;
+    attempt += 1;
+    candidate = `${baseSlug}-${attempt}`;
+  }
+  return `${baseSlug}-${Date.now()}`;
+}
+
+// POST /external/import — copy an external article into the blog as an editable draft.
+// If the source language is PT or EN, also auto-generates the opposite-language
+// version (via MyMemory translation) as a second linked draft.
 router.post('/external/import', authenticateToken, requireEditor, async (req: AuthRequest, res, next) => {
   try {
     const body = req.body || {};
@@ -209,37 +281,73 @@ router.post('/external/import', authenticateToken, requireEditor, async (req: Au
       ? `<p><em>Fonte: <a href="${body.sourceUrl}" target="_blank" rel="noopener noreferrer">${body.sourceName || body.sourceUrl}</a></em></p>`
       : '';
     const content = `${body.content || body.excerpt || ''}${sourceNote}`;
+    const sourceLanguage = String(body.language || '').trim().toLowerCase();
+    const sport = body.sport || 'other';
+    const tags = Array.isArray(body.tags) ? body.tags : [];
 
-    const inserted = await prisma.$queryRawUnsafe<any[]>(
-      `
-        INSERT INTO "news_articles" (
-          title, slug, excerpt, content, thumbnail, sport, tags, author_id,
-          published, featured, published_at, meta_title, meta_desc, og_image
-        )
-        VALUES (
-          $1, $2, $3, $4, $5, $6::sport_category, $7, $8,
-          FALSE, FALSE, NULL, $9, $10, $11
-        )
-        RETURNING id
-      `,
-      body.title.trim(),
-      slug,
-      body.excerpt || null,
-      content,
-      body.thumbnail || null,
-      body.sport || 'other',
-      Array.isArray(body.tags) ? body.tags : [],
-      req.user!.id,
-      body.title.trim(),
-      body.excerpt || null,
-      body.thumbnail || null
-    );
+    let inserted: any[];
+    try {
+      inserted = await insertNewsArticle({
+        title: body.title.trim(),
+        slug,
+        excerpt: body.excerpt || null,
+        content,
+        thumbnail: body.thumbnail || null,
+        sport,
+        tags,
+        authorId: req.user!.id,
+        language: isTranslatablePair(sourceLanguage) ? sourceLanguage : null,
+        translationOfId: null,
+      });
+    } catch (error: any) {
+      if (isUniqueViolation(error)) {
+        res.status(409).json({ success: false, error: 'Ja existe uma noticia com este slug (provavelmente ja foi importada)' });
+        return;
+      }
+      throw error;
+    }
 
-    const rows = await prisma.$queryRawUnsafe<any[]>(`${selectNewsSql} WHERE n.id = $1`, inserted[0].id);
-    res.status(201).json({ success: true, data: mapNews(rows[0]) });
+    const primaryId = inserted[0].id;
+    let translationWarning: string | null = null;
+
+    // Auto-translate to the opposite language when we know the source is PT/EN.
+    if (isTranslatablePair(sourceLanguage)) {
+      const targetLanguage = oppositeLanguage(sourceLanguage);
+      try {
+        const translated = await translateArticleFields(
+          { title: body.title.trim(), excerpt: body.excerpt || null, content: body.content || body.excerpt || '' },
+          sourceLanguage,
+          targetLanguage
+        );
+        const translatedSlugBase = `${slug}-${targetLanguage}`;
+        const translatedSlug = await uniqueSlug(translatedSlugBase);
+        const translatedSourceNote = body.sourceUrl
+          ? `<p><em>Fonte: <a href="${body.sourceUrl}" target="_blank" rel="noopener noreferrer">${body.sourceName || body.sourceUrl}</a></em> — ${targetLanguage === 'pt' ? 'traduzido automaticamente do ingles' : 'auto-translated from Portuguese'}</p>`
+          : '';
+
+        await insertNewsArticle({
+          title: translated.title,
+          slug: translatedSlug,
+          excerpt: translated.excerpt || null,
+          content: `${translated.content || ''}${translatedSourceNote}`,
+          thumbnail: body.thumbnail || null,
+          sport,
+          tags: [...tags, targetLanguage === 'pt' ? 'traduzido-pt' : 'auto-translated-en'],
+          authorId: req.user!.id,
+          language: targetLanguage,
+          translationOfId: primaryId,
+        });
+      } catch (translationError: any) {
+        console.error('Auto-translation failed for imported article:', translationError?.message || translationError);
+        translationWarning = `Noticia importada, mas a traducao automatica para ${targetLanguage === 'pt' ? 'Portugues' : 'Ingles'} falhou. Podes traduzir manualmente.`;
+      }
+    }
+
+    const rows = await prisma.$queryRawUnsafe<any[]>(`${selectNewsSql} WHERE n.id = $1`, primaryId);
+    res.status(201).json({ success: true, data: mapNews(rows[0]), translationWarning });
   } catch (error: any) {
-    if (error?.code === '23505') {
-      res.status(409).json({ success: false, error: 'Ja existe uma noticia com este slug (talvez ja tenha sido importada)' });
+    if (isUniqueViolation(error)) {
+      res.status(409).json({ success: false, error: 'Ja existe uma noticia com este slug (provavelmente ja foi importada)' });
       return;
     }
     next(error);
@@ -309,7 +417,7 @@ router.post('/', authenticateToken, requireEditor, async (req: AuthRequest, res,
     const rows = await prisma.$queryRawUnsafe<any[]>(`${selectNewsSql} WHERE n.id = $1`, inserted[0].id);
     res.status(201).json({ success: true, data: mapNews(rows[0]) });
   } catch (error: any) {
-    if (error?.code === '23505') {
+    if (isUniqueViolation(error)) {
       res.status(409).json({ success: false, error: 'Ja existe uma noticia com este slug' });
       return;
     }
