@@ -50,6 +50,7 @@ services:
       - API_FOOTBALL_KEY=${API_FOOTBALL_KEY:-}
       - RAPIDAPI_KEY=${RAPIDAPI_KEY:-}
       - NEWSDATA_API_KEY=${NEWSDATA_API_KEY:-}
+      - NEWSAPI_KEY=${NEWSAPI_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy

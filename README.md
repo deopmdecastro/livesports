@@ -197,13 +197,17 @@ POST   /api/news                     # Criar artigo (editor+)
 PUT    /api/news/:id                 # Atualizar (editor+)
 DELETE /api/news/:id                 # Remover (editor+)
 
-GET    /api/news/external            # Notícias de desporto ao vivo via NewsData.io (PT + EN)
-                                      # query: q, language (ex: "pt,en"), category, country, page
+GET    /api/news/external            # Noticias de desporto (apenas categoria sports) via
+                                      # NewsData.io + NewsAPI.org, combinadas em PT + EN
+                                      # query: q, language (ex: "pt,en"), country, page
 POST   /api/news/external/import     # Importa um artigo externo como rascunho no blog (editor+)
 ```
-Requer `NEWSDATA_API_KEY` (grátis em https://newsdata.io/register), configurável em
-`Admin → API Keys` ou diretamente no `.env`. Sem a chave, `/api/news/external` responde 400
-e o resto do blog continua a funcionar normalmente com os artigos já cadastrados.
+Usa `NEWSDATA_API_KEY` (grátis em https://newsdata.io/register) e/ou `NEWSAPI_KEY`
+(grátis em https://newsapi.org/register), configuráveis em `Admin → API Keys` ou
+diretamente no `.env`. Ambas as integrações estão fixas em notícias desportivas —
+o endpoint nunca devolve outras categorias. Funciona com apenas uma das duas chaves
+configurada; sem nenhuma, `/api/news/external` responde 400 e o resto do blog
+continua a funcionar normalmente com os artigos já cadastrados.
 
 ---
 

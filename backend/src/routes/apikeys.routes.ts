@@ -21,6 +21,7 @@ const ENV_KEY_META: Record<string, { name: string; envFile: string }> = {
   RAPIDAPI_KEY: { name: 'RapidAPI Live Streams', envFile: 'RAPIDAPI_KEY' },
   THESPORTSDB_API_KEY: { name: 'TheSportsDB', envFile: 'THESPORTSDB_API_KEY' },
   NEWSDATA_API_KEY: { name: 'NewsData.io', envFile: 'NEWSDATA_API_KEY' },
+  NEWSAPI_KEY: { name: 'NewsAPI.org', envFile: 'NEWSAPI_KEY' },
 };
 
 function persistEnvValue(key: string, value: string) {
@@ -170,6 +171,14 @@ router.get('/discovery', async (_req, res, next) => {
         baseUrl: 'https://newsdata.io/api/1',
         usageTypes: ['news'],
         configured: !!process.env.NEWSDATA_API_KEY && process.env.NEWSDATA_API_KEY !== 'your-newsdata-api-key',
+      },
+      {
+        key: 'NEWSAPI_KEY',
+        name: 'NewsAPI.org',
+        provider: 'newsapi.org',
+        baseUrl: 'https://newsapi.org/v2',
+        usageTypes: ['news'],
+        configured: !!process.env.NEWSAPI_KEY && process.env.NEWSAPI_KEY !== 'your-newsapi-key',
       },
     ];
 

@@ -47,6 +47,7 @@ interface ExternalNewsItem {
   language: string | null;
   country: string[];
   publishedAt: string | null;
+  provider?: "newsdata" | "newsapi";
 }
 
 const emptyForm = {
@@ -385,6 +386,11 @@ export default function NewsPage() {
                           <p className="mt-1 flex items-center gap-1.5 text-[10px] text-gray-500">
                             {item.sourceName || "Fonte desconhecida"}
                             {item.language ? <span className="rounded bg-white/5 px-1.5 py-0.5 uppercase">{item.language}</span> : null}
+                            {item.provider ? (
+                              <span className="rounded bg-red-500/10 px-1.5 py-0.5 text-red-300">
+                                {item.provider === "newsdata" ? "NewsData.io" : "NewsAPI.org"}
+                              </span>
+                            ) : null}
                           </p>
                           <div className="mt-2 flex items-center justify-between">
                             <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] text-gray-500 hover:text-gray-300 underline">Ver original</a>

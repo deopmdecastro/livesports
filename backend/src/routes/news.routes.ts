@@ -3,6 +3,7 @@ import { authenticateToken, requireEditor, AuthRequest } from '../middleware/aut
 import { prisma } from '../lib/prisma';
 import { cached } from '../lib/cache';
 import { fetchNewsdataLatest, mapNewsdataArticle, isMissingNewsdataKey } from '../lib/newsdata';
+import { fetchNewsApiTopHeadlines, mapNewsApiArticle, isMissingNewsApiKey, NEWSAPI_LANGUAGE_COUNTRY } from '../lib/newsapi';
 
 const router = Router();
 
@@ -93,45 +94,97 @@ router.get('/', async (req: AuthRequest, res, next) => {
 // Placed before `/:id` so the literal "external" segment isn't swallowed by
 // the id/slug lookup route below.
 
-// GET /external — live sports headlines in Portuguese and/or English
+// GET /external — live sports headlines in Portuguese and/or English, merged
+// from NewsData.io and NewsAPI.org. Both providers are locked to sports-only
+// content: this endpoint exists exclusively to feed the blog's "import news"
+// panel, never general-purpose news.
 router.get('/external', async (req, res, next) => {
   try {
-    const apiKey = process.env.NEWSDATA_API_KEY;
-    if (isMissingNewsdataKey(apiKey)) {
+    const newsdataKey = process.env.NEWSDATA_API_KEY;
+    const newsapiKey = process.env.NEWSAPI_KEY;
+    const hasNewsdata = !isMissingNewsdataKey(newsdataKey);
+    const hasNewsapi = !isMissingNewsApiKey(newsapiKey);
+
+    if (!hasNewsdata && !hasNewsapi) {
       res.status(400).json({
         success: false,
-        error: 'NEWSDATA_API_KEY nao configurada. Define a chave em Admin > API Keys.',
+        error: 'Nenhuma API de noticias configurada. Define NEWSDATA_API_KEY e/ou NEWSAPI_KEY em Admin > API Keys.',
       });
       return;
     }
 
-    const { q, language = 'pt,en', category = 'sports', country, page } = req.query as Record<string, string | undefined>;
+    const { q, language = 'pt,en', country, page } = req.query as Record<string, string | undefined>;
+    const languages = language.split(',').map((l) => l.trim().toLowerCase()).filter(Boolean);
 
-    const cacheKey = `newsdata:${q || ''}:${language}:${category}:${country || ''}:${page || ''}`;
-    const data = await cached(cacheKey, 10 * 60 * 1000, () =>
-      fetchNewsdataLatest({ apiKey: apiKey!, q, language, category, country, page })
-    );
+    const tasks: Promise<any[]>[] = [];
 
-    if (data.status !== 'success') {
-      res.status(502).json({ success: false, error: 'Nao foi possivel obter noticias externas de momento.' });
-      return;
+    if (hasNewsdata) {
+      const cacheKey = `newsdata:${q || ''}:${language}:sports:${country || ''}:${page || ''}`;
+      tasks.push(
+        cached(cacheKey, 10 * 60 * 1000, () =>
+          fetchNewsdataLatest({ apiKey: newsdataKey!, q, language, category: 'sports', country, page })
+        )
+          .then((data) => (data.status === 'success' ? (data.results || []).map(mapNewsdataArticle) : []))
+          .catch((err) => {
+            console.error('NewsData.io fetch failed:', err?.message || err);
+            return [];
+          })
+      );
     }
+
+    if (hasNewsapi) {
+      // top-headlines takes a single country per request (no language param),
+      // so we fan out one request per requested language and merge results.
+      const targetCountries = Array.from(
+        new Set(languages.map((l) => NEWSAPI_LANGUAGE_COUNTRY[l]).filter(Boolean))
+      );
+      const countries = targetCountries.length ? targetCountries : ['us'];
+
+      countries.forEach((countryCode) => {
+        const lang = countryCode === 'pt' ? 'pt' : 'en';
+        const cacheKey = `newsapi:${q || ''}:${countryCode}:${page || ''}`;
+        tasks.push(
+          cached(cacheKey, 10 * 60 * 1000, () =>
+            fetchNewsApiTopHeadlines({ apiKey: newsapiKey!, country: countryCode, q, page: page ? Number(page) : undefined })
+          )
+            .then((data) => (data.status === 'ok' ? (data.articles || []).map((a) => mapNewsApiArticle(a, lang)) : []))
+            .catch((err) => {
+              console.error('NewsAPI.org fetch failed:', err?.message || err);
+              return [];
+            })
+        );
+      });
+    }
+
+    const settled = await Promise.all(tasks);
+    const merged = settled.flat();
+
+    // Dedupe (both providers can surface the same wire story) and sort newest first.
+    const seen = new Set<string>();
+    const items = merged
+      .filter((item) => {
+        const key = item.sourceUrl || item.title;
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .sort((a, b) => new Date(b.publishedAt || 0).getTime() - new Date(a.publishedAt || 0).getTime());
 
     res.json({
       success: true,
       data: {
-        items: (data.results || []).map(mapNewsdataArticle),
-        nextPage: data.nextPage || null,
-        totalResults: data.totalResults ?? data.results?.length ?? 0,
+        items,
+        totalResults: items.length,
+        providers: { newsdata: hasNewsdata, newsapi: hasNewsapi },
       },
     });
   } catch (error: any) {
     if (error?.response?.status === 429) {
-      res.status(429).json({ success: false, error: 'Limite de pedidos da NewsData.io atingido. Tenta novamente mais tarde.' });
+      res.status(429).json({ success: false, error: 'Limite de pedidos atingido numa das APIs de noticias. Tenta novamente mais tarde.' });
       return;
     }
     if (error?.response?.status === 401 || error?.response?.status === 403) {
-      res.status(502).json({ success: false, error: 'Chave da NewsData.io invalida ou sem permissoes.' });
+      res.status(502).json({ success: false, error: 'Uma das chaves de API de noticias e invalida ou sem permissoes.' });
       return;
     }
     next(error);

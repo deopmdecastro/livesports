@@ -121,6 +121,7 @@ export function mapNewsdataArticle(article: NewsdataArticle) {
     language: article.language || null,
     country: article.country || [],
     publishedAt: article.pubDate || null,
+    provider: 'newsdata' as const,
   };
 }
 

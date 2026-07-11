@@ -137,6 +137,18 @@ const PROVIDER_CATALOGUE = [
     defaultUsageTypes: ["news"],
   },
   {
+    id: "newsapi",
+    label: "NewsAPI.org",
+    logo: "🗞️",
+    category: "news" as const,
+    url: "https://newsapi.org/docs",
+    description: "Manchetes desportivas (top-headlines, categoria fixa em sports)",
+    keyLabel: "X-Api-Key",
+    secretLabel: "",
+    baseUrl: "https://newsapi.org/v2",
+    defaultUsageTypes: ["news"],
+  },
+  {
     id: "custom",
     label: "Provedor Personalizado",
     logo: "🔧",
