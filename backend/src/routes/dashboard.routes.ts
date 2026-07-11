@@ -142,4 +142,168 @@ router.get('/charts/devices', authenticateToken, requireAdmin, async (_req, res,
   }
 });
 
+router.get('/operations', authenticateToken, requireAdmin, async (_req, res, next) => {
+  try {
+    const [notificationSummaryRows, recentNotifications, logsSummaryRows, recentLogs, apiKeys, supportSummaryRows, recentTickets, liveRows, eventRows] = await Promise.all([
+      prisma.$queryRawUnsafe<any[]>(`
+        SELECT
+          COUNT(*)::bigint AS total,
+          COUNT(*) FILTER (WHERE read = false)::bigint AS unread,
+          COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '24 hours')::bigint AS last_24h
+        FROM "notifications"
+      `).catch(() => [{ total: 0, unread: 0, last_24h: 0 }]),
+      prisma.$queryRawUnsafe<any[]>(`
+        SELECT n.id, n.type::text AS type, n.title, n.message, n.read, n.created_at, u.name AS user_name
+        FROM "notifications" n
+        LEFT JOIN "users" u ON u.id = n.user_id
+        ORDER BY n.created_at DESC
+        LIMIT 5
+      `).catch(() => []),
+      prisma.$queryRawUnsafe<any[]>(`
+        SELECT
+          COUNT(*)::bigint AS total,
+          COUNT(*) FILTER (WHERE level = 'error')::bigint AS errors,
+          COUNT(*) FILTER (WHERE level = 'warn')::bigint AS warnings,
+          COUNT(*) FILTER (WHERE level = 'fatal')::bigint AS fatals,
+          COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '24 hours')::bigint AS last_24h
+        FROM "system_logs"
+      `).catch(() => [{ total: 0, errors: 0, warnings: 0, fatals: 0, last_24h: 0 }]),
+      prisma.$queryRawUnsafe<any[]>(`
+        SELECT id, level::text AS level, service::text AS service, message, created_at
+        FROM "system_logs"
+        WHERE level IN ('warn', 'error', 'fatal')
+        ORDER BY created_at DESC
+        LIMIT 6
+      `).catch(() => []),
+      prisma.$queryRawUnsafe<any[]>(`
+        SELECT id, name, provider, requests_used, request_limit, error_count, last_used_at, status::text AS status
+        FROM "api_keys"
+        ORDER BY error_count DESC, requests_used DESC
+        LIMIT 8
+      `).catch(() => []),
+      prisma.$queryRawUnsafe<any[]>(`
+        SELECT
+          COUNT(*)::bigint AS total,
+          COUNT(*) FILTER (WHERE status = 'open')::bigint AS open,
+          COUNT(*) FILTER (WHERE status = 'pending')::bigint AS pending,
+          COUNT(*) FILTER (WHERE priority = 'critical')::bigint AS critical
+        FROM "support_tickets"
+      `).catch(() => [{ total: 0, open: 0, pending: 0, critical: 0 }]),
+      prisma.$queryRawUnsafe<any[]>(`
+        SELECT t.id, t.subject, t.status::text AS status, t.priority::text AS priority, t.created_at, u.name AS user_name
+        FROM "support_tickets" t
+        LEFT JOIN "users" u ON u.id = t.user_id
+        ORDER BY t.created_at DESC
+        LIMIT 5
+      `).catch(() => []),
+      prisma.$queryRawUnsafe<any[]>(`
+        SELECT
+          COUNT(*)::bigint AS total,
+          COUNT(*) FILTER (WHERE status = 'live')::bigint AS live_now,
+          COUNT(*) FILTER (WHERE status = 'scheduled')::bigint AS scheduled,
+          COUNT(*) FILTER (WHERE status = 'ended')::bigint AS ended,
+          COALESCE(SUM(viewer_count), 0)::bigint AS viewers_now
+        FROM "lives"
+      `).catch(() => [{ total: 0, live_now: 0, scheduled: 0, ended: 0, viewers_now: 0 }]),
+      prisma.$queryRawUnsafe<any[]>(`
+        SELECT
+          COUNT(*)::bigint AS total,
+          COUNT(*) FILTER (WHERE status = 'live')::bigint AS live_now,
+          COUNT(*) FILTER (WHERE status = 'upcoming')::bigint AS upcoming,
+          COUNT(*) FILTER (WHERE status = 'finished')::bigint AS finished
+        FROM "events"
+      `).catch(() => [{ total: 0, live_now: 0, upcoming: 0, finished: 0 }]),
+    ]);
+
+    const notificationSummary = notificationSummaryRows[0] || {};
+    const logsSummary = logsSummaryRows[0] || {};
+    const supportSummary = supportSummaryRows[0] || {};
+    const liveSummary = liveRows[0] || {};
+    const eventSummary = eventRows[0] || {};
+
+    res.json({
+      success: true,
+      data: {
+        notifications: {
+          total: Number(notificationSummary.total || 0),
+          unread: Number(notificationSummary.unread || 0),
+          last24h: Number(notificationSummary.last_24h || 0),
+          recent: recentNotifications.map((item) => ({
+            id: item.id,
+            type: item.type,
+            title: item.title,
+            message: item.message,
+            read: item.read,
+            userName: item.user_name,
+            createdAt: item.created_at,
+          })),
+        },
+        logs: {
+          total: Number(logsSummary.total || 0),
+          errors: Number(logsSummary.errors || 0),
+          warnings: Number(logsSummary.warnings || 0),
+          fatals: Number(logsSummary.fatals || 0),
+          last24h: Number(logsSummary.last_24h || 0),
+          recent: recentLogs.map((item) => ({
+            id: item.id,
+            level: item.level,
+            service: item.service,
+            message: item.message,
+            createdAt: item.created_at,
+          })),
+        },
+        apis: {
+          configured: apiKeys.length,
+          failing: apiKeys.filter((key) => Number(key.error_count || 0) > 0 || key.status !== 'active').length,
+          exhausted: apiKeys.filter((key) => Number(key.request_limit || 0) > 0 && Number(key.requests_used || 0) >= Number(key.request_limit || 0)).length,
+          recent: apiKeys.map((key) => ({
+            id: key.id,
+            name: key.name,
+            provider: key.provider,
+            requestsUsed: Number(key.requests_used || 0),
+            requestLimit: key.request_limit ? Number(key.request_limit) : null,
+            errorCount: Number(key.error_count || 0),
+            lastUsedAt: key.last_used_at,
+            status: key.status,
+          })),
+        },
+        support: {
+          total: Number(supportSummary.total || 0),
+          open: Number(supportSummary.open || 0),
+          pending: Number(supportSummary.pending || 0),
+          critical: Number(supportSummary.critical || 0),
+          recent: recentTickets.map((ticket) => ({
+            id: ticket.id,
+            subject: ticket.subject,
+            status: ticket.status,
+            priority: ticket.priority,
+            userName: ticket.user_name,
+            createdAt: ticket.created_at,
+          })),
+        },
+        lives: {
+          total: Number(liveSummary.total || 0),
+          liveNow: Number(liveSummary.live_now || 0),
+          scheduled: Number(liveSummary.scheduled || 0),
+          ended: Number(liveSummary.ended || 0),
+          viewersNow: Number(liveSummary.viewers_now || 0),
+        },
+        events: {
+          total: Number(eventSummary.total || 0),
+          liveNow: Number(eventSummary.live_now || 0),
+          upcoming: Number(eventSummary.upcoming || 0),
+          finished: Number(eventSummary.finished || 0),
+        },
+      },
+    });
+  } catch (error: any) {
+    console.error('[DB ERROR] GET /api/dashboard/operations', {
+      message: error?.message,
+      code: error?.code,
+      stack: process.env.NODE_ENV !== 'production' ? error?.stack : undefined,
+    });
+    next(error);
+  }
+});
+
 export default router;

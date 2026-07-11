@@ -5,7 +5,8 @@ import React from "react";
 import {
   Users, Radio, Eye, DollarSign, TrendingUp, TrendingDown,
   ArrowUpRight, Plus, Edit2, Trash2, AlertCircle, Activity,
-  MousePointerClick, BarChart3, RefreshCw, Zap, Clock,
+  MousePointerClick, BarChart3, RefreshCw, Zap, Clock, Bell,
+  ScrollText, HeadphonesIcon, WifiOff,
 } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -28,6 +29,58 @@ const emptyStats: DashboardStats = {
 };
 
 const emptyDevices: DeviceStats = { mobile: 0, desktop: 0, smartTv: 0, tablet: 0 };
+
+interface DashboardOperations {
+  notifications: {
+    total: number;
+    unread: number;
+    last24h: number;
+    recent: Array<{ id: string; type: string; title: string; message?: string; userName?: string; createdAt: string; }>;
+  };
+  logs: {
+    total: number;
+    errors: number;
+    warnings: number;
+    fatals: number;
+    last24h: number;
+    recent: Array<{ id: string; level: string; service: string; message: string; createdAt: string; }>;
+  };
+  apis: {
+    configured: number;
+    failing: number;
+    exhausted: number;
+    recent: Array<{ id: string; name: string; provider: string; requestsUsed: number; requestLimit: number | null; errorCount: number; status: string; }>;
+  };
+  support: {
+    total: number;
+    open: number;
+    pending: number;
+    critical: number;
+    recent: Array<{ id: string; subject: string; status: string; priority: string; userName?: string; createdAt: string; }>;
+  };
+  lives: {
+    total: number;
+    liveNow: number;
+    scheduled: number;
+    ended: number;
+    viewersNow: number;
+  };
+  events: {
+    total: number;
+    liveNow: number;
+    upcoming: number;
+    finished: number;
+  };
+}
+
+const emptyOperations: DashboardOperations = {
+  notifications: { total: 0, unread: 0, last24h: 0, recent: [] },
+  logs: { total: 0, errors: 0, warnings: 0, fatals: 0, last24h: 0, recent: [] },
+  apis: { configured: 0, failing: 0, exhausted: 0, recent: [] },
+  support: { total: 0, open: 0, pending: 0, critical: 0, recent: [] },
+  lives: { total: 0, liveNow: 0, scheduled: 0, ended: 0, viewersNow: 0 },
+  events: { total: 0, liveNow: 0, upcoming: 0, finished: 0 },
+};
 
 // ─── Skeleton loader ───────────────────────────────────────────────────────────
 
@@ -176,6 +229,7 @@ export default function DashboardPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [ads, setAds] = useState<Ad[]>([]);
+  const [operations, setOperations] = useState<DashboardOperations>(emptyOperations);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
@@ -187,7 +241,7 @@ export default function DashboardPage() {
 
     try {
       setError("");
-      const [statsData, chartData, deviceData, livesData, eventsData, usersData, adsData] =
+      const [statsData, chartData, deviceData, livesData, eventsData, usersData, adsData, operationsData] =
         await Promise.all([
           apiRequest<DashboardStats>("/dashboard/stats"),
           apiRequest<ViewsChartData[]>("/dashboard/charts/views"),
@@ -196,6 +250,7 @@ export default function DashboardPage() {
           apiRequest<Event[]>("/events"),
           apiRequest<ApiListResponse<User>>("/users?limit=100"),
           apiRequest<Ad[]>("/ads"),
+          apiRequest<DashboardOperations>("/dashboard/operations"),
         ]);
 
       setStats(statsData);
@@ -205,6 +260,7 @@ export default function DashboardPage() {
       setEvents(Array.isArray(eventsData) ? eventsData : []);
       setUsers(usersData.items || []);
       setAds(Array.isArray(adsData) ? adsData : []);
+      setOperations(operationsData || emptyOperations);
       setLastUpdated(new Date());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Nao foi possivel carregar o dashboard.");
@@ -775,6 +831,78 @@ export default function DashboardPage() {
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Operações em tempo real ─────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 gap-4 xl:grid-cols-6">
+        {[
+          { label: "Notificações", value: operations.notifications.total, note: `${operations.notifications.unread} não lidas`, icon: Bell, color: "text-[#E50914]" },
+          { label: "Logs críticos", value: operations.logs.errors + operations.logs.fatals, note: `${operations.logs.warnings} warnings`, icon: ScrollText, color: "text-red-400" },
+          { label: "APIs com falha", value: operations.apis.failing, note: `${operations.apis.exhausted} esgotadas`, icon: WifiOff, color: "text-orange-300" },
+          { label: "Tickets abertos", value: operations.support.open, note: `${operations.support.pending} pendentes`, icon: HeadphonesIcon, color: "text-violet-300" },
+          { label: "Lives agora", value: operations.lives.liveNow, note: `${formatNumber(operations.lives.viewersNow)} viewers`, icon: Radio, color: "text-[#E50914]" },
+          { label: "Eventos ativos", value: operations.events.liveNow, note: `${operations.events.upcoming} próximos`, icon: Zap, color: "text-emerald-400" },
+        ].map(({ label, value, note, icon: Icon, color }) => (
+          <div key={label} className="rounded-2xl border border-[#1E1E2A] bg-gradient-to-b from-[#12121B] to-[#0E0E16] p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-[10px] uppercase tracking-wide text-gray-500">{label}</p>
+              <Icon className={`h-4 w-4 ${color}`} />
+            </div>
+            <p className={`text-2xl font-black ${color}`}>{formatNumber(value)}</p>
+            <p className="mt-1 text-[10px] text-gray-600">{note}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <div className="overflow-hidden rounded-xl border border-[#1E1E2A] bg-[#0E0E16]">
+          <div className="flex items-center justify-between border-b border-[#1E1E2A] p-4">
+            <h3 className="flex items-center gap-2 text-sm font-bold text-white"><Bell className="h-3.5 w-3.5 text-[#E50914]" /> Notificações recentes</h3>
+            <Link href="/admin/notifications" className="text-xs text-[#E50914] hover:underline">Ver painel</Link>
+          </div>
+          <div className="divide-y divide-[#1A1A2A]">
+            {operations.notifications.recent.length > 0 ? operations.notifications.recent.map((item) => (
+              <div key={item.id} className="p-3 hover:bg-white/[0.02]">
+                <p className="text-xs font-semibold text-white">{item.title}</p>
+                <p className="mt-0.5 line-clamp-2 text-[10px] text-gray-500">{item.message || "Sem mensagem"}</p>
+                <p className="mt-1 text-[10px] text-gray-600">{item.userName || "Sistema"} · {formatRelativeTime(item.createdAt)}</p>
+              </div>
+            )) : <div className="p-6 text-center text-sm text-gray-600">Sem notificações recentes</div>}
+          </div>
+        </div>
+
+        <div className="overflow-hidden rounded-xl border border-[#1E1E2A] bg-[#0E0E16]">
+          <div className="flex items-center justify-between border-b border-[#1E1E2A] p-4">
+            <h3 className="flex items-center gap-2 text-sm font-bold text-white"><ScrollText className="h-3.5 w-3.5 text-yellow-300" /> Falhas e avisos</h3>
+            <Link href="/admin/logs" className="text-xs text-[#E50914] hover:underline">Abrir logs</Link>
+          </div>
+          <div className="divide-y divide-[#1A1A2A]">
+            {operations.logs.recent.length > 0 ? operations.logs.recent.map((item) => (
+              <div key={item.id} className="p-3 hover:bg-white/[0.02]">
+                <div className="flex items-center justify-between gap-2">
+                  <span className={`text-[10px] font-bold uppercase ${item.level === "fatal" || item.level === "error" ? "text-red-400" : "text-yellow-300"}`}>{item.level}</span>
+                  <span className="text-[10px] text-gray-600">{item.service}</span>
+                </div>
+                <p className="mt-1 line-clamp-2 text-xs text-gray-300">{item.message}</p>
+                <p className="mt-1 text-[10px] text-gray-600">{formatRelativeTime(item.createdAt)}</p>
+              </div>
+            )) : <div className="p-6 text-center text-sm text-gray-600">Sem falhas recentes</div>}
+          </div>
+        </div>
+
+        <div className="overflow-hidden rounded-xl border border-[#1E1E2A] bg-[#0E0E16]">
+          <div className="flex items-center justify-between border-b border-[#1E1E2A] p-4">
+            <h3 className="flex items-center gap-2 text-sm font-bold text-white"><HeadphonesIcon className="h-3.5 w-3.5 text-violet-300" /> Suporte e APIs</h3>
+            <Link href="/admin/support" className="text-xs text-[#E50914] hover:underline">Ver suporte</Link>
+          </div>
+          <div className="p-4 space-y-2">
+            <MetricPill label="Tickets críticos" value={operations.support.critical} color="text-red-400" />
+            <MetricPill label="Tickets pendentes" value={operations.support.pending} color="text-yellow-300" />
+            <MetricPill label="APIs configuradas" value={operations.apis.configured} color="text-gray-200" />
+            <MetricPill label="APIs com falha" value={operations.apis.failing} color="text-orange-300" />
+            <MetricPill label="APIs esgotadas" value={operations.apis.exhausted} color="text-red-400" />
           </div>
         </div>
       </div>

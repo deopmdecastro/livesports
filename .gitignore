@@ -43,4 +43,6 @@ public/uploads/
 
 # PM2
 logs/
+!src/app/admin/logs/
+!src/app/admin/logs/page.tsx
 *.log

@@ -16,6 +16,15 @@ function isUniqueViolation(error: any): boolean {
 }
 
 const router = Router();
+let newsSchemaEnsured = false;
+
+async function ensureNewsRuntimeColumns() {
+  if (newsSchemaEnsured) return;
+  await prisma.$executeRawUnsafe(`ALTER TABLE "news_articles" ADD COLUMN IF NOT EXISTS "language" TEXT`);
+  await prisma.$executeRawUnsafe(`ALTER TABLE "news_articles" ADD COLUMN IF NOT EXISTS "translation_of_id" TEXT`);
+  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "news_articles_translation_of_id_idx" ON "news_articles"("translation_of_id")`);
+  newsSchemaEnsured = true;
+}
 
 function mapNews(row: any) {
   return {
@@ -55,6 +64,7 @@ const selectNewsSql = `
 
 router.get('/', async (req: AuthRequest, res, next) => {
   try {
+    await ensureNewsRuntimeColumns();
     const isEditorOrAbove = req.user && ['admin', 'super_admin', 'moderator', 'editor'].includes(req.user.role);
     const { published, sport, page = 1, limit = 50 } = req.query;
 
@@ -216,6 +226,7 @@ async function insertNewsArticle(params: {
   language: string | null;
   translationOfId: string | null;
 }): Promise<any[]> {
+  await ensureNewsRuntimeColumns();
   return prisma.$queryRawUnsafe<any[]>(
     `
       INSERT INTO "news_articles" (
@@ -356,6 +367,7 @@ router.post('/external/import', authenticateToken, requireEditor, async (req: Au
 
 router.get('/:id', async (req, res, next) => {
   try {
+    await ensureNewsRuntimeColumns();
     const rows = await prisma.$queryRawUnsafe<any[]>(`${selectNewsSql} WHERE n.id = $1 OR n.slug = $1 LIMIT 1`, req.params.id);
     if (!rows[0]) {
       res.status(404).json({ success: false, error: 'Noticia nao encontrada' });
@@ -369,6 +381,7 @@ router.get('/:id', async (req, res, next) => {
 
 router.post('/', authenticateToken, requireEditor, async (req: AuthRequest, res, next) => {
   try {
+    await ensureNewsRuntimeColumns();
     const body = req.body || {};
 
     if (!body.title?.trim()) {
@@ -427,6 +440,7 @@ router.post('/', authenticateToken, requireEditor, async (req: AuthRequest, res,
 
 router.put('/:id', authenticateToken, requireEditor, async (req: AuthRequest, res, next) => {
   try {
+    await ensureNewsRuntimeColumns();
     const body = req.body || {};
     const slug = body.slug ? String(body.slug).trim().toLowerCase()
       .normalize('NFD').replace(/[\u0300-\u036f]/g, '')

@@ -29,6 +29,25 @@ function isEnumOwnerError(error: unknown) {
   return details.code === 'P2010' && message.includes('must be owner of type');
 }
 
+async function ensureEnumValue(typeName: string, enumLabel: string) {
+  let hasValue = false;
+  try {
+    hasValue = await enumHasValue(typeName, enumLabel);
+  } catch {
+    hasValue = false;
+  }
+  if (hasValue) return;
+
+  try {
+    await prisma.$executeRawUnsafe(`ALTER TYPE "${typeName}" ADD VALUE '${enumLabel}'`);
+  } catch (error: any) {
+    const msg: string = error?.message || String(error);
+    if (!isEnumOwnerError(error) && !msg.includes('already exists') && !msg.includes('duplicate')) {
+      throw error;
+    }
+  }
+}
+
 export async function ensureRuntimeSchema() {
   try {
     let hasLivePrerollPosition = await enumHasValue('ad_position', 'live_preroll');
@@ -343,6 +362,26 @@ export async function ensureRuntimeSchema() {
     )
   `);
 
+  await safeExec(`DO $$ BEGIN CREATE TYPE "log_level" AS ENUM ('debug', 'info', 'warn', 'error', 'fatal'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`);
+  await safeExec(`DO $$ BEGIN CREATE TYPE "log_service" AS ENUM ('api', 'player', 'sync', 'auth', 'admin', 'database', 'stream', 'system'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`);
+  await safeExec(`DO $$ BEGIN CREATE TYPE "ticket_status" AS ENUM ('open', 'pending', 'resolved', 'closed'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`);
+  await safeExec(`DO $$ BEGIN CREATE TYPE "ticket_priority" AS ENUM ('low', 'medium', 'high', 'critical'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`);
+  await safeExec(`DO $$ BEGIN CREATE TYPE "ticket_category" AS ENUM ('player', 'account', 'billing', 'stream', 'content', 'technical', 'other'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`);
+  await safeExec(`DO $$ BEGIN CREATE TYPE "notification_type" AS ENUM ('info', 'success', 'warning', 'error', 'live', 'new_ticket', 'ticket_reply', 'ticket_status_change', 'poll_milestone', 'creator_application', 'channel_status_change', 'system'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`);
+
+  await ensureEnumValue('notification_type', 'info');
+  await ensureEnumValue('notification_type', 'success');
+  await ensureEnumValue('notification_type', 'warning');
+  await ensureEnumValue('notification_type', 'error');
+  await ensureEnumValue('notification_type', 'live');
+  await ensureEnumValue('notification_type', 'new_ticket');
+  await ensureEnumValue('notification_type', 'ticket_reply');
+  await ensureEnumValue('notification_type', 'ticket_status_change');
+  await ensureEnumValue('notification_type', 'poll_milestone');
+  await ensureEnumValue('notification_type', 'creator_application');
+  await ensureEnumValue('notification_type', 'channel_status_change');
+  await ensureEnumValue('notification_type', 'system');
+
   // system_logs table
   await safeExec(`
     CREATE TABLE IF NOT EXISTS "system_logs" (
@@ -359,6 +398,8 @@ export async function ensureRuntimeSchema() {
       CONSTRAINT "system_logs_pkey" PRIMARY KEY ("id")
     )
   `);
+  await safeExec(`ALTER TABLE "system_logs" ALTER COLUMN "level" TYPE "log_level" USING "level"::"log_level"`);
+  await safeExec(`ALTER TABLE "system_logs" ALTER COLUMN "service" TYPE "log_service" USING "service"::"log_service"`);
   await safeExec(`CREATE INDEX IF NOT EXISTS "system_logs_created_at_idx" ON "system_logs"("created_at" DESC)`);
   await safeExec(`CREATE INDEX IF NOT EXISTS "system_logs_level_idx" ON "system_logs"("level")`);
 
@@ -392,6 +433,35 @@ export async function ensureRuntimeSchema() {
       CONSTRAINT "support_messages_ticket_fk" FOREIGN KEY ("ticket_id") REFERENCES "support_tickets"("id") ON DELETE CASCADE
     )
   `);
+  await safeExec(`ALTER TABLE "support_tickets" ALTER COLUMN "status" TYPE "ticket_status" USING "status"::"ticket_status"`);
+  await safeExec(`ALTER TABLE "support_tickets" ALTER COLUMN "priority" TYPE "ticket_priority" USING "priority"::"ticket_priority"`);
+  await safeExec(`ALTER TABLE "support_tickets" ALTER COLUMN "category" TYPE "ticket_category" USING "category"::"ticket_category"`);
+
+  await safeExec(`
+    CREATE TABLE IF NOT EXISTS "notifications" (
+      "id" TEXT NOT NULL DEFAULT gen_random_uuid()::TEXT,
+      "user_id" TEXT,
+      "type" "notification_type" NOT NULL DEFAULT 'system',
+      "title" VARCHAR(300) NOT NULL,
+      "message" TEXT,
+      "link" TEXT,
+      "meta" JSONB DEFAULT '{}'::jsonb,
+      "read" BOOLEAN NOT NULL DEFAULT FALSE,
+      "read_at" TIMESTAMPTZ,
+      "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      CONSTRAINT "notifications_pkey" PRIMARY KEY ("id")
+    )
+  `);
+  await safeExec(`ALTER TABLE "notifications" ALTER COLUMN "type" TYPE "notification_type" USING "type"::"notification_type"`);
+  await safeExec(`ALTER TABLE "notifications" ADD COLUMN IF NOT EXISTS "link" TEXT`);
+  await safeExec(`ALTER TABLE "notifications" ADD COLUMN IF NOT EXISTS "meta" JSONB DEFAULT '{}'::jsonb`);
+  await safeExec(`ALTER TABLE "notifications" ADD COLUMN IF NOT EXISTS "read_at" TIMESTAMPTZ`);
+  await safeExec(`CREATE INDEX IF NOT EXISTS "notifications_user_read_idx" ON "notifications"("user_id", "read")`);
+  await safeExec(`CREATE INDEX IF NOT EXISTS "notifications_created_at_idx" ON "notifications"("created_at" DESC)`);
+
+  await safeExec(`ALTER TABLE "news_articles" ADD COLUMN IF NOT EXISTS "language" TEXT`);
+  await safeExec(`ALTER TABLE "news_articles" ADD COLUMN IF NOT EXISTS "translation_of_id" TEXT`);
+  await safeExec(`CREATE INDEX IF NOT EXISTS "news_articles_translation_of_id_idx" ON "news_articles"("translation_of_id")`);
 
   // Archive + import tracking columns for events, lives, competitions
   await safeExec(`ALTER TABLE "events" ADD COLUMN IF NOT EXISTS "import_source" TEXT`);
