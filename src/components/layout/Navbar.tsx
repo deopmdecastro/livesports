@@ -32,6 +32,7 @@ const MORE_LINKS = [
   { href: "/tenis", label: "Ténis" },
   { href: "/ufc", label: "UFC" },
   { href: "/f1", label: "F1" },
+  { href: "/blog", label: "Blog" },
 ];
 
 /* ── Navbar ── */

@@ -365,6 +365,43 @@ router.post('/external/import', authenticateToken, requireEditor, async (req: Au
   }
 });
 
+router.get('/:id/translations', authenticateTokenOptional, async (req: AuthRequest, res, next) => {
+  try {
+    await ensureNewsRuntimeColumns();
+    const isEditorOrAbove = req.user && ['admin', 'super_admin', 'moderator', 'editor'].includes(req.user.role);
+
+    const baseRows = await prisma.$queryRawUnsafe<any[]>(
+      `${selectNewsSql} WHERE n.id = $1 OR n.slug = $1 LIMIT 1`,
+      req.params.id
+    );
+    const article = baseRows[0];
+
+    if (!article || (!isEditorOrAbove && !article.published)) {
+      res.status(404).json({ success: false, error: 'Noticia nao encontrada' });
+      return;
+    }
+
+    const groupId = article.translation_of_id || article.id;
+    const rows = await prisma.$queryRawUnsafe<any[]>(
+      `${selectNewsSql}
+       WHERE (n.id = $1 OR n.translation_of_id = $1)
+       ${!isEditorOrAbove ? 'AND n.published = TRUE' : ''}
+       ORDER BY n.created_at DESC`,
+      groupId
+    );
+
+    res.json({
+      success: true,
+      data: {
+        groupId,
+        items: rows.map(mapNews),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get('/:id', authenticateTokenOptional, async (req: AuthRequest, res, next) => {
   try {
     await ensureNewsRuntimeColumns();
