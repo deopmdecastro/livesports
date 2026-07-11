@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticateToken, requireEditor, AuthRequest } from '../middleware/auth.middleware';
+import { authenticateToken, authenticateTokenOptional, requireEditor, AuthRequest } from '../middleware/auth.middleware';
 import { prisma } from '../lib/prisma';
 import { cached } from '../lib/cache';
 import { fetchNewsdataLatest, mapNewsdataArticle, isMissingNewsdataKey } from '../lib/newsdata';
@@ -62,7 +62,7 @@ const selectNewsSql = `
 
 // ─── GET / — list articles (public sees only published unless authenticated editor+) ──
 
-router.get('/', async (req: AuthRequest, res, next) => {
+router.get('/', authenticateTokenOptional, async (req: AuthRequest, res, next) => {
   try {
     await ensureNewsRuntimeColumns();
     const isEditorOrAbove = req.user && ['admin', 'super_admin', 'moderator', 'editor'].includes(req.user.role);
@@ -365,15 +365,19 @@ router.post('/external/import', authenticateToken, requireEditor, async (req: Au
   }
 });
 
-router.get('/:id', async (req, res, next) => {
+router.get('/:id', authenticateTokenOptional, async (req: AuthRequest, res, next) => {
   try {
     await ensureNewsRuntimeColumns();
+    const isEditorOrAbove = req.user && ['admin', 'super_admin', 'moderator', 'editor'].includes(req.user.role);
     const rows = await prisma.$queryRawUnsafe<any[]>(`${selectNewsSql} WHERE n.id = $1 OR n.slug = $1 LIMIT 1`, req.params.id);
-    if (!rows[0]) {
+    const article = rows[0];
+
+    if (!article || (!isEditorOrAbove && !article.published)) {
       res.status(404).json({ success: false, error: 'Noticia nao encontrada' });
       return;
     }
-    res.json({ success: true, data: mapNews(rows[0]) });
+
+    res.json({ success: true, data: mapNews(article) });
   } catch (error) {
     next(error);
   }

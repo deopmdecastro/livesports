@@ -10,9 +10,25 @@ export interface AuthRequest extends Request {
   };
 }
 
-export const authenticateToken = (req: AuthRequest, res: Response, next: NextFunction): void => {
+function extractBearerToken(req: Request): string | null {
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  return authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+}
+
+function verifyAccessToken(token: string) {
+  return jwt.verify(token, process.env.JWT_SECRET || 'livesports-secret-key', {
+    algorithms: ['HS256'],
+  }) as {
+    id: string;
+    email: string;
+    role: string;
+    iat?: number;
+    exp?: number;
+  };
+}
+
+export const authenticateToken = (req: AuthRequest, res: Response, next: NextFunction): void => {
+  const token = extractBearerToken(req);
 
   if (!token) {
     res.status(401).json({ success: false, error: 'Token de acesso obrigatório' });
@@ -20,16 +36,7 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'livesports-secret-key', {
-      algorithms: ['HS256'],
-    }) as {
-      id: string;
-      email: string;
-      role: string;
-      iat?: number;
-      exp?: number;
-    };
-    req.user = decoded;
+    req.user = verifyAccessToken(token);
     next();
   } catch (error) {
     const msg = error instanceof jwt.TokenExpiredError
@@ -39,6 +46,23 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
         : 'Token inválido ou expirado';
     res.status(403).json({ success: false, error: msg });
   }
+};
+
+export const authenticateTokenOptional = (req: AuthRequest, _res: Response, next: NextFunction): void => {
+  const token = extractBearerToken(req);
+
+  if (!token) {
+    next();
+    return;
+  }
+
+  try {
+    req.user = verifyAccessToken(token);
+  } catch {
+    req.user = undefined;
+  }
+
+  next();
 };
 
 export const requireRole = (...roles: string[]) => {
