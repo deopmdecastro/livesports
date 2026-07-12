@@ -80,7 +80,7 @@ export default function AdminProfilePage() {
         <div className="px-6 pb-6">
           <div className="flex items-start gap-4 mb-5">
             <div className="relative z-10 -mt-14 w-24 h-24 rounded-2xl border-4 border-[#0E0E16] bg-gradient-to-br from-[#E50914] to-[#B00000] flex items-center justify-center text-4xl font-black text-white flex-shrink-0 shadow-2xl">
-              {profile.name?.slice(0, 1).toUpperCase() || "A"}
+              {((profile.name || "A").slice(0, 1)).toUpperCase()}
               <span className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-[#0E0E16] bg-emerald-500">
                 <span className="h-2 w-2 rounded-full bg-white" />
               </span>

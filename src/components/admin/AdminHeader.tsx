@@ -173,9 +173,10 @@ export default function AdminHeader({ title = "Dashboard", onMenuToggle }: Admin
   useEffect(() => {
     const loadProfile = async () => {
       try {
-        const data = await apiRequest<{ user?: { name?: string; email?: string } }>("/auth/me");
-        if (data.user?.name) setUserName(data.user.name);
-        if (data.user?.email) setUserEmail(data.user.email);
+        // GET /auth/me returns the user object directly (not wrapped in `user`).
+        const data = await apiRequest<{ name?: string; email?: string }>("/auth/me");
+        if (data.name) setUserName(data.name);
+        if (data.email) setUserEmail(data.email);
       } catch { /* fall back to defaults */ }
     };
     loadProfile();

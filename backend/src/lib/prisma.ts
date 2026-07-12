@@ -550,6 +550,18 @@ export async function ensureRuntimeSchema() {
   await safeExec(`ALTER TABLE "news_articles" ADD COLUMN IF NOT EXISTS "translation_of_id" TEXT`);
   await safeExec(`CREATE INDEX IF NOT EXISTS "news_articles_translation_of_id_idx" ON "news_articles"("translation_of_id")`);
 
+  // ─── Site settings (branding) ───────────────────────────────────────────────
+  // Persisted centrally so the footer/navbar logo and other branding survive
+  // server restarts. Auto-created here so local dev (which runs `npm run dev`
+  // without `prisma migrate deploy`) works without a separate migration step.
+  await safeExec(`
+    CREATE TABLE IF NOT EXISTS "site_settings" (
+      "key" TEXT PRIMARY KEY,
+      "value" JSONB NOT NULL,
+      "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   // Archive + import tracking columns for events, lives, competitions
   await safeExec(`ALTER TABLE "events" ADD COLUMN IF NOT EXISTS "import_source" TEXT`);
   await safeExec(`ALTER TABLE "events" ADD COLUMN IF NOT EXISTS "import_date" TIMESTAMPTZ`);
