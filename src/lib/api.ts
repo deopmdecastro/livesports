@@ -127,6 +127,12 @@ export function getStoredUser<T = Record<string, unknown>>(): T | null {
   }
 }
 
+/** Overwrites the cached user profile (e.g. after a successful /auth/me update). */
+export function setStoredUser(user: unknown): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(user));
+}
+
 // ─── Token refresh (singleton promise to avoid races) ─────────────────────────
 
 let _refreshPromise: Promise<string | null> | null = null;

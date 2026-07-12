@@ -179,6 +179,41 @@ router.get('/me', authenticateToken, async (req: AuthRequest, res: Response) => 
   res.json({ success: true, data: publicUser(user) });
 });
 
+// ─── PATCH /me ──────────────────────────────────────────────────────────────
+// Lets the logged-in user update their own profile (name/avatar/country/phone).
+// Email/role/status changes are intentionally excluded here — those go through
+// dedicated, more sensitive flows (email change would need re-verification;
+// role/status are admin-only via /api/users).
+
+const updateProfileSchema = z.object({
+  name: z.string().min(2, 'Nome muito curto').max(100).optional(),
+  avatar: z.string().url('URL de avatar invalida').max(500).optional().or(z.literal('')),
+  country: z.string().max(100).optional().or(z.literal('')),
+  phone: z.string().max(30).optional().or(z.literal('')),
+});
+
+router.patch('/me', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const data = updateProfileSchema.parse(req.body);
+    const user = await prisma.user.update({
+      where: { id: req.user?.id || '' },
+      data: {
+        ...(data.name !== undefined && { name: data.name }),
+        ...(data.avatar !== undefined && { avatar: data.avatar || null }),
+        ...(data.country !== undefined && { country: data.country || null }),
+        ...(data.phone !== undefined && { phone: data.phone || null }),
+      },
+    });
+    res.json({ success: true, data: publicUser(user) });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({ success: false, error: error.errors[0].message });
+    } else {
+      res.status(500).json({ success: false, error: 'Erro ao atualizar perfil' });
+    }
+  }
+});
+
 router.post('/refresh', async (req: Request, res: Response) => {
   const { refreshToken } = req.body;
   if (!refreshToken) {
