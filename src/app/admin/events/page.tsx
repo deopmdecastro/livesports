@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Calendar, Edit2, Eye, Plus, RefreshCw, Search, Trash2, X, CheckCircle, XCircle, Archive } from "lucide-react";
+import { Calendar, Edit2, Eye, ImageIcon, Plus, RefreshCw, Search, Trash2, Upload, X, CheckCircle, XCircle, Archive } from "lucide-react";
 import { formatDateTime } from "@/utils";
 import type { Event, SportCategory } from "@/types";
 import AdminSelect from "@/components/admin/AdminSelect";
@@ -14,6 +14,59 @@ import toast from "react-hot-toast";
 import { apiRequest } from "@/lib/api";
 import ApiKeyRequiredModal from "@/components/admin/ApiKeyRequiredModal";
 import SyncCompetitionsModal, { EVENTS_PROVIDERS } from "@/components/admin/SyncCompetitionsModal";
+
+import { useRef } from "react";
+
+// ─── Inline Logo Upload Box (used in Equipas tab) ──────────────────────────
+function LogoUploadBox({ value, onChange, disabled }: { value: string; onChange: (v: string) => void; disabled: boolean }) {
+  const [dragOver, setDragOver] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleFile = (file?: File) => {
+    if (!file || disabled) return;
+    const reader = new FileReader();
+    reader.onload = () => { if (typeof reader.result === "string") onChange(reader.result); };
+    reader.readAsDataURL(file);
+  };
+
+  return (
+    <div className="relative">
+      {value ? (
+        <div className="group relative flex items-center justify-center h-24 rounded-xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+          <img src={value} alt="" className="h-full w-full object-contain p-2" />
+          {!disabled && (
+            <button
+              onClick={() => onChange("")}
+              className="absolute top-1.5 right-1.5 flex h-6 w-6 items-center justify-center rounded-lg bg-black/60 text-gray-400 opacity-0 group-hover:opacity-100 hover:text-white hover:bg-red-500/80 transition-all"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      ) : (
+        <div
+          onDragOver={(e) => { e.preventDefault(); if (!disabled) setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={(e) => { e.preventDefault(); setDragOver(false); if (!disabled) handleFile(e.dataTransfer.files?.[0]); }}
+          onClick={() => !disabled && inputRef.current?.click()}
+          className={`flex flex-col items-center justify-center h-24 rounded-xl border border-dashed cursor-pointer transition-all ${
+            dragOver ? "border-[#E50914]/50 bg-[#E50914]/[0.04]" : disabled ? "border-white/[0.04] bg-white/[0.01] cursor-default" : "border-white/[0.08] bg-white/[0.01] hover:border-[#E50914]/30"
+          }`}
+        >
+          <div className="flex flex-col items-center gap-1">
+            <div className={`flex h-9 w-9 items-center justify-center rounded-lg border transition-colors ${dragOver ? "border-[#E50914]/40 text-[#E50914]" : "border-white/[0.06] text-gray-600"}`}>
+              {dragOver ? <Upload className="h-4 w-4" /> : <ImageIcon className="h-4 w-4" />}
+            </div>
+            <span className="text-[10px] text-gray-600 max-w-[100px] text-center leading-tight">
+              {dragOver ? "Largar imagem" : disabled ? "Sem imagem" : "PNG, JPG ou WEBP (máx. 2MB)"}
+            </span>
+          </div>
+          {!disabled && <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={(e) => handleFile(e.target.files?.[0])} />}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const sportOptions = [
   { value: "football", label: "Futebol" },
@@ -349,7 +402,7 @@ export default function EventsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
           <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] shadow-2xl">
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-[#1E1E2A] p-5">
+            <div className="flex items-center justify-between border-b border-[#1E1E2A] px-5 py-4">
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-500/10 border border-red-500/20">
                   <Calendar className="h-4 w-4 text-red-400" />
@@ -366,43 +419,53 @@ export default function EventsPage() {
               <button onClick={() => setModalMode(null)} className="rounded-xl p-2 text-gray-400 hover:bg-white/5 hover:text-white"><X className="h-4 w-4" /></button>
             </div>
             {/* Tabs */}
-            <div className="flex gap-1 border-b border-[#1E1E2A] px-5 pt-3">
+            <div className="flex border-b border-[#1E1E2A] px-5">
               {(["Geral", "Equipas", "Detalhes"] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setEventModalTab(tab)}
-                  className={`rounded-t-lg px-4 py-2.5 text-xs font-bold transition-all ${
-                    eventModalTab === tab ? "bg-red-600 text-white shadow" : "text-gray-500 hover:text-gray-300 hover:bg-white/5"
+                  className={`relative px-5 py-3 text-xs font-bold transition-all ${
+                    eventModalTab === tab ? "text-red-400" : "text-gray-500 hover:text-gray-300"
                   }`}
                 >
                   {tab}
+                  {eventModalTab === tab && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 w-8 rounded-full bg-[#E50914]" />}
                 </button>
               ))}
             </div>
-            <div className="p-5 space-y-4">
+            <div className="p-5 space-y-5">
               {/* ── TAB: GERAL ── */}
               {eventModalTab === "Geral" && (
                 <>
                   <div>
-                    <label className="mb-1.5 block text-xs font-semibold text-gray-300">Título <span className="text-[#E50914]">*</span></label>
+                    <label className="mb-1.5 block text-xs font-semibold text-gray-400">Título do evento <span className="text-[#E50914]">*</span></label>
                     <input disabled={modalMode === "view"} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="input-dark w-full px-3 py-2.5 text-sm" placeholder="Ex: Manchester United vs Liverpool" />
                   </div>
-                  <AdminImageField label="Imagem do evento" disabled={modalMode === "view"} value={form.thumbnail} onChange={(v) => setForm({ ...form, thumbnail: v })} sizeHint={IMAGE_SIZE_PRESETS.eventThumbnail} />
+
+                  {/* Image upload — modern dropzone */}
+                  {modalMode !== "view" ? (
+                    <AdminImageField label="Imagem do evento" disabled={false} value={form.thumbnail} onChange={(v) => setForm({ ...form, thumbnail: v })} sizeHint={IMAGE_SIZE_PRESETS.eventThumbnail} />
+                  ) : (
+                    <AdminImageField label="Imagem do evento" disabled value={form.thumbnail} onChange={() => {}} />
+                  )}
+
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
-                      <label className="mb-1.5 block text-xs font-semibold text-gray-300">Liga / Competição</label>
+                      <label className="mb-1.5 block text-xs font-semibold text-gray-400">Liga / Competição</label>
                       <input disabled={modalMode === "view"} value={form.league} onChange={(e) => setForm({ ...form, league: e.target.value })} className="input-dark w-full px-3 py-2.5 text-sm" placeholder="Premier League" />
                     </div>
                     <div>
-                      <label className="mb-1.5 block text-xs font-semibold text-gray-300">Data e hora <span className="text-[#E50914]">*</span></label>
+                      <label className="mb-1.5 block text-xs font-semibold text-gray-400">Data e hora <span className="text-[#E50914]">*</span></label>
                       <input disabled={modalMode === "view"} type="datetime-local" value={form.scheduledAt} onChange={(e) => setForm({ ...form, scheduledAt: e.target.value })} className="input-dark w-full px-3 py-2.5 text-sm" />
                     </div>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
                     <div>
-                      <label className="mb-1.5 block text-xs font-semibold text-gray-300">Desporto</label>
+                      <label className="mb-1.5 block text-xs font-semibold text-gray-400">Desporto</label>
                       <AdminSelect disabled={modalMode === "view"} value={form.sport} onChange={(v) => setForm({ ...form, sport: v })} options={sportOptions} />
                     </div>
                     <div>
-                      <label className="mb-1.5 block text-xs font-semibold text-gray-300">Status</label>
+                      <label className="mb-1.5 block text-xs font-semibold text-gray-400">Status</label>
                       <AdminSelect disabled={modalMode === "view"} value={form.status} onChange={(v) => setForm({ ...form, status: v })} options={statusOptions} />
                     </div>
                   </div>
@@ -412,65 +475,105 @@ export default function EventsPage() {
               {/* ── TAB: EQUIPAS ── */}
               {eventModalTab === "Equipas" && (
                 <>
-                  {/* VS block — compact */}
-                  <div className="rounded-xl border border-white/8 bg-black/20 p-3">
-                    <p className="mb-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Confronto</p>
-                    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-                      <div>
-                        <input disabled={modalMode === "view"} value={form.teamA} onChange={(e) => setForm({ ...form, teamA: e.target.value })} className="input-dark w-full px-2.5 py-1.5 text-xs" placeholder="Equipa A" />
-                      </div>
-                      <div className="flex items-center gap-1 px-1">
-                        <input disabled={modalMode === "view"} type="number" min={0} value={form.scoreA} onChange={(e) => setForm({ ...form, scoreA: e.target.value })} className="input-dark w-8 px-1 py-1 text-xs text-center font-black" placeholder="0" />
-                        <span className="text-[10px] font-black text-gray-600">VS</span>
-                        <input disabled={modalMode === "view"} type="number" min={0} value={form.scoreB} onChange={(e) => setForm({ ...form, scoreB: e.target.value })} className="input-dark w-8 px-1 py-1 text-xs text-center font-black" placeholder="0" />
-                      </div>
-                      <div>
-                        <input disabled={modalMode === "view"} value={form.teamB} onChange={(e) => setForm({ ...form, teamB: e.target.value })} className="input-dark w-full px-2.5 py-1.5 text-xs" placeholder="Equipa B" />
-                      </div>
-                    </div>
-                    <div className="grid gap-2 sm:grid-cols-2 mt-2">
-                      <div>
-                        <input disabled={modalMode === "view"} value={form.matchTime} onChange={(e) => setForm({ ...form, matchTime: e.target.value })} className="input-dark w-full px-2.5 py-1.5 text-xs" placeholder="Tempo: 75' / Q4 / Set 2" />
-                      </div>
-                      <div>
-                        <input disabled={modalMode === "view"} type="number" value={form.viewerCount} onChange={(e) => setForm({ ...form, viewerCount: e.target.value })} className="input-dark w-full px-2.5 py-1.5 text-xs" placeholder="Espectadores" />
-                      </div>
-                    </div>
-                  </div>
-                  {/* Team search — compact inline */}
+                  {/* Team search side-by-side */}
                   {modalMode !== "view" && (
-                    <div className="grid gap-2 sm:grid-cols-2">
+                    <div className="grid gap-3 sm:grid-cols-2">
                       <AdminTeamSearchField label="Equipa A (TheSportsDB)" onApply={(team) => setForm((c) => ({ ...c, teamA: team.name, teamALogo: team.badge || c.teamALogo, league: c.league || team.league, leagueLogo: c.leagueLogo || team.badge || c.leagueLogo }))} />
                       <AdminTeamSearchField label="Equipa B (TheSportsDB)" onApply={(team) => setForm((c) => ({ ...c, teamB: team.name, teamBLogo: team.badge || c.teamBLogo }))} />
                     </div>
                   )}
-                  {/* Logos — compact row */}
-                  <div className="grid gap-3 sm:grid-cols-[1fr_1fr_120px]">
-                    <AdminImageField label="Escudo A" disabled={modalMode === "view"} value={form.teamALogo} onChange={(v) => setForm({ ...form, teamALogo: v })} aspectClassName="aspect-square" sizeHint={IMAGE_SIZE_PRESETS.teamLogo} compact />
-                    <AdminImageField label="Escudo B" disabled={modalMode === "view"} value={form.teamBLogo} onChange={(v) => setForm({ ...form, teamBLogo: v })} aspectClassName="aspect-square" sizeHint={IMAGE_SIZE_PRESETS.teamLogo} compact />
-                    <AdminImageField label="Logo Liga" disabled={modalMode === "view"} value={form.leagueLogo} onChange={(v) => setForm({ ...form, leagueLogo: v })} aspectClassName="aspect-square" sizeHint={IMAGE_SIZE_PRESETS.leagueLogo} compact />
+
+                  {/* VS + score + match details */}
+                  <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+                    <p className="mb-3 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Confronto</p>
+                    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+                      <div>
+                        <input disabled={modalMode === "view"} value={form.teamA} onChange={(e) => setForm({ ...form, teamA: e.target.value })} className="input-dark w-full px-3 py-2 text-sm" placeholder="Nome da equipa A" />
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <input disabled={modalMode === "view"} type="number" min={0} value={form.scoreA} onChange={(e) => setForm({ ...form, scoreA: e.target.value })} className="input-dark w-10 h-9 text-center text-sm font-black" placeholder="0" />
+                        <span className="text-sm font-black text-gray-500">vs</span>
+                        <input disabled={modalMode === "view"} type="number" min={0} value={form.scoreB} onChange={(e) => setForm({ ...form, scoreB: e.target.value })} className="input-dark w-10 h-9 text-center text-sm font-black" placeholder="0" />
+                      </div>
+                      <div>
+                        <input disabled={modalMode === "view"} value={form.teamB} onChange={(e) => setForm({ ...form, teamB: e.target.value })} className="input-dark w-full px-3 py-2 text-sm" placeholder="Nome da equipa B" />
+                      </div>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2 mt-3">
+                      <div>
+                        <label className="mb-1 block text-[10px] font-semibold text-gray-500 uppercase">Tempo</label>
+                        <input disabled={modalMode === "view"} value={form.matchTime} onChange={(e) => setForm({ ...form, matchTime: e.target.value })} className="input-dark w-full px-3 py-2 text-xs" placeholder="75'" />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-[10px] font-semibold text-gray-500 uppercase">Espectadores (opcional)</label>
+                        <input disabled={modalMode === "view"} type="number" value={form.viewerCount} onChange={(e) => setForm({ ...form, viewerCount: e.target.value })} className="input-dark w-full px-3 py-2 text-xs" placeholder="Informe o número de espectadores" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Logos — 3 clean columns with dropzone + URL */}
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Logos e Escudos</p>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    {/* Escudo A */}
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider text-center">Escudo A</p>
+                      <LogoUploadBox value={form.teamALogo} onChange={(v) => setForm({ ...form, teamALogo: v })} disabled={modalMode === "view"} />
+                      {modalMode !== "view" && (
+                        <input value={form.teamALogo.startsWith("data:") ? "" : form.teamALogo} onChange={(e) => setForm({ ...form, teamALogo: e.target.value })} className="input-dark w-full px-2.5 py-1.5 text-[11px]" placeholder="URL do escudo A" />
+                      )}
+                    </div>
+                    {/* Escudo B */}
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider text-center">Escudo B</p>
+                      <LogoUploadBox value={form.teamBLogo} onChange={(v) => setForm({ ...form, teamBLogo: v })} disabled={modalMode === "view"} />
+                      {modalMode !== "view" && (
+                        <input value={form.teamBLogo.startsWith("data:") ? "" : form.teamBLogo} onChange={(e) => setForm({ ...form, teamBLogo: e.target.value })} className="input-dark w-full px-2.5 py-1.5 text-[11px]" placeholder="URL do escudo B" />
+                      )}
+                    </div>
+                    {/* Logo Liga */}
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider text-center">Logo Liga</p>
+                      <LogoUploadBox value={form.leagueLogo} onChange={(v) => setForm({ ...form, leagueLogo: v })} disabled={modalMode === "view"} />
+                      {modalMode !== "view" && (
+                        <input value={form.leagueLogo.startsWith("data:") ? "" : form.leagueLogo} onChange={(e) => setForm({ ...form, leagueLogo: e.target.value })} className="input-dark w-full px-2.5 py-1.5 text-[11px]" placeholder="URL do logo da liga" />
+                      )}
+                    </div>
                   </div>
                 </>
               )}
 
               {/* ── TAB: DETALHES ── */}
               {eventModalTab === "Detalhes" && (
-                <div>
-                  <label className="mb-1.5 block text-xs font-semibold text-gray-300">Descrição</label>
-                  <textarea disabled={modalMode === "view"} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={5} className="input-dark w-full resize-none px-3 py-2.5 text-sm" placeholder="Informações sobre o evento, contexto, fase da competição..." />
+                <div className="space-y-2">
+                  <label className="block text-xs font-semibold text-gray-400">Descrição do evento</label>
+                  <textarea
+                    disabled={modalMode === "view"}
+                    value={form.description}
+                    onChange={(e) => setForm({ ...form, description: e.target.value })}
+                    rows={5}
+                    maxLength={1000}
+                    className="input-dark w-full resize-none px-3 py-2.5 text-sm"
+                    placeholder="Informações sobre o evento, contexto, fase da competição, observações..."
+                  />
+                  <p className="text-right text-[10px] text-gray-600">{form.description.length} / 1000</p>
                 </div>
               )}
             </div>
-            <div className="flex items-center justify-between gap-3 border-t border-[#1E1E2A] p-5">
-              <div className="flex gap-1">
+            {/* Footer */}
+            <div className="flex items-center justify-between gap-3 border-t border-[#1E1E2A] px-5 py-4">
+              <div className="flex gap-1.5">
                 {(["Geral", "Equipas", "Detalhes"] as const).map((tab) => (
-                  <button key={tab} onClick={() => setEventModalTab(tab)} className={`h-1.5 rounded-full transition-all ${eventModalTab === tab ? "w-6 bg-red-500" : "w-1.5 bg-white/20"}`} />
+                  <button key={tab} onClick={() => setEventModalTab(tab)} className={`h-1.5 rounded-full transition-all ${eventModalTab === tab ? "w-6 bg-red-500" : "w-1.5 bg-white/15"}`} />
                 ))}
               </div>
               <div className="flex gap-3">
-                <button onClick={() => setModalMode(null)} className="rounded-xl border border-[#1E1E2A] bg-[#111118] px-4 py-2.5 text-sm text-gray-300 hover:text-white transition-colors">{modalMode === "view" ? "Fechar" : "Cancelar"}</button>
+                <button onClick={() => setModalMode(null)} className="rounded-xl border border-[#1E1E2A] bg-[#111118] px-5 py-2.5 text-sm text-gray-300 hover:text-white hover:border-white/15 transition-all">
+                  {modalMode === "view" ? "Fechar" : "Cancelar"}
+                </button>
                 {modalMode !== "view" && (
-                  <button onClick={saveEvent} className="rounded-xl bg-gradient-to-r from-red-600 to-red-700 px-5 py-2.5 text-sm font-bold text-white shadow-[0_4px_16px_rgba(229,9,20,0.3)] hover:from-red-500 hover:to-red-600 transition-all">
+                  <button onClick={saveEvent} className="rounded-xl bg-[#E50914] px-6 py-2.5 text-sm font-bold text-white shadow-[0_4px_20px_rgba(229,9,20,0.25)] hover:bg-[#C50010] transition-all">
                     {modalMode === "edit" ? "Guardar Evento" : "Criar Evento"}
                   </button>
                 )}
