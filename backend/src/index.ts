@@ -22,7 +22,6 @@ import dashboardRoutes from './routes/dashboard.routes';
 import categoryRoutes from './routes/category.routes';
 import integrationRoutes from './routes/integration.routes';
 import apiKeysRoutes from './routes/apikeys.routes';
-import rolesRoutes from './routes/roles.routes';
 import campaignsRoutes from './routes/campaigns.routes';
 import positionsRoutes from './routes/positions.routes';
 import logsRoutes from './routes/logs.routes';
@@ -293,7 +292,6 @@ app.use('/api/events', eventRoutes);
 app.use('/api/competitions', competitionRoutes);
 
 app.use('/api/users', userRoutes);
-app.use('/api/users/roles', rolesRoutes);
 app.use('/api/ads', adRoutes);
 app.use('/api/news', newsRoutes);
 app.use('/api/dashboard', dashboardRoutes);

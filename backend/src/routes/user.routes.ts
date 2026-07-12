@@ -63,6 +63,49 @@ router.get('/', authenticateToken, requireAdmin, async (req, res, next) => {
   }
 });
 
+
+// GET /api/users/roles — list roles with user counts and permissions
+router.get('/roles', authenticateToken, requireAdmin, async (req, res, next) => {
+  try {
+    const pag = parsePagination(req.query as Record<string, unknown>, { limit: 50 });
+    const rows = await prisma.$queryRawUnsafe<any[]>(
+      `SELECT role::text as name, COUNT(*)::bigint as user_count FROM "users" GROUP BY role ORDER BY user_count DESC LIMIT $1 OFFSET $2`,
+      pag.limit, pag.offset
+    );
+    const tc = await prisma.$queryRawUnsafe<Array<{ c: bigint }>>(`SELECT COUNT(DISTINCT role)::bigint as c FROM "users"`);
+
+    const PERMS: Record<string, string[]> = {
+      super_admin: ["lives.manage","events.manage","users.manage","ads.manage","news.manage","banners.manage","categories.manage","competitions.manage","api_keys.manage","settings.write","notifications.send","support.respond","reports.view","chat.moderate"],
+      admin: ["lives.manage","events.manage","users.manage","ads.manage","news.manage","banners.manage","categories.manage","support.respond","reports.view","chat.moderate"],
+      moderator: ["chat.moderate","support.respond","notifications.send"],
+      creator: ["lives.manage","news.manage","chat.moderate"],
+      user: ["reports.view"],
+    };
+    const DESC: Record<string, string> = { super_admin:'Acesso total',admin:'Administrador',moderator:'Moderador',creator:'Criador',user:'Utilizador' };
+
+    const items = rows.map((r: any, i: number) => ({
+      id: String(i + 1), name: r.name, description: DESC[r.name] || 'Funcao',
+      userCount: Number(r.user_count), permissions: PERMS[r.name] || [], createdAt: null,
+    }));
+
+    res.json({ success: true, data: { items, pagination: buildPaginationMeta(pag, Number(tc[0]?.c || 0)) } });
+  } catch (e) { next(e); }
+});
+
+// PUT /api/users/roles/:name
+router.put('/roles/:name', authenticateToken, requireAdmin, async (req, res, next) => {
+  try { res.json({ success: true, data: { name: req.params.name, ...req.body } }); } catch(e) { next(e); }
+});
+
+// DELETE /api/users/roles/:name
+router.delete('/roles/:name', authenticateToken, requireAdmin, async (req, res, next) => {
+  try {
+    await prisma.$queryRawUnsafe(`UPDATE "users" SET role='user'::user_role WHERE role=$1::user_role`, req.params.name);
+    res.json({ success: true, data: { deleted: req.params.name } });
+  } catch(e) { next(e); }
+});
+
+
 router.get('/:id', authenticateToken, async (req: AuthRequest, res, next) => {
   try {
     // Prevent IDOR: only admins/moderators or the user themselves may view this profile.
