@@ -9,13 +9,11 @@ import {
   Globe2,
   Languages,
   Radio,
-  RefreshCw,
   Search,
   Sparkles,
   TrendingUp,
 } from "lucide-react";
 import { publicApiRequest, type ApiListResponse } from "@/lib/api";
-import { mockEvents, mockLives, mockNews } from "@/lib/mock-data";
 import { useLang } from "@/lib/lang";
 import {
   articleMatchesSearch,
@@ -222,9 +220,10 @@ function EventCard({ event }: { event: Event }) {
 export default function BlogClient() {
   const { lang } = useLang();
   const [loading, setLoading] = useState(true);
-  const [news, setNews] = useState<NewsArticle[]>(mockNews);
-  const [lives, setLives] = useState<Live[]>(mockLives.slice(0, 4));
-  const [events, setEvents] = useState<Event[]>(mockEvents.slice(0, 4));
+  const [error, setError] = useState<string | null>(null);
+  const [news, setNews] = useState<NewsArticle[]>([]);
+  const [lives, setLives] = useState<Live[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
   const [query, setQuery] = useState("");
   const [sport, setSport] = useState<"all" | SportCategory>("all");
   const [language, setLanguage] = useState<BlogLanguageFilter>("all");
@@ -243,18 +242,11 @@ export default function BlogClient() {
 
       if (!active) return;
 
-      if (newsResult.status === "fulfilled" && newsResult.value.items?.length) {
-        setNews(newsResult.value.items);
-      }
+      setNews(newsResult.status === "fulfilled" ? newsResult.value.items || [] : []);
+      setLives(livesResult.status === "fulfilled" ? livesResult.value.items || [] : []);
+      setEvents(eventsResult.status === "fulfilled" ? eventsResult.value || [] : []);
 
-      if (livesResult.status === "fulfilled" && livesResult.value.items?.length) {
-        setLives(livesResult.value.items);
-      }
-
-      if (eventsResult.status === "fulfilled" && eventsResult.value.length) {
-        setEvents(eventsResult.value);
-      }
-
+      setError(newsResult.status === "rejected" ? "Não foi possível carregar as notícias agora. Tente novamente em instantes." : null);
       setLoading(false);
     }
 
@@ -438,9 +430,13 @@ export default function BlogClient() {
               </div>
             </div>
 
-            {filteredGroups.length === 0 ? (
+            {error && filteredGroups.length === 0 && !loading ? (
+              <div className="rounded-[28px] border border-red-500/20 bg-red-500/5 p-10 text-center text-sm text-red-200">
+                {error}
+              </div>
+            ) : filteredGroups.length === 0 ? (
               <div className="rounded-[28px] border border-white/10 bg-[#111118] p-10 text-center text-sm text-gray-400">
-                Nenhuma notícia encontrada com os filtros atuais.
+                {loading ? "A carregar notícias..." : "Nenhuma notícia encontrada com os filtros atuais."}
               </div>
             ) : (
               <div className="grid gap-5 lg:grid-cols-2">
@@ -476,18 +472,6 @@ export default function BlogClient() {
               </div>
             </div>
 
-            <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(229,9,20,0.10),rgba(17,17,24,1))] p-5">
-              <div className="mb-3 flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-[#FF8C92]">
-                <RefreshCw className="h-4 w-4" />
-                Como funciona agora
-              </div>
-              <ul className="space-y-3 text-sm leading-6 text-gray-300">
-                <li>• O /blog exibe notícias reais ou fallback mock quando a API estiver indisponível.</li>
-                <li>• Artigos em PT/EN são agrupados no mesmo card.</li>
-                <li>• O botão de tradução troca a variante sem duplicar conteúdo na listagem.</li>
-                <li>• Lives, eventos e outras áreas usam mocks como rede de segurança visual.</li>
-              </ul>
-            </div>
           </aside>
         </div>
       </div>

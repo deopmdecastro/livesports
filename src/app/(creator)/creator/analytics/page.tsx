@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { BarChart3, Eye, Users, TrendingUp, Radio, Heart, Calendar } from "lucide-react";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { apiRequest } from "@/lib/api";
 
 interface Stats {
@@ -38,25 +38,9 @@ export default function CreatorAnalyticsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const mockViewsData = [
-    { day: "Seg", views: 320, viewers: 45 },
-    { day: "Ter", views: 580, viewers: 78 },
-    { day: "Qua", views: 420, viewers: 52 },
-    { day: "Qui", views: 890, viewers: 120 },
-    { day: "Sex", views: 1200, viewers: 165 },
-    { day: "Sab", views: 1800, viewers: 240 },
-    { day: "Dom", views: 2200, viewers: 310 },
-  ];
-
-  const mockLivesData = [
-    { live: "Liga PT #1", views: 1240, duration: "2h 15m" },
-    { live: "Champions #2", views: 980, duration: "1h 45m" },
-    { live: "Libertadores", views: 756, duration: "2h 30m" },
-    { live: "Bundesliga", views: 540, duration: "1h 50m" },
-    { live: "Série A", views: 420, duration: "2h 05m" },
-  ];
-
   if (loading) return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-[#E50914]" /></div>;
+
+  const hasActivity = Boolean(stats && (stats.totalLives > 0 || stats.totalViews > 0));
 
   return (
     <div className="space-y-6">
@@ -74,59 +58,39 @@ export default function CreatorAnalyticsPage() {
         <MetricCard title="Gostos" value={(stats?.totalLikes || 0).toLocaleString()} icon={Heart} color="#F59E0B" />
       </div>
 
-      <div className="rounded-xl border border-[#1E1E2A] bg-[#0E0E16] p-5">
-        <h3 className="text-sm font-bold text-white mb-4">Visualizações da Semana</h3>
-        <ResponsiveContainer width="100%" height={200}>
-          <AreaChart data={mockViewsData}>
-            <defs>
-              <linearGradient id="viewsGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#E50914" stopOpacity={0.2} />
-                <stop offset="95%" stopColor="#E50914" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#1E1E2A" />
-            <XAxis dataKey="day" tick={{ fill: "#9CA3AF", fontSize: 11 }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fill: "#9CA3AF", fontSize: 11 }} axisLine={false} tickLine={false} />
-            <Tooltip contentStyle={{ background: "#111118", border: "1px solid #1E1E2A", borderRadius: "10px" }}
-              labelStyle={{ color: "#9CA3AF" }} itemStyle={{ color: "#E50914" }} />
-            <Area type="monotone" dataKey="views" stroke="#E50914" strokeWidth={2} fill="url(#viewsGrad)" />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-2">
+      {!hasActivity ? (
+        <div className="rounded-xl border border-[#1E1E2A] bg-[#0E0E16] p-10 text-center">
+          <BarChart3 className="mx-auto h-8 w-8 text-gray-600" />
+          <p className="mt-3 text-sm font-semibold text-white">Ainda sem dados suficientes</p>
+          <p className="mt-1 text-xs text-gray-500">
+            Os gráficos de desempenho aparecem aqui assim que o teu canal tiver lives e visualizações registadas.
+          </p>
+        </div>
+      ) : (
         <div className="rounded-xl border border-[#1E1E2A] bg-[#0E0E16] p-5">
-          <h3 className="text-sm font-bold text-white mb-4">Espectadores por Dia</h3>
-          <ResponsiveContainer width="100%" height={160}>
-            <BarChart data={mockViewsData}>
-              <Bar dataKey="viewers" fill="#E50914" radius={[4, 4, 0, 0]} maxBarSize={28} />
+          <h3 className="text-sm font-bold text-white mb-4">Resumo do canal</h3>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart
+              data={[
+                { label: "Views totais", value: stats?.totalViews || 0 },
+                { label: "Espectadores atuais", value: stats?.currentViewers || 0 },
+                { label: "Gostos", value: stats?.totalLikes || 0 },
+                { label: "Subscritores", value: stats?.subscribers || 0 },
+              ]}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#1E1E2A" />
+              <XAxis dataKey="label" tick={{ fill: "#9CA3AF", fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: "#9CA3AF", fontSize: 11 }} axisLine={false} tickLine={false} />
               <Tooltip contentStyle={{ background: "#111118", border: "1px solid #1E1E2A", borderRadius: "10px" }}
-                labelStyle={{ color: "#9CA3AF" }} />
+                labelStyle={{ color: "#9CA3AF" }} itemStyle={{ color: "#E50914" }} />
+              <Bar dataKey="value" fill="#E50914" radius={[4, 4, 0, 0]} maxBarSize={48} />
             </BarChart>
           </ResponsiveContainer>
+          <p className="mt-3 text-[11px] text-gray-500">
+            Baseado nos totais reais dos últimos 30 dias. Um histórico diário detalhado ainda não está disponível.
+          </p>
         </div>
-
-        <div className="rounded-xl border border-[#1E1E2A] bg-[#0E0E16] overflow-hidden">
-          <div className="p-4 border-b border-[#1E1E2A]">
-            <h3 className="text-sm font-bold text-white">Top Lives</h3>
-          </div>
-          <div className="divide-y divide-[#1A1A2A]">
-            {mockLivesData.map((live, i) => (
-              <div key={live.live} className="flex items-center gap-3 p-3">
-                <span className="text-xs font-black text-gray-600 w-4 text-right">{i + 1}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-white truncate">{live.live}</p>
-                  <p className="text-[10px] text-gray-500">{live.duration}</p>
-                </div>
-                <div className="flex items-center gap-1 text-emerald-400">
-                  <Eye className="h-3 w-3" />
-                  <span className="text-xs font-bold">{live.views.toLocaleString()}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      )}
 
       <div className="rounded-xl border border-[#1E1E2A] bg-[#0E0E16] p-5">
         <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
