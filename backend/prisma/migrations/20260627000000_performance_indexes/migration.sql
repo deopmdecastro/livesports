@@ -13,8 +13,21 @@ CREATE INDEX IF NOT EXISTS "audit_logs_created_idx" ON "audit_logs"("created_at"
 CREATE INDEX IF NOT EXISTS "audit_logs_user_idx" ON "audit_logs"("user_id");
 CREATE INDEX IF NOT EXISTS "subscriptions_user_status_idx" ON "subscriptions"("user_id", "status");
 CREATE INDEX IF NOT EXISTS "ads_position_status_idx" ON "ads"("position", "status");
-CREATE INDEX IF NOT EXISTS "live_comments_live_created_idx" ON "live_comments"("live_id", "created_at" DESC);
-CREATE INDEX IF NOT EXISTS "live_views_live_created_idx" ON "live_views"("live_id", "created_at" DESC);
+-- "live_comments" and "live_views" are created lazily by the backend at
+-- runtime (see ensureRuntimeSchema() in backend/src/lib/prisma.ts), not by
+-- any bootstrap migration. When this file runs as part of the Postgres
+-- docker-entrypoint-initdb.d bootstrap, those tables don't exist yet, so we
+-- guard the index creation to avoid failing the whole init script. The
+-- backend creates the same indexes itself once it boots.
+DO $$
+BEGIN
+  IF to_regclass('"live_comments"') IS NOT NULL THEN
+    CREATE INDEX IF NOT EXISTS "live_comments_live_created_idx" ON "live_comments"("live_id", "created_at" DESC);
+  END IF;
+  IF to_regclass('"live_views"') IS NOT NULL THEN
+    CREATE INDEX IF NOT EXISTS "live_views_live_created_idx" ON "live_views"("live_id", "created_at" DESC);
+  END IF;
+END $$;
 CREATE INDEX IF NOT EXISTS "news_published_sport_idx" ON "news_articles"("published", "sport");
 CREATE INDEX IF NOT EXISTS "support_tickets_status_idx" ON "support_tickets"("status");
 CREATE INDEX IF NOT EXISTS "support_tickets_user_idx" ON "support_tickets"("user_id");
