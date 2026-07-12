@@ -290,36 +290,44 @@ body {
 /* ═══════════════════════════════════════════════════════════════════════════════
    INPUTS
    ═══════════════════════════════════════════════════════════════════════════════ */
-.input {
-  width: 100%;
-  background: var(--bg-raised);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-primary);
-  padding: 10px 14px;
-  font-size: 14px;
-  border-radius: var(--radius-sm);
-  transition: all 0.2s var(--ease-out);
-}
-.input:focus {
-  outline: none;
-  border-color: var(--brand);
-  box-shadow: 0 0 0 3px rgba(229,9,20,0.10);
-}
-.input::placeholder { color: var(--text-muted); }
-.input-lg { padding: 14px 18px; font-size: 16px; }
+/* NOTE: these live in @layer components (not plain CSS) so that utility classes
+   like pl-8 / pr-10 / py-2.5 — used everywhere to make room for icons inside
+   inputs — can override the base padding below. A plain CSS rule declared
+   after @tailwind utilities would otherwise win the cascade (same specificity,
+   later in source) and silently cancel out that icon spacing, which is what
+   was causing text to run under search/login icons. */
+@layer components {
+  .input {
+    width: 100%;
+    background: var(--bg-raised);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+    padding: 10px 14px;
+    font-size: 14px;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s var(--ease-out);
+  }
+  .input:focus {
+    outline: none;
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px rgba(229,9,20,0.10);
+  }
+  .input::placeholder { color: var(--text-muted); }
+  .input-lg { padding: 14px 18px; font-size: 16px; }
 
-textarea.input {
-  resize: vertical;
-  min-height: 80px;
-}
+  textarea.input {
+    resize: vertical;
+    min-height: 80px;
+  }
 
-select.input {
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23575B72' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  background-size: 14px;
-  padding-right: 40px;
+  select.input {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23575B72' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 14px;
+    padding-right: 40px;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -734,7 +742,9 @@ select.input {
 /* ═══════════════════════════════════════════════════════════════════════════════
    LEGACY COMPATIBILITY (classes do código existente)
    ═══════════════════════════════════════════════════════════════════════════════ */
-.input-dark { @apply input; }
+@layer components {
+  .input-dark { @apply input; }
+}
 .bg-surface { background: var(--bg-surface); }
 .border-surface { border-color: var(--border-subtle); }
 .text-muted { color: var(--text-muted); }
