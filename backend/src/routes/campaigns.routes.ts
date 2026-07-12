@@ -23,7 +23,7 @@ router.get('/', async (_req, res, next) => {
         a.positions
       FROM "ads" a
       WHERE a.campaign_id IS NOT NULL
-      GROUP BY a.campaign_id, a.campaign_name, a.advertiser_name, a.budget, a.spent, a.impressions, a.clicks, a.status, a.start_date, a.end_date, a.positions
+      GROUP BY a.campaign_id, a.campaign_name, a.advertiser_name, a.budget, a.spent, a.impressions, a.clicks, a.status, a.start_date, a.end_date, a.positions, a.created_at
       ORDER BY a.created_at DESC
       LIMIT 50
     `);
