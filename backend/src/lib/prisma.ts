@@ -404,6 +404,8 @@ export async function ensureRuntimeSchema() {
   await safeExec(`ALTER TABLE "system_logs" ALTER COLUMN "service" TYPE "log_service" USING "service"::"log_service"`);
   await safeExec(`CREATE INDEX IF NOT EXISTS "system_logs_created_at_idx" ON "system_logs"("created_at" DESC)`);
   await safeExec(`CREATE INDEX IF NOT EXISTS "system_logs_level_idx" ON "system_logs"("level")`);
+  await safeExec(`ALTER TABLE "system_logs" ADD COLUMN IF NOT EXISTS "ip_country" TEXT`);
+  await safeExec(`CREATE INDEX IF NOT EXISTS "system_logs_ip_country_idx" ON "system_logs"("ip_country")`);
 
   // support_tickets table
   await safeExec(`
