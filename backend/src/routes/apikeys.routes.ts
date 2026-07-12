@@ -214,6 +214,46 @@ router.get('/discovery', async (_req, res, next) => {
 });
 
 // POST /api/api-keys — create
+
+// ── Runtime schema guard: creates api_keys table + types if they don't exist ──
+async function ensureApiKeysSchema(): Promise<void> {
+  try {
+    // Create status type if missing
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'api_key_status') THEN
+          CREATE TYPE api_key_status AS ENUM ('active', 'inactive', 'expired');
+        END IF;
+      END $$;
+    `);
+    // Create table if missing
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "api_keys" (
+        id            TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
+        name          VARCHAR(200) NOT NULL,
+        description   TEXT,
+        provider      VARCHAR(200) NOT NULL,
+        base_url      TEXT,
+        key_value     TEXT NOT NULL,
+        status        TEXT NOT NULL DEFAULT 'active',
+        priority      INTEGER NOT NULL DEFAULT 1,
+        request_limit INTEGER,
+        requests_used INTEGER NOT NULL DEFAULT 0,
+        error_count   INTEGER NOT NULL DEFAULT 0,
+        last_used_at  TIMESTAMPTZ,
+        last_synced_at TIMESTAMPTZ,
+        expires_at    TIMESTAMPTZ,
+        usage_types   TEXT[] NOT NULL DEFAULT '{}',
+        created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+  } catch (err: any) {
+    // Non-fatal: log and continue — the main query will surface a clearer error
+    console.warn('[ensureApiKeysSchema] Could not ensure schema:', err?.message);
+  }
+}
+
 router.post('/', async (req, res, next) => {
   try {
     const parsed = apiKeySchema.safeParse(req.body);
@@ -222,23 +262,42 @@ router.post('/', async (req, res, next) => {
       return;
     }
     const d = parsed.data;
-    const usageTypesLiteral = d.usageTypes.length > 0 ? `ARRAY[${d.usageTypes.map((t) => `'${t}'`).join(',')}]::TEXT[]` : "'{}'::TEXT[]";
+
+    // Ensure the api_keys table and supporting types exist (idempotent)
+    await ensureApiKeysSchema();
+
+    // Build usage_types as a parameterized TEXT[] — avoids string interpolation
+    // and works even if the custom ENUM is not yet created.
+    const usageTypesArr = d.usageTypes.length > 0 ? d.usageTypes : [];
+    const usageTypesPg = usageTypesArr.length > 0
+      ? `ARRAY[${usageTypesArr.map((_, i) => `$${10 + i}`).join(',')}]::TEXT[]`
+      : "'{}'::TEXT[]";
+
     const rows = await prisma.$queryRawUnsafe<any[]>(
       `INSERT INTO "api_keys" (name, description, provider, base_url, key_value, status, priority, request_limit, expires_at, usage_types)
-       VALUES ($1,$2,$3,$4,$5,$6::api_key_status,$7,$8,$9::timestamptz,${usageTypesLiteral})
+       VALUES ($1,$2,$3,$4,$5,$6::TEXT,$7,$8,$9::timestamptz,${usageTypesPg})
        RETURNING *`,
       d.name, d.description ?? null, d.provider, d.baseUrl ?? null, d.keyValue,
       d.status, d.priority, d.requestLimit ?? null, d.expiresAt ?? null,
+      ...usageTypesArr,
     );
     res.status(201).json({ success: true, data: mapKey(rows[0]) });
   } catch (error: any) {
     console.error('[api-keys POST] Failed to create API key:', error?.message || error);
-    if (error?.message?.includes('relation "api_keys" does not exist')) {
-      res.status(500).json({ success: false, error: 'Tabela api_keys não existe — execute as migrações ou reinicie o servidor.' });
+    if (error?.message?.includes('relation "api_keys" does not exist') ||
+        error?.message?.includes('relation \"api_keys\" does not exist')) {
+      res.status(503).json({
+        success: false,
+        error: 'Tabela api_keys não existe — execute as migrações (npx prisma migrate deploy) ou aguarde o servidor recriar o esquema.',
+      });
       return;
     }
-    if (error?.message?.includes('type "api_key_status" does not exist')) {
-      res.status(500).json({ success: false, error: 'Tipo api_key_status não encontrado — reinicie o servidor para recriar os tipos.' });
+    if (error?.message?.includes('type "api_key_status" does not exist') ||
+        error?.message?.includes('type \"api_key_status\" does not exist')) {
+      res.status(503).json({
+        success: false,
+        error: 'Tipo api_key_status não encontrado — reinicie o servidor para recriar os tipos automaticamente.',
+      });
       return;
     }
     next(error);
