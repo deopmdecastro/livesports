@@ -480,7 +480,8 @@ export async function ensureRuntimeSchema() {
   ).catch(() => [{ count: '0' }]);
 
   if (parseInt((adminExists[0] as { count: string })?.count ?? '0', 10) === 0) {
-    const password = bcrypt.hashSync('admin123', 12);
+    const seedAdminPw = process.env.SEED_ADMIN_PASSWORD || 'admin123';
+    const password = bcrypt.hashSync(seedAdminPw, 12);
     const insertAdmin = async () => {
       await prisma.$executeRawUnsafe(
         `
@@ -497,13 +498,61 @@ export async function ensureRuntimeSchema() {
     try { await insertAdmin(); } catch { /* column/table may already exist */ }
   }
 
+  // ─── Seed demo users (creator + user) ───────────────────────────────────
+  const demoPassword = bcrypt.hashSync(process.env.SEED_USER_PASSWORD || 'User12345!', 12);
+  const demoCreatorPassword = bcrypt.hashSync(process.env.SEED_CREATOR_PASSWORD || 'Creator123!', 12);
+
+  await prisma.$executeRawUnsafe(
+    `INSERT INTO "users" ("name", "email", "password", "role", "status", "email_verified", "email_verified_at")
+     VALUES ($1, $2, $3, 'creator', 'active', TRUE, NOW())
+     ON CONFLICT ("email") DO NOTHING`,
+    'Criador Demo', 'creator@livesports.local', demoCreatorPassword
+  ).catch(() => {});
+
+  await prisma.$executeRawUnsafe(
+    `INSERT INTO "users" ("name", "email", "password", "role", "status", "email_verified", "email_verified_at")
+     VALUES ($1, $2, $3, 'user', 'active', TRUE, NOW())
+     ON CONFLICT ("email") DO NOTHING`,
+    'Utilizador Demo', 'user@livesports.local', demoPassword
+  ).catch(() => {});
+
+  // Demo creator channel
+  try {
+    const creatorRows = await prisma.$queryRawUnsafe<Array<{ id: string }>>(
+      `SELECT id FROM "users" WHERE email = 'creator@livesports.local' LIMIT 1`
+    ).catch(() => []);
+    const creatorId = creatorRows[0]?.id;
+    if (creatorId) {
+      const chExists = await prisma.$queryRawUnsafe<Array<{ count: string }>>(
+        `SELECT COUNT(*)::text AS count FROM "channels" WHERE user_id = $1`, creatorId
+      ).catch(() => [{ count: '0' }]);
+      if (parseInt(chExists[0]?.count || '0', 10) === 0) {
+        await prisma.$executeRawUnsafe(
+          `INSERT INTO "channels" ("user_id", "name", "slug", "description", "avatar", "banner", "sport", "country", "website_url", "social_links", "status", "verified", "subscriber_count", "total_views", "live_count")
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, 'active', TRUE, 1250, 84210, 12)
+           ON CONFLICT ("slug") DO NOTHING`,
+          creatorId,
+          'Canal Demo LiveSports',
+          'canal-demo-livesports',
+          'Canal de demonstracao para testar o Creator Studio.',
+          'https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=400&q=80',
+          'https://images.unsplash.com/photo-1547347298-4074fc3086f0?auto=format&fit=crop&w=1600&q=80',
+          'football', 'Portugal', 'https://livesports.local/creator',
+          JSON.stringify({ website: 'https://livesports.local/creator', instagram: '@livesports_creator' }),
+        ).catch(() => {});
+        console.log('[ensureRuntimeSchema] Demo creator channel created');
+      }
+    }
+  } catch { /* non-critical */ }
+
   const adminRows = await prisma.$queryRawUnsafe<Array<{ id: string; password: string }>>(
     `SELECT id, password FROM "users" WHERE email = 'admin@livesports.com' LIMIT 1`
   ).catch(() => []);
 
   const defaultAdmin = adminRows[0];
   if (defaultAdmin && !bcrypt.compareSync('admin123', defaultAdmin.password)) {
-    const password = bcrypt.hashSync('admin123', 12);
+    const seedAdminPw = process.env.SEED_ADMIN_PASSWORD || 'admin123';
+    const password = bcrypt.hashSync(seedAdminPw, 12);
     await prisma.$executeRawUnsafe(
       `UPDATE "users" SET "password" = $1 WHERE id = $2`,
       password,
@@ -511,6 +560,52 @@ export async function ensureRuntimeSchema() {
     );
     console.warn('[ensureRuntimeSchema] admin@livesports.com password reset to documented default');
   }
+
+  // ─── Seed demo notifications (if table is empty) ──────────────────────────
+  try {
+    const notifCount = await prisma.$queryRawUnsafe<Array<{ count: string }>>(
+      `SELECT COUNT(*)::text AS count FROM "notifications"`
+    ).catch(() => [{ count: '0' }]);
+    
+    if (parseInt(notifCount[0]?.count || '0', 10) === 0) {
+      const adminRows2 = await prisma.$queryRawUnsafe<Array<{ id: string }>>(
+        `SELECT id FROM "users" WHERE role = 'super_admin' LIMIT 1`
+      ).catch(() => []);
+      const adminId = adminRows2[0]?.id;
+
+      const seedNotifs = [
+        { type: 'live', title: 'Nova live iniciada: Benfica vs Porto', message: 'O classico portugues comecou! Acompanha em direto.', link: '/watch/live-demo-1' },
+        { type: 'info', title: 'Novo utilizador registado: carlos@exemplo.com', message: 'Carlos Oliveira juntou-se a plataforma.', link: '/admin/users' },
+        { type: 'warning', title: 'Anuncio #003 a aproximar-se do limite de impressoes', message: 'O anuncio "Promocao Nike" atingiu 95% do limite.', link: '/admin/ads' },
+        { type: 'system', title: 'Relatorio mensal de Julho disponivel', message: 'O relatorio de estatisticas de Julho 2026 ja esta disponivel para download.', link: '/admin/reports' },
+        { type: 'success', title: 'Novo canal de criador aprovado', message: 'O canal "Futebol Total" foi aprovado e esta ativo.', link: '/admin/creators' },
+        { type: 'error', title: 'Erro na sincronizacao de eventos', message: 'Falha ao sincronizar eventos da API Football. Verifica as credenciais.', link: '/admin/api-keys' },
+        { type: 'info', title: 'Bem-vindo ao painel LiveSports!', message: 'Explora as funcionalidades do teu painel de administracao.', link: '/admin/dashboard' },
+        { type: 'creator_application', title: 'Nova candidatura a criador: Joao Silva', message: 'Joao Silva (joao@exemplo.com) candidatou-se ao programa de criadores.', link: '/admin/creators' },
+        { type: 'success', title: 'Backup da base de dados concluido', message: 'O backup automatico foi concluido com sucesso.', link: null },
+        { type: 'system', title: 'Manutencao programada: Domingo 03:00 UTC', message: 'A plataforma estara indisponivel por aproximadamente 15 minutos.', link: null },
+      ];
+
+      if (adminId) {
+        for (let i = 0; i < seedNotifs.length; i++) {
+          const n = seedNotifs[i];
+          const createdDate = new Date(Date.now() - i * 3600000 * (i + 1));
+          await prisma.$executeRawUnsafe(
+            `INSERT INTO "notifications" ("user_id", "type", "title", "message", "link", "read", "read_at", "created_at")
+             VALUES ($1, $2::notification_type, $3, $4, $5, $6, $7, $8)`,
+            adminId, n.type, n.title, n.message, n.link,
+            i >= 3, // first 3 unread, rest read
+            i >= 3 ? new Date(Date.now() - i * 1800000).toISOString() : null,
+            createdDate.toISOString()
+          );
+        }
+        console.log(`[ensureRuntimeSchema] Seeded ${seedNotifs.length} demo notifications`);
+      }
+    }
+  } catch (notifErr: any) {
+    console.warn('[ensureRuntimeSchema] Notification seed skipped:', notifErr?.message || String(notifErr));
+  }
+
   } catch (_error: any) {
     console.error('[ensureRuntimeSchema] Non-fatal error:', _error?.message || String(_error));
     console.error('  The server will continue, but some features may not work.');

@@ -160,6 +160,42 @@ async function main() {
 
   await ensureCreatorChannel(creator.id);
 
+  // ─── Seed demo notifications ──────────────────────────────────────────
+  console.log('');
+  const notifCount = await prisma.$queryRawUnsafe<Array<{ count: bigint }>>(
+    `SELECT COUNT(*)::bigint AS count FROM "notifications" WHERE user_id = $1`,
+    admin.id,
+  );
+
+  if (Number(notifCount[0]?.count || 0) === 0) {
+    const demoNotifs = [
+      { type: 'live', title: 'Nova live iniciada: Benfica vs Porto', message: 'O classico portugues comecou! Acompanha em direto.', link: '/watch/live-demo-1', read: false },
+      { type: 'info', title: 'Novo utilizador registado: carlos@exemplo.com', message: 'Carlos Oliveira juntou-se a plataforma.', link: '/admin/users', read: false },
+      { type: 'warning', title: 'Anuncio #003 a aproximar-se do limite de impressoes', message: 'O anuncio "Promocao Nike" atingiu 95% do limite.', link: '/admin/ads', read: false },
+      { type: 'system', title: 'Relatorio mensal de Julho disponivel', message: 'O relatorio de estatisticas de Julho 2026 ja esta disponivel.', link: '/admin/reports', read: true },
+      { type: 'success', title: 'Novo canal de criador aprovado', message: 'O canal "Futebol Total" foi aprovado e esta ativo.', link: '/admin/creators', read: true },
+      { type: 'error', title: 'Erro na sincronizacao de eventos', message: 'Falha ao sincronizar eventos da API Football.', link: '/admin/api-keys', read: true },
+      { type: 'info', title: 'Bem-vindo ao painel LiveSports!', message: 'Explora as funcionalidades do teu painel de administracao.', link: '/admin/dashboard', read: true },
+      { type: 'creator_application', title: 'Nova candidatura a criador: Joao Silva', message: 'Joao Silva (joao@exemplo.com) candidatou-se ao programa.', link: '/admin/creators', read: false },
+      { type: 'success', title: 'Backup da base de dados concluido', message: 'O backup automatico foi concluido com sucesso.', link: null, read: true },
+      { type: 'system', title: 'Manutencao programada: Domingo 03:00 UTC', message: 'A plataforma estara indisponivel por 15 minutos.', link: null, read: true },
+    ];
+
+    for (let i = 0; i < demoNotifs.length; i++) {
+      const n = demoNotifs[i];
+      const createdDate = new Date(Date.now() - i * 3600000 * (i + 1));
+      await prisma.$executeRawUnsafe(
+        `INSERT INTO "notifications" ("user_id", "type", "title", "message", "link", "read", "read_at", "created_at")
+         VALUES ($1, $2::notification_type, $3, $4, $5, $6, $7, $8)`,
+        admin.id, n.type, n.title, n.message, n.link,
+        n.read,
+        n.read ? new Date(Date.now() - i * 1800000).toISOString() : null,
+        createdDate.toISOString()
+      );
+    }
+    console.log(`✔ ${demoNotifs.length} notifications seeded for admin`);
+  }
+
   console.log('\nSeed concluído:');
   console.log(`- admin:   ${admin.email} / ${seedConfig.admin.password}`);
   console.log(`- user:    ${user.email} / ${seedConfig.user.password}`);
