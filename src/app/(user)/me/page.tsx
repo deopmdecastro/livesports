@@ -31,7 +31,7 @@ export default function UserProfilePage() {
   useEffect(() => {
     const u = getStoredUser() as any;
     if (u) { setProfile(u); setForm({ name: u.name || "", country: u.country || "", phone: u.phone || "" }); }
-    apiRequest<UserProfile>("/users/me")
+    apiRequest<UserProfile>("/auth/me")
       .then((data) => { setProfile(data); setForm({ name: data.name, country: data.country || "", phone: data.phone || "" }); })
       .catch(() => {});
   }, []);
@@ -40,7 +40,7 @@ export default function UserProfilePage() {
     if (!form.name.trim()) { toast.error("Nome obrigatório"); return; }
     setSaving(true);
     try {
-      const updated = await apiRequest<UserProfile>("/users/me", { method: "PATCH", body: JSON.stringify(form) });
+      const updated = await apiRequest<UserProfile>("/auth/me", { method: "PATCH", body: JSON.stringify(form) });
       setProfile(updated); setEditing(false);
       toast.success("Perfil atualizado!");
     } catch (err) { toast.error(err instanceof Error ? err.message : "Erro ao guardar"); }

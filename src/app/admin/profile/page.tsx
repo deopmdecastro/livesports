@@ -31,7 +31,7 @@ export default function AdminProfilePage() {
   useEffect(() => {
     const stored = getStoredUser() as any;
     if (stored) { setProfile(stored); setForm({ name: stored.name || "", country: stored.country || "", phone: stored.phone || "" }); }
-    apiRequest<UserProfile>("/users/me")
+    apiRequest<UserProfile>("/auth/me")
       .then((data) => {
         setProfile(data);
         setForm({ name: data.name || "", country: data.country || "", phone: data.phone || "" });
@@ -44,7 +44,7 @@ export default function AdminProfilePage() {
     if (!form.name) { toast.error("Nome é obrigatório"); return; }
     setSaving(true);
     try {
-      const updated = await apiRequest<UserProfile>("/users/me", { method: "PATCH", body: JSON.stringify(form) });
+      const updated = await apiRequest<UserProfile>("/auth/me", { method: "PATCH", body: JSON.stringify(form) });
       setProfile(updated);
       setEditing(false);
       toast.success("Perfil atualizado!");
