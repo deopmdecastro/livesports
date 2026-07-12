@@ -21,6 +21,7 @@ import {
   RefreshCw,
   Archive,
   ArrowRight,
+  Shield,
 } from "lucide-react";
 import { cn, formatDateTime, formatNumber, getSportLabel } from "@/utils";
 import type { Live, LiveStatus, LiveStreamServer, SportCategory, Event } from "@/types";
@@ -832,21 +833,92 @@ export default function LivesPage() {
                     </div>
                   </div>
 
-                  {/* VS block */}
-                  <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
-                    <p className="mb-3 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Confronto</p>
-                    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-                      <input value={form.teamA} onChange={(e) => setForm({ ...form, teamA: e.target.value })} className="input-dark w-full px-3 py-2 text-sm" placeholder="Nome da equipa A" disabled={!!form.eventId && !editingLive} />
-                      <div className="flex items-center gap-2 shrink-0">
-                        <input type="number" min={0} value={form.scoreA ?? ""} onChange={(e) => setForm({ ...form, scoreA: e.target.value === "" ? undefined : Number(e.target.value) })} className="input-dark w-10 h-9 text-center text-sm font-black" placeholder="0" />
-                        <span className="text-sm font-black text-gray-500">vs</span>
-                        <input type="number" min={0} value={form.scoreB ?? ""} onChange={(e) => setForm({ ...form, scoreB: e.target.value === "" ? undefined : Number(e.target.value) })} className="input-dark w-10 h-9 text-center text-sm font-black" placeholder="0" />
-                      </div>
-                      <input value={form.teamB} onChange={(e) => setForm({ ...form, teamB: e.target.value })} className="input-dark w-full px-3 py-2 text-sm" placeholder="Nome da equipa B" disabled={!!form.eventId && !editingLive} />
+                  {/* VS block — dual card layout */}
+                  <div className="rounded-2xl border border-white/[0.06] bg-gradient-to-b from-[#0A0A10] to-[#0E0E16] overflow-hidden">
+                    {/* Title */}
+                    <div className="flex items-center gap-2 px-5 py-3 border-b border-white/[0.04]">
+                      <Trophy className="w-3.5 h-3.5 text-red-400/60" />
+                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em]">Confronto</p>
                     </div>
-                    <div className="mt-3">
-                      <label className="mb-1 block text-[10px] font-semibold text-gray-500 uppercase">Tempo de jogo</label>
-                      <input value={form.matchTime} onChange={(e) => setForm({ ...form, matchTime: e.target.value })} className="input-dark w-full px-3 py-2 text-xs" placeholder="Ex: 45'" />
+
+                    {/* Teams vs Score */}
+                    <div className="p-5">
+                      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+                        {/* Team A card */}
+                        <div className="rounded-xl border border-white/[0.04] bg-[#0C0C14] p-4 text-center space-y-3">
+                          <div className="w-16 h-16 mx-auto rounded-2xl bg-white/[0.03] border border-white/[0.04] flex items-center justify-center overflow-hidden">
+                            {form.teamALogo ? (
+                              <img src={form.teamALogo} className="w-12 h-12 object-contain" alt="" />
+                            ) : (
+                              <Shield className="w-7 h-7 text-gray-700" />
+                            )}
+                          </div>
+                          <input
+                            value={form.teamA}
+                            onChange={(e) => setForm({ ...form, teamA: e.target.value })}
+                            className="input-dark w-full px-2 py-1.5 text-sm text-center font-bold bg-transparent border-0 focus:outline-none focus:ring-1 focus:ring-red-500/20 rounded-lg"
+                            placeholder="Equipa A"
+                            disabled={!!form.eventId && !editingLive}
+                          />
+                        </div>
+
+                        {/* VS Score */}
+                        <div className="flex flex-col items-center gap-2 shrink-0 px-2">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number" min={0}
+                              value={form.scoreA ?? ""}
+                              onChange={(e) => setForm({ ...form, scoreA: e.target.value === "" ? undefined : Number(e.target.value) })}
+                              className="input-dark w-12 h-12 text-center text-xl font-black rounded-xl bg-[#111118] border-[#1E1E2A] placeholder:text-gray-700"
+                              placeholder="0"
+                            />
+                            <span className="text-[10px] font-bold text-gray-600 uppercase">vs</span>
+                            <input
+                              type="number" min={0}
+                              value={form.scoreB ?? ""}
+                              onChange={(e) => setForm({ ...form, scoreB: e.target.value === "" ? undefined : Number(e.target.value) })}
+                              className="input-dark w-12 h-12 text-center text-xl font-black rounded-xl bg-[#111118] border-[#1E1E2A] placeholder:text-gray-700"
+                              placeholder="0"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Team B card */}
+                        <div className="rounded-xl border border-white/[0.04] bg-[#0C0C14] p-4 text-center space-y-3">
+                          <div className="w-16 h-16 mx-auto rounded-2xl bg-white/[0.03] border border-white/[0.04] flex items-center justify-center overflow-hidden">
+                            {form.teamBLogo ? (
+                              <img src={form.teamBLogo} className="w-12 h-12 object-contain" alt="" />
+                            ) : (
+                              <Shield className="w-7 h-7 text-gray-700" />
+                            )}
+                          </div>
+                          <input
+                            value={form.teamB}
+                            onChange={(e) => setForm({ ...form, teamB: e.target.value })}
+                            className="input-dark w-full px-2 py-1.5 text-sm text-center font-bold bg-transparent border-0 focus:outline-none focus:ring-1 focus:ring-red-500/20 rounded-lg"
+                            placeholder="Equipa B"
+                            disabled={!!form.eventId && !editingLive}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Tempo de jogo */}
+                      <div className="mt-4 pt-4 border-t border-white/[0.04]">
+                        <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/[0.04] bg-[#0C0C14]">
+                          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-red-500/10 flex-shrink-0">
+                            <Clock className="w-4 h-4 text-red-400/70" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <label className="block text-[9px] font-semibold text-gray-500 uppercase mb-1">Tempo de jogo</label>
+                            <input
+                              value={form.matchTime}
+                              onChange={(e) => setForm({ ...form, matchTime: e.target.value })}
+                              className="w-full bg-transparent text-sm font-bold text-white placeholder:text-gray-600 border-0 focus:outline-none"
+                              placeholder="Ex: 45'"
+                            />
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Calendar, Edit2, Eye, ImageIcon, Plus, RefreshCw, Search, Trash2, Upload, X, CheckCircle, XCircle, Archive, Trophy } from "lucide-react";
+import { Calendar, Edit2, Eye, ImageIcon, Plus, RefreshCw, Search, Trash2, Upload, X, CheckCircle, XCircle, Archive, Trophy, Shield, Clock, Users as UsersIcon } from "lucide-react";
 import { formatDateTime } from "@/utils";
 import type { Event, SportCategory } from "@/types";
 import AdminSelect from "@/components/admin/AdminSelect";
@@ -488,47 +488,117 @@ export default function EventsPage() {
                     </div>
                   )}
 
-                  {/* VS + score + match details */}
-                  <div className="rounded-xl border border-white/[0.06] bg-gradient-to-br from-[#0C0C14] to-[#111118] p-5">
-                    <p className="mb-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Confronto</p>
-                    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-                      {/* Team A */}
-                      <div className="text-center space-y-2">
-                        {form.teamALogo ? (
-                          <img src={form.teamALogo} className="w-10 h-10 mx-auto object-contain rounded-lg p-0.5 bg-white/5" alt="" />
-                        ) : (
-                          <div className="w-10 h-10 mx-auto rounded-lg bg-white/5 flex items-center justify-center">
-                            <Trophy className="w-4 h-4 text-gray-600" />
-                          </div>
-                        )}
-                        <input disabled={modalMode === "view"} value={form.teamA} onChange={(e) => setForm({ ...form, teamA: e.target.value })} className="input-dark w-full px-3 py-2 text-sm text-center font-semibold" placeholder="Equipa A" />
-                      </div>
-                      {/* Score */}
-                      <div className="flex items-center gap-2 shrink-0">
-                        <input disabled={modalMode === "view"} type="number" min={0} value={form.scoreA} onChange={(e) => setForm({ ...form, scoreA: e.target.value })} className="input-dark w-11 h-10 text-center text-lg font-black rounded-lg bg-[#1A1A22] border-[#2A2A35]" placeholder="–" />
-                        <span className="text-[10px] font-bold text-gray-600 uppercase px-1">vs</span>
-                        <input disabled={modalMode === "view"} type="number" min={0} value={form.scoreB} onChange={(e) => setForm({ ...form, scoreB: e.target.value })} className="input-dark w-11 h-10 text-center text-lg font-black rounded-lg bg-[#1A1A22] border-[#2A2A35]" placeholder="–" />
-                      </div>
-                      {/* Team B */}
-                      <div className="text-center space-y-2">
-                        {form.teamBLogo ? (
-                          <img src={form.teamBLogo} className="w-10 h-10 mx-auto object-contain rounded-lg p-0.5 bg-white/5" alt="" />
-                        ) : (
-                          <div className="w-10 h-10 mx-auto rounded-lg bg-white/5 flex items-center justify-center">
-                            <Trophy className="w-4 h-4 text-gray-600" />
-                          </div>
-                        )}
-                        <input disabled={modalMode === "view"} value={form.teamB} onChange={(e) => setForm({ ...form, teamB: e.target.value })} className="input-dark w-full px-3 py-2 text-sm text-center font-semibold" placeholder="Equipa B" />
-                      </div>
+                  {/* VS + score + match details — dual card layout */}
+                  <div className="rounded-2xl border border-white/[0.06] bg-gradient-to-b from-[#0A0A10] to-[#0E0E16] overflow-hidden">
+                    {/* CONFRONTO title */}
+                    <div className="flex items-center gap-2 px-5 py-3 border-b border-white/[0.04]">
+                      <Trophy className="w-3.5 h-3.5 text-red-400/60" />
+                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em]">Confronto</p>
                     </div>
-                    <div className="grid gap-3 sm:grid-cols-2 mt-4 pt-4 border-t border-white/[0.04]">
-                      <div>
-                        <label className="mb-1 block text-[10px] font-semibold text-gray-500 uppercase">Tempo de jogo</label>
-                        <input disabled={modalMode === "view"} value={form.matchTime} onChange={(e) => setForm({ ...form, matchTime: e.target.value })} className="input-dark w-full px-3 py-2 text-xs" placeholder="Ex: 75'" />
+
+                    {/* Teams vs Score */}
+                    <div className="p-5">
+                      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+                        {/* Team A card */}
+                        <div className="rounded-xl border border-white/[0.04] bg-[#0C0C14] p-4 text-center space-y-3">
+                          {/* Shield */}
+                          <div className="w-16 h-16 mx-auto rounded-2xl bg-white/[0.03] border border-white/[0.04] flex items-center justify-center overflow-hidden">
+                            {form.teamALogo ? (
+                              <img src={form.teamALogo} className="w-12 h-12 object-contain" alt="" />
+                            ) : (
+                              <Shield className="w-7 h-7 text-gray-700" />
+                            )}
+                          </div>
+                          {/* Name */}
+                          <input
+                            disabled={modalMode === "view"}
+                            value={form.teamA}
+                            onChange={(e) => setForm({ ...form, teamA: e.target.value })}
+                            className="input-dark w-full px-2 py-1.5 text-sm text-center font-bold bg-transparent border-0 focus:outline-none focus:ring-1 focus:ring-red-500/20 rounded-lg"
+                            placeholder="Equipa A"
+                          />
+                        </div>
+
+                        {/* VS Score */}
+                        <div className="flex flex-col items-center gap-2 shrink-0 px-2">
+                          <div className="flex items-center gap-2">
+                            <input
+                              disabled={modalMode === "view"}
+                              type="number" min={0}
+                              value={form.scoreA}
+                              onChange={(e) => setForm({ ...form, scoreA: e.target.value })}
+                              className="input-dark w-12 h-12 text-center text-xl font-black rounded-xl bg-[#111118] border-[#1E1E2A] placeholder:text-gray-700"
+                              placeholder="0"
+                            />
+                            <span className="text-[10px] font-bold text-gray-600 uppercase">vs</span>
+                            <input
+                              disabled={modalMode === "view"}
+                              type="number" min={0}
+                              value={form.scoreB}
+                              onChange={(e) => setForm({ ...form, scoreB: e.target.value })}
+                              className="input-dark w-12 h-12 text-center text-xl font-black rounded-xl bg-[#111118] border-[#1E1E2A] placeholder:text-gray-700"
+                              placeholder="0"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Team B card */}
+                        <div className="rounded-xl border border-white/[0.04] bg-[#0C0C14] p-4 text-center space-y-3">
+                          {/* Shield */}
+                          <div className="w-16 h-16 mx-auto rounded-2xl bg-white/[0.03] border border-white/[0.04] flex items-center justify-center overflow-hidden">
+                            {form.teamBLogo ? (
+                              <img src={form.teamBLogo} className="w-12 h-12 object-contain" alt="" />
+                            ) : (
+                              <Shield className="w-7 h-7 text-gray-700" />
+                            )}
+                          </div>
+                          {/* Name */}
+                          <input
+                            disabled={modalMode === "view"}
+                            value={form.teamB}
+                            onChange={(e) => setForm({ ...form, teamB: e.target.value })}
+                            className="input-dark w-full px-2 py-1.5 text-sm text-center font-bold bg-transparent border-0 focus:outline-none focus:ring-1 focus:ring-red-500/20 rounded-lg"
+                            placeholder="Equipa B"
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <label className="mb-1 block text-[10px] font-semibold text-gray-500 uppercase">Espectadores</label>
-                        <input disabled={modalMode === "view"} type="number" value={form.viewerCount} onChange={(e) => setForm({ ...form, viewerCount: e.target.value })} className="input-dark w-full px-3 py-2 text-xs" placeholder="Número de espectadores" />
+
+                      {/* Footer: Match time + Viewers */}
+                      <div className="grid gap-3 sm:grid-cols-2 mt-4 pt-4 border-t border-white/[0.04]">
+                        {/* Tempo de jogo */}
+                        <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/[0.04] bg-[#0C0C14]">
+                          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-red-500/10 flex-shrink-0">
+                            <Clock className="w-4 h-4 text-red-400/70" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <label className="block text-[9px] font-semibold text-gray-500 uppercase mb-1">Tempo de jogo</label>
+                            <input
+                              disabled={modalMode === "view"}
+                              value={form.matchTime}
+                              onChange={(e) => setForm({ ...form, matchTime: e.target.value })}
+                              className="w-full bg-transparent text-sm font-bold text-white placeholder:text-gray-600 border-0 focus:outline-none"
+                              placeholder="Ex: 45'"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Espectadores */}
+                        <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/[0.04] bg-[#0C0C14]">
+                          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-green-500/10 flex-shrink-0">
+                            <UsersIcon className="w-4 h-4 text-green-400/70" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <label className="block text-[9px] font-semibold text-gray-500 uppercase mb-1">Espectadores</label>
+                            <input
+                              disabled={modalMode === "view"}
+                              type="number"
+                              value={form.viewerCount}
+                              onChange={(e) => setForm({ ...form, viewerCount: e.target.value })}
+                              className="w-full bg-transparent text-sm font-bold text-white placeholder:text-gray-600 border-0 focus:outline-none"
+                              placeholder="0"
+                            />
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
