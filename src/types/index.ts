@@ -464,6 +464,29 @@ export interface Category {
   createdAt: string;
 }
 
+// ==================== API / CONSUMPTION TYPES ====================
+export type StoredUser = User;
+
+export interface SearchResult {
+  kind: 'live' | 'event';
+  id: string;
+  title?: string;
+  league?: string;
+  leagueLogo?: string;
+  teamA?: string;
+  teamB?: string;
+  status?: string;
+  sport?: string;
+  thumbnail?: string;
+  scheduledAt?: string;
+  matchTime?: string;
+}
+
+export interface SearchResponse {
+  lives: SearchResult[];
+  events: SearchResult[];
+}
+
 // ==================== BANNER TYPES ====================
 export interface Banner {
   id: string;

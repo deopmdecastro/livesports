@@ -315,7 +315,7 @@ export default function HeroSection() {
                     {slide.live.league}
                   </span>
                 )}
-                {slide.kind === "live" && slide.live?.viewerCount > 0 && (
+                {slide.kind === "live" && slide.live?.viewerCount != null && slide.live.viewerCount > 0 && (
                   <span className="flex items-center gap-1.5 rounded-full bg-white/[0.04] border border-white/[0.06] px-3 py-1 text-[11px] font-medium text-white/50">
                     <Eye className="h-3 w-3 text-[#E50914]" />
                     {formatViewers(slide.live.viewerCount)}

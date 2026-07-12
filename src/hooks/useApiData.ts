@@ -40,12 +40,12 @@ import { apiRequest, publicApiRequest, type ApiListResponse } from "@/lib/api";
 export function useApiData<T>({
   url,
   pollInterval = 0,
-  initialData = null,
+  initialData,
   enabled = true,
   transform,
   deps = [],
 }: UseApiDataOptions<T>): UseApiDataReturn<T> {
-  const [data, setData] = useState<T | null>(initialData);
+  const [data, setData] = useState<T | null>(initialData ?? null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const mountedRef = useRef(true);
@@ -58,7 +58,7 @@ export function useApiData<T>({
     setError(null);
     try {
       const fetcher = isPublic ? publicApiRequest : apiRequest;
-      let result = await fetcher<T>(url);
+      let result: T = await fetcher<T>(url);
       if (transform) result = transform(result);
       if (mountedRef.current) setData(result);
     } catch (err) {
