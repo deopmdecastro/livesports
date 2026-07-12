@@ -335,7 +335,7 @@ export async function ensureRuntimeSchema() {
   // ─── Migrations 003-005: API Keys, Logs, Support, Archive columns ──────────────
   // These are wrapped in individual try/catch so a single failure doesn't block boot
   const safeExec = async (sql: string) => {
-    try { await prisma.$executeRawUnsafe(sql); } catch { /* column/table may already exist */ }
+    try { await prisma.$executeRawUnsafe(sql); } catch (e: any) { if (!e.message?.includes('already exists') && !e.message?.includes('duplicate')) console.error('[safeExec]', (e as Error).message?.split('\n')[0]); }
   };
 
   // api_keys table — create enums first
