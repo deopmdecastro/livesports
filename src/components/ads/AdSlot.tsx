@@ -5,7 +5,8 @@ import DOMPurify from "dompurify";
 import type { Ad, AdPosition } from "@/types";
 import { publicApiRequest } from "@/lib/api";
 import { cn } from "@/utils";
-import { X, BarChart2 } from "lucide-react";
+import { X, BarChart2, AlertTriangle } from "lucide-react";
+import ErrorBoundary from "@/components/ui/ErrorBoundary";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -158,7 +159,7 @@ function AdContent({ ad }: { ad: Ad }) {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function AdSlot({
+function AdSlotInner({
   position,
   className = "",
   variant = "horizontal",
@@ -381,5 +382,23 @@ export default function AdSlot({
         <AdContent ad={ad} />
       </a>
     </div>
+  );
+}
+
+// Wrapper with ErrorBoundary to prevent broken ads from crashing the page
+export default function AdSlot(props: AdSlotProps) {
+  return (
+    <ErrorBoundary
+      fallback={
+        <div className="flex items-center justify-center py-2 opacity-30">
+          <div className="flex items-center gap-1.5">
+            <AlertTriangle className="h-3 w-3 text-gray-500" />
+            <span className="text-[10px] text-gray-500">Anúncio indisponível</span>
+          </div>
+        </div>
+      }
+    >
+      <AdSlotInner {...props} />
+    </ErrorBoundary>
   );
 }

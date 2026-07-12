@@ -75,20 +75,20 @@ export function TeamSearch({
     <div ref={containerRef} className={`relative space-y-1.5 ${className}`}>
       {label ? <label className="block text-xs font-medium text-gray-300">{label}</label> : null}
       <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+        <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-500" />
         <input
           value={query}
           disabled={disabled}
           onChange={(event) => setQuery(event.target.value)}
           onFocus={() => results.length > 0 && setOpen(true)}
           placeholder={placeholder}
-          className="input-dark w-full py-2.5 pl-9 pr-10 text-sm"
+          className="input-dark w-full py-1.5 pl-8 pr-8 text-xs"
         />
         {loading ? (
-          <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-gray-500" />
+          <Loader2 className="absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin text-gray-500" />
         ) : null}
       </div>
-      {hint ? <p className="text-[10px] text-gray-500">{hint}</p> : null}
+      {hint && !disabled ? <p className="text-[10px] text-gray-500">{hint}</p> : null}
       {notice ? <p className="text-[10px] text-amber-400">{notice}</p> : null}
 
       {open && results.length > 0 ? (
