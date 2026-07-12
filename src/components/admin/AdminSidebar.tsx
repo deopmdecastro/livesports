@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/utils";
 import { useEffect, useState } from "react";
+import BrandIdentity from "@/components/branding/BrandIdentity";
 import { apiRequest } from "@/lib/api";
 import { formatCompact } from "@/hooks/usePlatformStats";
 
@@ -143,19 +144,11 @@ export default function AdminSidebar() {
 
       {/* Logo */}
       <div className="relative p-4 border-b border-[#0E0E16] bg-gradient-to-b from-[#0A0A12] to-[#06060C]">
-        <Link href="/admin/dashboard" className="flex items-center gap-3 group">
-          <div className="relative">
-            <div className="w-10 h-10 bg-gradient-to-br from-[#E50914] to-[#800000] rounded-xl flex items-center justify-center shadow-[0_4px_16px_rgba(229,9,20,0.2)] group-hover:shadow-[0_6px_24px_rgba(229,9,20,0.3)] transition-shadow">
-              <Tv2 className="w-5 h-5 text-white" />
-            </div>
-            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#22C55E] border-2 border-[#06060C] shadow-[0_0_6px_rgba(34,197,94,0.4)]" />
-          </div>
-          <div className="min-w-0">
-            <span className="text-[#E50914] font-black text-xs leading-none block">LIVE</span>
-            <span className="text-white font-black text-xs leading-none block">SPORTS</span>
-            <span className="text-[9px] text-gray-600 font-medium">Admin Panel</span>
-          </div>
+        <Link href="/admin/dashboard" className="block">
+          <BrandIdentity mode="sidebar" subtitle="Admin Panel" />
         </Link>
+        {/* Online dot */}
+        <span className="absolute top-3.5 right-3.5 w-2.5 h-2.5 rounded-full bg-[#22C55E] border-2 border-[#06060C] shadow-[0_0_6px_rgba(34,197,94,0.4)]" />
       </div>
 
       {/* Quick stats */}
