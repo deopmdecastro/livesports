@@ -384,8 +384,9 @@ export default function WatchExperience({ live, liveId }: WatchExperienceProps) 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  // Polling: update viewer count + new comments every 30s
+  // Polling: fallback update every 60s only when socket is disconnected
   useEffect(() => {
+    if (socketConnected) return;
     const t = setInterval(() => {
       publicApiRequest<LiveEngagement>(`/lives/${id}/engagement?clientId=${encodeURIComponent(clientId)}`)
         .then((s) => {
@@ -397,9 +398,9 @@ export default function WatchExperience({ live, liveId }: WatchExperienceProps) 
       publicApiRequest<LiveComment[]>(`/lives/${id}/comments?limit=20`)
         .then((msgs) => setChat(msgs))
         .catch(() => undefined);
-    }, 30000);
+    }, 60000);
     return () => clearInterval(t);
-  }, [id, clientId]);
+  }, [id, clientId, socketConnected]);
 
   // Mid-roll ads: show every 30 minutes while live is playing
   // First ad triggers after 30 min, then repeats every 30 min

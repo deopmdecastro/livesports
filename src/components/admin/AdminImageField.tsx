@@ -20,6 +20,7 @@ interface AdminImageFieldProps {
   aspectClassName?: string;
   className?: string;
   sizeHint?: ImageSizeHint;
+  compact?: boolean;
 }
 
 function loadImageDimensions(src: string): Promise<{ width: number; height: number }> {
@@ -41,6 +42,7 @@ export default function AdminImageField({
   aspectClassName = "aspect-video",
   className = "",
   sizeHint,
+  compact = false,
 }: AdminImageFieldProps) {
   const [uploadInfo, setUploadInfo] = useState<{
     width: number;
@@ -122,7 +124,7 @@ export default function AdminImageField({
         )}
       </div>
 
-      {sizeHint ? (
+      {!compact && sizeHint ? (
         <div className="rounded-xl border border-red-500/20 bg-red-500/5 px-3 py-2">
           <p className="text-[11px] font-semibold text-red-300">Tamanho recomendado</p>
           <p className="mt-0.5 text-[11px] text-gray-400">{formatSizeHint(sizeHint)}</p>
@@ -131,15 +133,15 @@ export default function AdminImageField({
       ) : null}
 
       {value ? (
-        <div className="rounded-xl border border-[#242433] bg-[#111118] p-3">
+        <div className={`rounded-xl border border-[#242433] bg-[#111118] ${compact ? "p-2" : "p-3"}`}>
           <div
-            className={`flex items-center justify-center overflow-hidden rounded-lg border border-white/5 bg-black/25 ${previewFrameClass} ${previewAspectClass}`}
+            className={`flex items-center justify-center overflow-hidden rounded-lg border border-white/5 bg-black/25 ${compact ? (isSquarePreview ? "h-20 w-20 mx-auto" : "h-24 w-full") : previewFrameClass} ${compact ? "" : previewAspectClass}`}
           >
-            <div className={isSquarePreview ? "h-24 w-24 overflow-hidden rounded-lg bg-black/30 p-2" : "h-full w-full"}>
+            <div className={isSquarePreview ? `overflow-hidden rounded-lg bg-black/30 ${compact ? "h-16 w-16 p-1" : "h-24 w-24 p-2"}` : "h-full w-full"}>
               <img src={value} alt="" className="h-full w-full object-contain" />
             </div>
           </div>
-          {uploadInfo ? (
+          {!compact && uploadInfo ? (
             <div
               className={`mt-2 flex items-center gap-1.5 text-[11px] ${
                 uploadInfo.ok ? "text-emerald-400" : "text-amber-400"
@@ -176,19 +178,20 @@ export default function AdminImageField({
             dragOver ? "border-[#E50914]/50 bg-[#E50914]/[0.04]" : "border-[#2A2A38] bg-[#111118]"
           }`}
         >
-          <div className={`flex rounded-lg bg-black/20 ${previewFrameClass} ${previewAspectClass}`}>
+          <div className={`flex rounded-lg bg-black/20 ${compact ? "h-20 w-20 mx-auto" : previewFrameClass} ${compact ? "" : previewAspectClass}`}>
             <div
               className={`flex w-full items-center ${
-                isSquarePreview ? "justify-start gap-3 px-3 py-3" : "flex-col justify-center px-4 text-center"
+                compact ? "justify-center p-2" : isSquarePreview ? "justify-start gap-3 px-3 py-3" : "flex-col justify-center px-4 text-center"
               }`}
             >
               <div
                 className={`flex shrink-0 items-center justify-center rounded-lg border border-white/10 bg-[#191922] text-gray-500 transition-colors ${
                   dragOver ? "border-[#E50914]/40 text-[#E50914]" : ""
-                } ${isSquarePreview ? "h-14 w-14" : "mx-auto mb-2 h-11 w-11"}`}
+                } ${compact ? "h-10 w-10" : isSquarePreview ? "h-14 w-14" : "mx-auto mb-2 h-11 w-11"}`}
               >
-                <ImageIcon className={isSquarePreview ? "h-7 w-7" : "h-6 w-6"} />
+                <ImageIcon className={compact ? "h-5 w-5" : isSquarePreview ? "h-7 w-7" : "h-6 w-6"} />
               </div>
+              {!compact && (
               <div className={isSquarePreview ? "min-w-0 flex-1 text-left" : "text-center"}>
                 <p className="text-xs font-semibold leading-tight text-gray-400">
                   {dragOver ? "Larga aqui para carregar" : "Arrasta uma imagem ou clica em carregar"}
@@ -199,19 +202,21 @@ export default function AdminImageField({
                   </p>
                 ) : null}
               </div>
+              )}
             </div>
           </div>
         </div>
       )}
 
       {!disabled && (
-        <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+        <div className={`grid gap-2 ${compact ? "grid-cols-1" : "sm:grid-cols-[1fr_auto]"}`}>
           <input
             value={value.startsWith("data:") ? "" : value}
             onChange={(event) => handleValueChange(event.target.value)}
-            className="input-dark w-full px-3 py-2.5 text-sm"
+            className={`input-dark w-full ${compact ? "px-2 py-1.5 text-[11px]" : "px-3 py-2.5 text-sm"}`}
             placeholder={placeholder}
           />
+          {!compact && (
           <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-[#2A2A38] bg-gradient-to-b from-[#1D1D28] to-[#16161F] px-3.5 py-2.5 text-sm font-semibold text-gray-200 transition-all hover:border-[#E50914]/30 hover:text-white">
             <Upload className="h-4 w-4" />
             Carregar
@@ -222,6 +227,7 @@ export default function AdminImageField({
               onChange={(event) => handleFile(event.target.files?.[0])}
             />
           </label>
+          )}
         </div>
       )}
     </div>

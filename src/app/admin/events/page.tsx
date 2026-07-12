@@ -412,51 +412,44 @@ export default function EventsPage() {
               {/* ── TAB: EQUIPAS ── */}
               {eventModalTab === "Equipas" && (
                 <>
-                  {/* VS block */}
-                  <div className="rounded-xl border border-white/8 bg-black/20 p-4">
-                    <p className="mb-3 text-xs font-bold text-gray-400 uppercase tracking-widest">Confronto</p>
-                    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+                  {/* VS block — compact */}
+                  <div className="rounded-xl border border-white/8 bg-black/20 p-3">
+                    <p className="mb-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Confronto</p>
+                    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
                       <div>
-                        <label className="mb-1 block text-[10px] font-semibold text-gray-500 uppercase">Equipa A</label>
-                        <input disabled={modalMode === "view"} value={form.teamA} onChange={(e) => setForm({ ...form, teamA: e.target.value })} className="input-dark w-full px-3 py-2 text-sm" placeholder="Nome da equipa A" />
+                        <input disabled={modalMode === "view"} value={form.teamA} onChange={(e) => setForm({ ...form, teamA: e.target.value })} className="input-dark w-full px-2.5 py-1.5 text-xs" placeholder="Equipa A" />
                       </div>
-                      <div className="text-center">
-                        <span className="text-lg font-black text-gray-600">VS</span>
-                        <div className="flex gap-1 mt-1 justify-center">
-                          <input disabled={modalMode === "view"} type="number" min={0} value={form.scoreA} onChange={(e) => setForm({ ...form, scoreA: e.target.value })} className="input-dark w-10 px-1 py-1 text-sm text-center font-black" placeholder="0" />
-                          <span className="text-gray-600 self-center">:</span>
-                          <input disabled={modalMode === "view"} type="number" min={0} value={form.scoreB} onChange={(e) => setForm({ ...form, scoreB: e.target.value })} className="input-dark w-10 px-1 py-1 text-sm text-center font-black" placeholder="0" />
-                        </div>
+                      <div className="flex items-center gap-1 px-1">
+                        <input disabled={modalMode === "view"} type="number" min={0} value={form.scoreA} onChange={(e) => setForm({ ...form, scoreA: e.target.value })} className="input-dark w-8 px-1 py-1 text-xs text-center font-black" placeholder="0" />
+                        <span className="text-[10px] font-black text-gray-600">VS</span>
+                        <input disabled={modalMode === "view"} type="number" min={0} value={form.scoreB} onChange={(e) => setForm({ ...form, scoreB: e.target.value })} className="input-dark w-8 px-1 py-1 text-xs text-center font-black" placeholder="0" />
                       </div>
                       <div>
-                        <label className="mb-1 block text-[10px] font-semibold text-gray-500 uppercase">Equipa B</label>
-                        <input disabled={modalMode === "view"} value={form.teamB} onChange={(e) => setForm({ ...form, teamB: e.target.value })} className="input-dark w-full px-3 py-2 text-sm" placeholder="Nome da equipa B" />
+                        <input disabled={modalMode === "view"} value={form.teamB} onChange={(e) => setForm({ ...form, teamB: e.target.value })} className="input-dark w-full px-2.5 py-1.5 text-xs" placeholder="Equipa B" />
                       </div>
                     </div>
-                    <div className="grid gap-3 sm:grid-cols-2 mt-3">
+                    <div className="grid gap-2 sm:grid-cols-2 mt-2">
                       <div>
-                        <label className="mb-1 block text-[10px] font-semibold text-gray-500 uppercase">Tempo de jogo</label>
-                        <input disabled={modalMode === "view"} value={form.matchTime} onChange={(e) => setForm({ ...form, matchTime: e.target.value })} className="input-dark w-full px-3 py-2 text-sm" placeholder="75' / Q4 / Set 2" />
+                        <input disabled={modalMode === "view"} value={form.matchTime} onChange={(e) => setForm({ ...form, matchTime: e.target.value })} className="input-dark w-full px-2.5 py-1.5 text-xs" placeholder="Tempo: 75' / Q4 / Set 2" />
                       </div>
                       <div>
-                        <label className="mb-1 block text-[10px] font-semibold text-gray-500 uppercase">Espectadores</label>
-                        <input disabled={modalMode === "view"} type="number" value={form.viewerCount} onChange={(e) => setForm({ ...form, viewerCount: e.target.value })} className="input-dark w-full px-3 py-2 text-sm" placeholder="125400" />
+                        <input disabled={modalMode === "view"} type="number" value={form.viewerCount} onChange={(e) => setForm({ ...form, viewerCount: e.target.value })} className="input-dark w-full px-2.5 py-1.5 text-xs" placeholder="Espectadores" />
                       </div>
                     </div>
                   </div>
-                  {/* Team search */}
+                  {/* Team search — compact inline */}
                   {modalMode !== "view" && (
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <AdminTeamSearchField label="Pesquisar Equipa A (TheSportsDB)" onApply={(team) => setForm((c) => ({ ...c, teamA: team.name, teamALogo: team.badge || c.teamALogo, league: c.league || team.league, leagueLogo: c.leagueLogo || team.badge || c.leagueLogo }))} />
-                      <AdminTeamSearchField label="Pesquisar Equipa B (TheSportsDB)" onApply={(team) => setForm((c) => ({ ...c, teamB: team.name, teamBLogo: team.badge || c.teamBLogo }))} />
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <AdminTeamSearchField label="Equipa A (TheSportsDB)" onApply={(team) => setForm((c) => ({ ...c, teamA: team.name, teamALogo: team.badge || c.teamALogo, league: c.league || team.league, leagueLogo: c.leagueLogo || team.badge || c.leagueLogo }))} />
+                      <AdminTeamSearchField label="Equipa B (TheSportsDB)" onApply={(team) => setForm((c) => ({ ...c, teamB: team.name, teamBLogo: team.badge || c.teamBLogo }))} />
                     </div>
                   )}
-                  {/* Logos */}
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <AdminImageField label="Escudo Equipa A" disabled={modalMode === "view"} value={form.teamALogo} onChange={(v) => setForm({ ...form, teamALogo: v })} aspectClassName="aspect-square" sizeHint={IMAGE_SIZE_PRESETS.teamLogo} />
-                    <AdminImageField label="Escudo Equipa B" disabled={modalMode === "view"} value={form.teamBLogo} onChange={(v) => setForm({ ...form, teamBLogo: v })} aspectClassName="aspect-square" sizeHint={IMAGE_SIZE_PRESETS.teamLogo} />
+                  {/* Logos — compact row */}
+                  <div className="grid gap-3 sm:grid-cols-[1fr_1fr_120px]">
+                    <AdminImageField label="Escudo A" disabled={modalMode === "view"} value={form.teamALogo} onChange={(v) => setForm({ ...form, teamALogo: v })} aspectClassName="aspect-square" sizeHint={IMAGE_SIZE_PRESETS.teamLogo} compact />
+                    <AdminImageField label="Escudo B" disabled={modalMode === "view"} value={form.teamBLogo} onChange={(v) => setForm({ ...form, teamBLogo: v })} aspectClassName="aspect-square" sizeHint={IMAGE_SIZE_PRESETS.teamLogo} compact />
+                    <AdminImageField label="Logo Liga" disabled={modalMode === "view"} value={form.leagueLogo} onChange={(v) => setForm({ ...form, leagueLogo: v })} aspectClassName="aspect-square" sizeHint={IMAGE_SIZE_PRESETS.leagueLogo} compact />
                   </div>
-                  <AdminImageField label="Logo da Liga" disabled={modalMode === "view"} value={form.leagueLogo} onChange={(v) => setForm({ ...form, leagueLogo: v })} aspectClassName="aspect-square" className="max-w-[180px]" sizeHint={IMAGE_SIZE_PRESETS.leagueLogo} />
                 </>
               )}
 
