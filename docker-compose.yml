@@ -94,6 +94,7 @@ services:
       - ./backend/prisma/migrations/20260711000000_news_language_translation/migration.sql:/docker-entrypoint-initdb.d/009_news_language_translation.sql
       - ./backend/prisma/migrations/20260712000000_banner_extra_fields/migration.sql:/docker-entrypoint-initdb.d/010_banner_extra_fields.sql
       - ./backend/prisma/migrations/20260712000001_ad_campaign_fields/migration.sql:/docker-entrypoint-initdb.d/011_ad_campaign_fields.sql
+      - ./backend/prisma/migrations/20260712000002_site_settings/migration.sql:/docker-entrypoint-initdb.d/012_site_settings.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U livesports -d livesports_db"]
       interval: 10s
