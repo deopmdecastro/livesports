@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Calendar, Edit2, Eye, ImageIcon, Plus, RefreshCw, Search, Trash2, Upload, X, CheckCircle, XCircle, Archive } from "lucide-react";
+import { Calendar, Edit2, Eye, ImageIcon, Plus, RefreshCw, Search, Trash2, Upload, X, CheckCircle, XCircle, Archive, Trophy } from "lucide-react";
 import { formatDateTime } from "@/utils";
 import type { Event, SportCategory } from "@/types";
 import AdminSelect from "@/components/admin/AdminSelect";
@@ -402,34 +402,39 @@ export default function EventsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
           <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] shadow-2xl">
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-[#1E1E2A] px-5 py-4">
+            <div className="flex items-center justify-between border-b border-[#1E1E2A] px-5 py-4 bg-gradient-to-r from-[#0C0C14] to-[#111118]">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-500/10 border border-red-500/20">
-                  <Calendar className="h-4 w-4 text-red-400" />
+                <div className={`flex h-10 w-10 items-center justify-center rounded-xl border ${modalMode === "create" ? "bg-red-500/10 border-red-500/20" : modalMode === "edit" ? "bg-amber-500/10 border-amber-500/20" : "bg-blue-500/10 border-blue-500/20"}`}>
+                  {modalMode === "create" ? <Plus className="h-5 w-5 text-red-400" /> : modalMode === "edit" ? <Edit2 className="h-5 w-5 text-amber-400" /> : <Eye className="h-5 w-5 text-blue-400" />}
                 </div>
                 <div>
-                  <h3 className="font-black text-white">
+                  <h3 className="text-lg font-black text-white tracking-tight">
                     {modalMode === "create" ? "Novo Evento" : modalMode === "edit" ? "Editar Evento" : "Visualizar Evento"}
                   </h3>
                   <p className="text-[11px] text-gray-500">
-                    {modalMode === "view" ? `ID: ${selected?.id}` : "Preencha os dados do evento desportivo"}
+                    {modalMode === "view" ? `ID: ${selected?.id?.slice(0, 8)}...` : "Preencha os dados do evento desportivo"}
                   </p>
                 </div>
               </div>
-              <button onClick={() => setModalMode(null)} className="rounded-xl p-2 text-gray-400 hover:bg-white/5 hover:text-white"><X className="h-4 w-4" /></button>
+              <button onClick={() => setModalMode(null)} className="rounded-xl p-2.5 text-gray-500 hover:bg-white/5 hover:text-white transition-all"><X className="h-4 w-4" /></button>
             </div>
             {/* Tabs */}
-            <div className="flex border-b border-[#1E1E2A] px-5">
-              {(["Geral", "Equipas", "Detalhes"] as const).map((tab) => (
+            <div className="flex border-b border-[#1E1E2A] px-5 gap-1">
+              {([
+                { key: "Geral", icon: Calendar },
+                { key: "Equipas", icon: Trophy },
+                { key: "Detalhes", icon: Edit2 },
+              ] as const).map(({ key, icon: Icon }) => (
                 <button
-                  key={tab}
-                  onClick={() => setEventModalTab(tab)}
-                  className={`relative px-5 py-3 text-xs font-bold transition-all ${
-                    eventModalTab === tab ? "text-red-400" : "text-gray-500 hover:text-gray-300"
+                  key={key}
+                  onClick={() => setEventModalTab(key)}
+                  className={`relative flex items-center gap-2 px-4 py-3 text-xs font-bold transition-all ${
+                    eventModalTab === key ? "text-red-400" : "text-gray-500 hover:text-gray-300"
                   }`}
                 >
-                  {tab}
-                  {eventModalTab === tab && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 w-8 rounded-full bg-[#E50914]" />}
+                  <Icon className={`w-3.5 h-3.5 ${eventModalTab === key ? "text-red-400" : "text-gray-600 group-hover:text-gray-400"}`} />
+                  {key}
+                  {eventModalTab === key && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 w-10 rounded-full bg-[#E50914]" />}
                 </button>
               ))}
             </div>
@@ -484,29 +489,46 @@ export default function EventsPage() {
                   )}
 
                   {/* VS + score + match details */}
-                  <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
-                    <p className="mb-3 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Confronto</p>
-                    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-                      <div>
-                        <input disabled={modalMode === "view"} value={form.teamA} onChange={(e) => setForm({ ...form, teamA: e.target.value })} className="input-dark w-full px-3 py-2 text-sm" placeholder="Nome da equipa A" />
+                  <div className="rounded-xl border border-white/[0.06] bg-gradient-to-br from-[#0C0C14] to-[#111118] p-5">
+                    <p className="mb-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Confronto</p>
+                    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+                      {/* Team A */}
+                      <div className="text-center space-y-2">
+                        {form.teamALogo ? (
+                          <img src={form.teamALogo} className="w-10 h-10 mx-auto object-contain rounded-lg p-0.5 bg-white/5" alt="" />
+                        ) : (
+                          <div className="w-10 h-10 mx-auto rounded-lg bg-white/5 flex items-center justify-center">
+                            <Trophy className="w-4 h-4 text-gray-600" />
+                          </div>
+                        )}
+                        <input disabled={modalMode === "view"} value={form.teamA} onChange={(e) => setForm({ ...form, teamA: e.target.value })} className="input-dark w-full px-3 py-2 text-sm text-center font-semibold" placeholder="Equipa A" />
                       </div>
+                      {/* Score */}
                       <div className="flex items-center gap-2 shrink-0">
-                        <input disabled={modalMode === "view"} type="number" min={0} value={form.scoreA} onChange={(e) => setForm({ ...form, scoreA: e.target.value })} className="input-dark w-10 h-9 text-center text-sm font-black" placeholder="0" />
-                        <span className="text-sm font-black text-gray-500">vs</span>
-                        <input disabled={modalMode === "view"} type="number" min={0} value={form.scoreB} onChange={(e) => setForm({ ...form, scoreB: e.target.value })} className="input-dark w-10 h-9 text-center text-sm font-black" placeholder="0" />
+                        <input disabled={modalMode === "view"} type="number" min={0} value={form.scoreA} onChange={(e) => setForm({ ...form, scoreA: e.target.value })} className="input-dark w-11 h-10 text-center text-lg font-black rounded-lg bg-[#1A1A22] border-[#2A2A35]" placeholder="–" />
+                        <span className="text-[10px] font-bold text-gray-600 uppercase px-1">vs</span>
+                        <input disabled={modalMode === "view"} type="number" min={0} value={form.scoreB} onChange={(e) => setForm({ ...form, scoreB: e.target.value })} className="input-dark w-11 h-10 text-center text-lg font-black rounded-lg bg-[#1A1A22] border-[#2A2A35]" placeholder="–" />
                       </div>
-                      <div>
-                        <input disabled={modalMode === "view"} value={form.teamB} onChange={(e) => setForm({ ...form, teamB: e.target.value })} className="input-dark w-full px-3 py-2 text-sm" placeholder="Nome da equipa B" />
+                      {/* Team B */}
+                      <div className="text-center space-y-2">
+                        {form.teamBLogo ? (
+                          <img src={form.teamBLogo} className="w-10 h-10 mx-auto object-contain rounded-lg p-0.5 bg-white/5" alt="" />
+                        ) : (
+                          <div className="w-10 h-10 mx-auto rounded-lg bg-white/5 flex items-center justify-center">
+                            <Trophy className="w-4 h-4 text-gray-600" />
+                          </div>
+                        )}
+                        <input disabled={modalMode === "view"} value={form.teamB} onChange={(e) => setForm({ ...form, teamB: e.target.value })} className="input-dark w-full px-3 py-2 text-sm text-center font-semibold" placeholder="Equipa B" />
                       </div>
                     </div>
-                    <div className="grid gap-3 sm:grid-cols-2 mt-3">
+                    <div className="grid gap-3 sm:grid-cols-2 mt-4 pt-4 border-t border-white/[0.04]">
                       <div>
-                        <label className="mb-1 block text-[10px] font-semibold text-gray-500 uppercase">Tempo</label>
-                        <input disabled={modalMode === "view"} value={form.matchTime} onChange={(e) => setForm({ ...form, matchTime: e.target.value })} className="input-dark w-full px-3 py-2 text-xs" placeholder="75'" />
+                        <label className="mb-1 block text-[10px] font-semibold text-gray-500 uppercase">Tempo de jogo</label>
+                        <input disabled={modalMode === "view"} value={form.matchTime} onChange={(e) => setForm({ ...form, matchTime: e.target.value })} className="input-dark w-full px-3 py-2 text-xs" placeholder="Ex: 75'" />
                       </div>
                       <div>
-                        <label className="mb-1 block text-[10px] font-semibold text-gray-500 uppercase">Espectadores (opcional)</label>
-                        <input disabled={modalMode === "view"} type="number" value={form.viewerCount} onChange={(e) => setForm({ ...form, viewerCount: e.target.value })} className="input-dark w-full px-3 py-2 text-xs" placeholder="Informe o número de espectadores" />
+                        <label className="mb-1 block text-[10px] font-semibold text-gray-500 uppercase">Espectadores</label>
+                        <input disabled={modalMode === "view"} type="number" value={form.viewerCount} onChange={(e) => setForm({ ...form, viewerCount: e.target.value })} className="input-dark w-full px-3 py-2 text-xs" placeholder="Número de espectadores" />
                       </div>
                     </div>
                   </div>
