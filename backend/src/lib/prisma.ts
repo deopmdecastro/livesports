@@ -2,7 +2,16 @@ import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { COMPETITION_SEEDS, getCompetitionSeedMedia } from './competition-seeds';
 
+// ─── Connection pool limits ──────────────────────────────────────────────────
+// Prevent runaway connections under load.  Adjust pool_timeout / connection_limit
+// to match your Postgres max_connections setting.
+const DATABASE_URL = process.env.DATABASE_URL || '';
+const pooledUrl = DATABASE_URL.includes('?')
+  ? DATABASE_URL + '&connection_limit=10&pool_timeout=30'
+  : DATABASE_URL + '?connection_limit=10&pool_timeout=30';
+
 export const prisma = new PrismaClient({
+  datasourceUrl: pooledUrl,
   log: process.env.NODE_ENV === 'production' ? ['error'] : ['query', 'error', 'warn'],
 });
 
@@ -710,3 +719,8 @@ export async function ensureRuntimeSchema() {
     console.error('  The server will continue, but some features may not work.');
   }
 }
+
+// Graceful shutdown — release DB connections
+process.on('beforeExit', async () => {
+  await prisma.$disconnect();
+});

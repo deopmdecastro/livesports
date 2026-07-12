@@ -7,6 +7,9 @@ import { authenticateToken, AuthRequest } from '../middleware/auth.middleware';
 import { prisma } from '../lib/prisma';
 
 const router = Router();
+
+/** bcrypt cost factor — do not lower below 10 in production */
+const SALT_ROUNDS = 12;
 const JWT_SECRET = process.env.JWT_SECRET || 'livesports-secret-key';
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'livesports-refresh-secret';
 

@@ -1,3 +1,13 @@
+
+const API_REQUEST_TIMEOUT_MS = 30_000; // 30 seconds
+
+function fetchWithTimeout(url: string, options?: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), API_REQUEST_TIMEOUT_MS);
+  return fetchWithTimeout(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
+}
+
+
 export type CustomFetchOptions = RequestInit & {
   responseType?: "json" | "text" | "blob" | "auto";
 };
@@ -9,6 +19,9 @@ export type BodyType<T> = T;
 export type AuthTokenGetter = () => Promise<string | null> | string | null;
 
 const NO_BODY_STATUS = new Set([204, 205, 304]);
+/** Default request timeout — 30 s. Prevents hung requests. */
+const DEFAULT_FETCH_TIMEOUT_MS = 30_000;
+
 const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
 
 // ---------------------------------------------------------------------------
@@ -360,7 +373,7 @@ export async function customFetch<T = unknown>(
 
   const requestInfo = { method, url: resolveUrl(input) };
 
-  const response = await fetch(input, { ...init, method, headers });
+  const response = await fetchWithTimeout(input, { ...init, method, headers });
 
   if (!response.ok) {
     const errorData = await parseErrorBody(response, method);

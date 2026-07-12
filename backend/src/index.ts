@@ -35,6 +35,7 @@ import notificationsRoutes from './routes/notifications.routes';
 import statsRoutes from './routes/stats.routes';
 import bannerRoutes from './routes/banner.routes';
 import settingsRoutes from './routes/settings.routes';
+import rolesRoutes from './routes/roles.routes';
 import { setIo } from './lib/socket';
 import { addViewer, removeViewer } from './lib/realtime';
 import { ensureRuntimeSchema } from './lib/prisma';
@@ -489,3 +490,16 @@ httpServer.listen(PORT, () => {
 
 export default app;
 export { io };
+
+
+// ─── Global error handlers — prevent silent crashes ───────────────────────────
+process.on('unhandledRejection', (reason: unknown) => {
+  console.error('[FATAL] Unhandled Promise Rejection:', reason);
+  // Don't exit in development; exit in production to let process manager restart
+  if (process.env.NODE_ENV === 'production') process.exit(1);
+});
+
+process.on('uncaughtException', (err: Error) => {
+  console.error('[FATAL] Uncaught Exception:', err);
+  process.exit(1);
+});

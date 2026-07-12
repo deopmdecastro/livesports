@@ -1,6 +1,6 @@
 // ─── Configuration ────────────────────────────────────────────────────────────
 
-const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const RAW_API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001') || "http://localhost:3001";
 
 // In the browser always use a relative path (/api) so the Next.js rewrite rules
 // (next.config.ts) proxy the request to the backend. This prevents calls to

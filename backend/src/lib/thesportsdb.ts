@@ -1,5 +1,29 @@
 import axios from 'axios';
 
+// ─── Retry helper — handles transient network errors and rate limits ───────────
+const THESPORTSDB_RETRY_COUNT = 3;
+const THESPORTSDB_RETRY_DELAY_MS = 500;
+
+async function retryFetch(url: string, retries = THESPORTSDB_RETRY_COUNT): Promise<Response> {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(url);
+      if (res.status === 429 && attempt < retries) {
+        // Rate limited — back off
+        await new Promise(r => setTimeout(r, THESPORTSDB_RETRY_DELAY_MS * attempt * 2));
+        continue;
+      }
+      return res;
+    } catch (err) {
+      if (attempt === retries) throw err;
+      await new Promise(r => setTimeout(r, THESPORTSDB_RETRY_DELAY_MS * attempt));
+    }
+  }
+  throw new Error('retryFetch: exhausted all retries');
+}
+
+
+
 const BASE_URL = 'https://www.thesportsdb.com/api/v1/json';
 const DEFAULT_FREE_KEY = '123';
 const CACHE_TTL_MS = 5 * 60 * 1000;
