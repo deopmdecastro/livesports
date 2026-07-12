@@ -32,6 +32,11 @@ interface LogStatsResponse {
   byService: Array<{ service: string; count: number }>;
 }
 
+interface GeoData {
+  countries: Array<{ country: string; count: number }>;
+  hourly: Array<{ hour: number; count: number }>;
+}
+
 interface ApiConsumptionResponse {
   keys: Array<{
     id: string;
@@ -58,6 +63,7 @@ export default function AdminLogsPage() {
   const [logs, setLogs] = useState<LogItem[]>([]);
   const [stats, setStats] = useState<LogStatsResponse | null>(null);
   const [apiConsumption, setApiConsumption] = useState<ApiConsumptionResponse["keys"]>([]);
+  const [geo, setGeo] = useState<GeoData | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -67,10 +73,12 @@ export default function AdminLogsPage() {
         apiRequest<LogsResponse>("/logs?limit=100"),
         apiRequest<LogStatsResponse>("/logs/stats"),
         apiRequest<ApiConsumptionResponse>("/reports/api-consumption"),
+        apiRequest<{ data: GeoData }>("/logs/geo").catch(() => ({ data: null as unknown as GeoData })),
       ]);
       setLogs(logsData.items || []);
       setStats(statsData);
       setApiConsumption(apiData.keys || []);
+      setGeo(geoData?.data || null);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erro ao carregar logs");
     } finally {
@@ -152,8 +160,57 @@ export default function AdminLogsPage() {
         </div>
 
         <div className="space-y-4">
+          {/* Paises que mais acessam */}
+          {geo && geo.countries.length > 0 && (
+            <div className="rounded-xl border border-[#1E1E2A] bg-[#0E0E16] p-4">
+              <h2 className="mb-3 flex items-center gap-2 text-sm font-bold text-white">Paises com mais acessos</h2>
+              <div className="space-y-1.5">
+                {geo.countries.slice(0, 8).map((c, i) => {
+                  const max = geo.countries[0]?.count || 1;
+                  const pct = Math.round((c.count / max) * 100);
+                  return (
+                    <div key={c.country} className="flex items-center gap-2">
+                      <span className="text-[10px] text-gray-500 w-5">{i + 1}</span>
+                      <span className="text-xs text-gray-300 flex-1 truncate">{c.country}</span>
+                      <span className="text-[10px] font-bold text-white w-10 text-right">{c.count}</span>
+                      <div className="w-16 h-1.5 rounded-full bg-[#1E1E2A] overflow-hidden">
+                        <div className="h-full rounded-full bg-[#E50914]" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Horarios de pico */}
+          {geo && geo.hourly.some(h => h.count > 0) && (
+            <div className="rounded-xl border border-[#1E1E2A] bg-[#0E0E16] p-4">
+              <h2 className="mb-3 flex items-center gap-2 text-sm font-bold text-white">Acessos por horario (7 dias)</h2>
+              <div className="space-y-1">
+                {Array.from({ length: 24 }, (_, h) => {
+                  const found = geo.hourly.find(x => x.hour === h);
+                  const count = found?.count ?? 0;
+                  const max = Math.max(1, ...geo.hourly.map(x => x.count));
+                  const pct = Math.round((count / max) * 100);
+                  const isPeak = pct > 50;
+                  return (
+                    <div key={h} className="flex items-center gap-2">
+                      <span className="text-[10px] text-gray-500 w-10 text-right">{String(h).padStart(2, '0')}h</span>
+                      <div className="flex-1 h-2 rounded-full bg-[#1E1E2A] overflow-hidden">
+                        <div className={`h-full rounded-full transition-all ${isPeak ? 'bg-[#E50914]' : 'bg-red-500/30'}`} style={{ width: `${Math.max(pct, count > 0 ? 3 : 0)}%` }} />
+                      </div>
+                      <span className="text-[10px] font-bold w-8 text-right" style={{ color: isPeak ? '#E50914' : '#666' }}>{count || ''}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Por servico */}
           <div className="rounded-xl border border-[#1E1E2A] bg-[#0E0E16] p-4">
-            <h2 className="mb-3 flex items-center gap-2 text-sm font-bold text-white"><AlertTriangle className="h-4 w-4 text-yellow-300" /> Por serviço</h2>
+            <h2 className="mb-3 flex items-center gap-2 text-sm font-bold text-white"><AlertTriangle className="h-4 w-4 text-yellow-300" /> Por servico</h2>
             <div className="space-y-2">
               {(stats?.byService || []).map((service) => (
                 <div key={service.service} className="flex items-center justify-between rounded-lg bg-[#111118] px-3 py-2">
@@ -161,53 +218,24 @@ export default function AdminLogsPage() {
                   <span className="text-xs font-bold text-white">{service.count}</span>
                 </div>
               ))}
-              {!stats?.byService?.length && <p className="text-xs text-gray-500">Sem distribuição disponível</p>}
+              {!stats?.byService?.length && <p className="text-xs text-gray-500">Sem distribuicao disponivel</p>}
             </div>
           </div>
 
+          {/* Integracoes com falhas */}
           <div className="rounded-xl border border-[#1E1E2A] bg-[#0E0E16] p-4">
-            <h2 className="mb-3 flex items-center gap-2 text-sm font-bold text-white"><WifiOff className="h-4 w-4 text-orange-300" /> Integrações com falhas</h2>
+            <h2 className="mb-3 flex items-center gap-2 text-sm font-bold text-white"><WifiOff className="h-4 w-4 text-orange-300" /> Integracoes com falhas</h2>
             <div className="space-y-2">
               {failingApis.map((key) => (
                 <div key={key.id} className="rounded-lg border border-[#2A2A2A] bg-[#111118] p-3">
                   <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-xs font-semibold text-white">{key.name}</p>
-                      <p className="text-[10px] text-gray-500">{key.provider}</p>
-                    </div>
-                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${key.status === 'active' ? 'bg-yellow-500/15 text-yellow-300' : 'bg-red-500/15 text-red-400'}`}>
-                      {key.status}
-                    </span>
+                    <div><p className="text-xs font-semibold text-white">{key.name}</p><p className="text-[10px] text-gray-500">{key.provider}</p></div>
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${key.status === 'active' ? 'bg-yellow-500/15 text-yellow-300' : 'bg-red-500/15 text-red-400'}`}>{key.status}</span>
                   </div>
-                  <div className="mt-2 flex items-center justify-between text-[10px] text-gray-400">
-                    <span>Erros: {key.errorCount}</span>
-                    <span>{key.requestLimit ? `${key.requestsUsed}/${key.requestLimit}` : `${key.requestsUsed} req.`}</span>
-                  </div>
+                  <div className="mt-2 flex items-center justify-between text-[10px] text-gray-400"><span>Erros: {key.errorCount}</span><span>{key.requestLimit ? `${key.requestsUsed}/${key.requestLimit}` : `${key.requestsUsed} req.`}</span></div>
                 </div>
               ))}
-              {failingApis.length === 0 && <p className="text-xs text-gray-500">Nenhuma integração com falha no momento</p>}
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-[#1E1E2A] bg-[#0E0E16] p-4">
-            <h2 className="mb-3 flex items-center gap-2 text-sm font-bold text-white"><Database className="h-4 w-4 text-cyan-300" /> Consumo das APIs</h2>
-            <div className="space-y-2">
-              {apiConsumption.map((key) => (
-                <div key={key.id} className="rounded-lg bg-[#111118] px-3 py-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-semibold text-white">{key.name}</span>
-                    <span className="text-[10px] text-gray-500">{key.usagePercent ?? 0}%</span>
-                  </div>
-                  <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-[#1E1E2A]">
-                    <div className={`h-full rounded-full ${key.errorCount > 0 ? 'bg-red-500' : 'bg-[#E50914]'}`} style={{ width: `${Math.min(100, key.usagePercent ?? 0)}%` }} />
-                  </div>
-                  <div className="mt-1 flex items-center justify-between text-[10px] text-gray-500">
-                    <span>{key.provider}</span>
-                    <span>{key.requestLimit ? `${key.requestsUsed}/${key.requestLimit}` : `${key.requestsUsed} req.`}</span>
-                  </div>
-                </div>
-              ))}
-              {!apiConsumption.length && <p className="text-xs text-gray-500">Nenhuma API configurada</p>}
+              {failingApis.length === 0 && <p className="text-xs text-gray-500">Nenhuma integracao com falha</p>}
             </div>
           </div>
         </div>
