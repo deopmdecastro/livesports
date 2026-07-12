@@ -228,26 +228,32 @@ model Category {
 
 // ==================== ADS ====================
 model Ad {
-  id         String    @id @default(cuid())
-  title      String
-  campaign   String?
-  position   AdPosition
-  format     AdFormat
-  content    String    @db.Text
-  imageUrl   String?
-  videoUrl   String?
-  clickUrl   String?
-  width      Int?
-  height     Int?
-  impressions Int     @default(0)
-  clicks     Int      @default(0)
-  ctr        Float    @default(0)
-  revenue    Float    @default(0)
-  status     AdStatus @default(active)
-  startDate  DateTime?
-  endDate    DateTime?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id             String    @id @default(cuid())
+  title          String
+  campaign       String?
+  campaignId     String?   @map("campaign_id")
+  campaignName   String?   @map("campaign_name")
+  advertiserName String?   @map("advertiser_name")
+  budget         Float?
+  spent          Float     @default(0)
+  positions      String[]
+  position       AdPosition
+  format         AdFormat
+  content        String    @db.Text
+  imageUrl       String?   @map("image_url")
+  videoUrl       String?   @map("video_url")
+  clickUrl       String?   @map("click_url")
+  width          Int?
+  height         Int?
+  impressions    Int       @default(0)
+  clicks         Int       @default(0)
+  ctr            Float     @default(0)
+  revenue        Float     @default(0)
+  status         AdStatus  @default(active)
+  startDate      DateTime? @map("start_date")
+  endDate        DateTime? @map("end_date")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
 
   @@map("ads")
 }
