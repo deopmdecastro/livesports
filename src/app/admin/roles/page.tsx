@@ -45,15 +45,8 @@ export default function RolesPage() {
     try {
       const data = await apiRequest<ApiListResponse<Role>>("/users/roles?limit=50");
       setRoles(data.items || []);
-    } catch {
-      // Fallback demo data
-      setRoles([
-        { id: "1", name: "Super Admin", description: "Acesso total a todos os módulos", userCount: 2, permissions: PERMISSION_MODULES, createdAt: "2024-01-15" },
-        { id: "2", name: "Admin", description: "Gere utilizadores, lives, eventos e anúncios", userCount: 4, permissions: ["lives.manage", "events.manage", "users.manage", "ads.manage", "news.manage", "banners.manage", "categories.manage", "support.respond", "reports.view", "chat.moderate"], createdAt: "2024-01-15" },
-        { id: "3", name: "Editor", description: "Cria e gere lives, eventos e notícias", userCount: 7, permissions: ["lives.manage", "events.manage", "news.manage", "banners.manage", "categories.manage", "chat.moderate"], createdAt: "2024-02-01" },
-        { id: "4", name: "Moderador", description: "Modera chat e responde a tickets", userCount: 5, permissions: ["chat.moderate", "support.respond", "notifications.send"], createdAt: "2024-03-01" },
-        { id: "5", name: "Visualizador", description: "Acesso apenas de leitura", userCount: 3, permissions: ["reports.view"], createdAt: "2024-04-01" },
-      ]);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao carregar funcoes');
     }
     finally { setLoading(false); }
   };
@@ -75,28 +68,41 @@ export default function RolesPage() {
   };
 
   const handleSave = async () => {
-    if (!form.name) { toast.error("Nome é obrigatório"); return; }
+    if (!form.name) { toast.error("Nome e obrigatorio"); return; }
+    if (form.permissions.length === 0) { toast.error("Selecione pelo menos uma permissao"); return; }
     setSaving(true);
     try {
       if (editingRole) {
-        toast.success("Função atualizada!");
+        await apiRequest(`/users/roles/${editingRole.name}`, {
+          method: 'PUT',
+          body: JSON.stringify({ permissions: form.permissions, description: form.description }),
+        });
+        toast.success(`Funcao "${form.name}" atualizada!`);
       } else {
-        const newRole: Role = { id: String(Date.now()), name: form.name, description: form.description, userCount: 0, permissions: form.permissions, createdAt: new Date().toISOString() };
-        setRoles([newRole, ...roles]);
-        toast.success("Função criada!");
+        await apiRequest('/users/roles', {
+          method: 'POST',
+          body: JSON.stringify({ name: form.name.toLowerCase(), description: form.description, permissions: form.permissions }),
+        });
+        toast.success(`Funcao "${form.name}" criada!`);
       }
       setShowCreate(false);
       setEditingRole(null);
       setForm({ name: "", description: "", permissions: [] });
       load();
     } catch (err) {
-      toast.error("Erro ao guardar");
+      toast.error(err instanceof Error ? err.message : "Erro ao guardar");
     } finally { setSaving(false); }
   };
 
-  const handleDelete = (id: string) => {
-    setRoles(roles.filter((r) => r.id !== id));
-    toast.success("Função removida");
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`Remover a funcao "${name}"? Esta acao e irreversivel.`)) return;
+    try {
+      await apiRequest(`/users/roles/${name}`, { method: 'DELETE' });
+      setRoles(roles.filter((r) => r.id !== id));
+      toast.success("Funcao removida");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao remover");
+    }
   };
 
   return (
@@ -163,7 +169,7 @@ export default function RolesPage() {
                     <button onClick={() => openEdit(role)} className="p-2 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-400/10 transition-all">
                       <Edit2 className="h-3.5 w-3.5" />
                     </button>
-                    <button onClick={() => handleDelete(role.id)} className="p-2 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-400/10 transition-all">
+                    <button onClick={() => handleDelete(role.id, role.name)} className="p-2 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-400/10 transition-all">
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </div>
