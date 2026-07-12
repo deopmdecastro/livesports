@@ -27,7 +27,7 @@ router.get('/', async (_req, res, next) => {
       ORDER BY a.created_at DESC
       LIMIT 50
     `);
-    res.json(rows);
+    res.json({ success: true, data: rows });
   } catch(e) { next(e); }
 });
 
