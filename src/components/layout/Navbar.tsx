@@ -138,7 +138,7 @@ export default function Navbar() {
             </Link>
 
             {/* World Cup badge */}
-            <Link href="/copa-do-mundo"
+            <Link href="/competicao"
               className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-[#FFD700]/20 bg-[#FFD700]/3 text-[#FFD700] text-[11px] font-bold hover:bg-[#FFD700]/8 transition-all mr-2">
               <Trophy className="w-3.5 h-3.5" /> World Cup 2026
             </Link>
