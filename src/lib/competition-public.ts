@@ -5,9 +5,15 @@ import { SERVER_API_URL } from "@/lib/server-api";
 export const DEFAULT_COMPETITION_SLUG = "copa-do-mundo";
 
 function publicApiUrl(path: string) {
-  const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-  const root = base.endsWith("/api") ? base : `${base}/api`;
-  return `${root}${path}`;
+  // In the browser, always go through the relative /api path so the Next.js
+  // rewrite (next.config.ts) proxies the request server-side to the backend.
+  // Calling NEXT_PUBLIC_API_URL directly from the browser breaks in Docker,
+  // where that value is an internal hostname (e.g. http://backend:3001) that
+  // only resolves inside the compose network, not from the user's machine.
+  if (typeof window !== "undefined") {
+    return `/api${path}`;
+  }
+  return `${SERVER_API_URL}${path}`;
 }
 
 export async function fetchPublicCompetitions(): Promise<PublicCompetitionSummary[]> {
