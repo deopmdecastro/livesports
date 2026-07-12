@@ -319,7 +319,7 @@ export default function SportsCalendar({
         {/* ── Toolbar: day strip + team search + league filter ── */}
         <div className="mb-5 overflow-hidden rounded-2xl border border-[#1E1E2A] bg-[#0E0E16]/80">
           {/* Day strip */}
-          <div className="flex items-center gap-2 border-b border-[#1A1C2A] px-3 py-3">
+          <div className="flex items-center gap-3 border-b border-[#1A1C2A] px-4 py-3.5">
             <button
               type="button"
               onClick={() => setDate((current) => shiftDate(current, -1))}
@@ -329,7 +329,7 @@ export default function SportsCalendar({
               <ChevronLeft className="h-4 w-4" />
             </button>
 
-            <div className="flex flex-1 justify-between gap-1 overflow-x-auto sm:justify-center sm:gap-2">
+            <div className="flex flex-1 items-center justify-between gap-1.5 overflow-x-auto sm:justify-center sm:gap-3">
               {dayStrip.map((d) => {
                 const { weekday, day } = dayPillLabel(d, locale);
                 const active = d === date;
@@ -339,7 +339,7 @@ export default function SportsCalendar({
                     key={d}
                     type="button"
                     onClick={() => setDate(d)}
-                    className={`flex w-12 flex-shrink-0 flex-col items-center gap-0.5 rounded-lg border py-1.5 transition-colors ${
+                    className={`flex flex-shrink-0 flex-col items-center gap-1 whitespace-nowrap rounded-lg border px-2.5 py-2 transition-colors ${
                       active
                         ? "border-[#E50914]/50 bg-[#E50914]/15 text-white"
                         : "border-transparent text-gray-500 hover:bg-white/[0.03] hover:text-gray-300"
