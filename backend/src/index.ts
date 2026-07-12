@@ -23,6 +23,8 @@ import categoryRoutes from './routes/category.routes';
 import integrationRoutes from './routes/integration.routes';
 import apiKeysRoutes from './routes/apikeys.routes';
 import rolesRoutes from './routes/roles.routes';
+import campaignsRoutes from './routes/campaigns.routes';
+import positionsRoutes from './routes/positions.routes';
 import logsRoutes from './routes/logs.routes';
 import supportRoutes from './routes/support.routes';
 import reportsRoutes from './routes/reports.routes';
@@ -308,6 +310,8 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/banners', bannerRoutes);
+app.use('/api/campaigns', campaignsRoutes);
+app.use('/api/ads/positions', positionsRoutes);
 
 // Apply mutation limiter to write operations on all routes
 app.use('/api/', (req, res, next) => {
