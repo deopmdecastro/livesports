@@ -120,18 +120,32 @@ export default function AdminHeader({ title = "Dashboard", onMenuToggle }: Admin
   const searchRef = useRef<HTMLInputElement>(null);
 
   // Real notifications via hook
-  const currentUserId = typeof window !== 'undefined'
-    ? (() => {
-        try {
-          const token = localStorage.getItem('livesports.accessToken');
-          if (token) {
-            const payload = JSON.parse(atob(token.split('.')[1]));
-            return payload.sub || payload.userId;
-          }
-        } catch {}
-        return undefined;
-      })()
-    : undefined;
+  // NOTE: currentUserId and today are derived from browser-only APIs
+  // (localStorage / Date formatting that can differ between server & client
+  // locale/timezone). Computing them directly during render caused a
+  // server/client HTML mismatch (React error #418). They're now set in
+  // useEffect so the very first client render matches the server render,
+  // and the real values are applied right after mount.
+  const [currentUserId, setCurrentUserId] = useState<string | undefined>(undefined);
+  const [today, setToday] = useState("");
+
+  useEffect(() => {
+    try {
+      const token = localStorage.getItem('livesports.accessToken');
+      if (token) {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        setCurrentUserId(payload.sub || payload.userId);
+      }
+    } catch {}
+
+    setToday(
+      new Date().toLocaleDateString("pt-PT", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })
+    );
+  }, []);
 
   const {
     notifications,
@@ -141,12 +155,6 @@ export default function AdminHeader({ title = "Dashboard", onMenuToggle }: Admin
     markAllRead,
     deleteNotification,
   } = useNotifications(currentUserId);
-
-  const today = new Date().toLocaleDateString("pt-PT", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
 
   // Fetch live count
   useEffect(() => {
