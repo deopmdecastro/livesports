@@ -34,7 +34,13 @@ router.get('/branding', async (_req, res, next) => {
   try {
     const row = await prisma.siteSetting.findUnique({ where: { key: BRANDING_KEY } });
     res.json({ success: true, data: normalizeBranding(row?.value) });
-  } catch (error) {
+  } catch (error: any) {
+    // Table not migrated yet on this environment — don't break the footer/navbar,
+    // just serve defaults until `prisma migrate deploy` has run.
+    if (error?.code === 'P2021' || /does not exist/i.test(error?.message || '')) {
+      res.json({ success: true, data: { ...DEFAULT_BRANDING } });
+      return;
+    }
     next(error);
   }
 });
@@ -49,7 +55,14 @@ router.put('/branding', authenticateToken, requireAdmin, async (req: AuthRequest
       update: { value: normalized },
     });
     res.json({ success: true, data: normalizeBranding(row.value) });
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === 'P2021' || /does not exist/i.test(error?.message || '')) {
+      res.status(503).json({
+        success: false,
+        error: 'Base de dados desatualizada: falta a migração site_settings. Corre "prisma migrate deploy".',
+      });
+      return;
+    }
     next(error);
   }
 });
