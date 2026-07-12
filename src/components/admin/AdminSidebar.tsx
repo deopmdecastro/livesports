@@ -20,7 +20,6 @@ import {
   HeadphonesIcon,
   LogOut,
   ChevronDown,
-  Tv2,
   Trophy,
   Zap,
   Globe,
@@ -30,6 +29,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/utils";
 import { useEffect, useState } from "react";
+import BrandIdentity from "@/components/branding/BrandIdentity";
 import { apiRequest } from "@/lib/api";
 import { formatCompact } from "@/hooks/usePlatformStats";
 
@@ -148,19 +148,8 @@ export default function AdminSidebar() {
       <div className="p-4 border-b border-white/[0.04]">
         <Link href="/" className="flex items-center gap-3 group">
           <div className="relative">
-            <div className="bg-gradient-to-br from-[#E50914] to-[#B00000] rounded-xl p-2 shadow-[0_0_16px_rgba(229,9,20,0.35)] group-hover:shadow-[0_0_24px_rgba(229,9,20,0.5)] transition-all">
-              <Tv2 className="w-4 h-4 text-white" />
-            </div>
+            <BrandIdentity mode="sidebar" subtitle="Admin Panel" />
             <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[#E50914] border-2 border-[#0A0A0F] live-badge" />
-          </div>
-          <div>
-            <div className="flex items-center gap-1">
-              <span className="text-white font-black text-base leading-none tracking-tight font-heading">LIVE</span>
-              <span className="text-[#E50914] font-black text-base leading-none tracking-tight font-heading">SPORTS</span>
-            </div>
-            <span className="text-[9px] text-gray-600 font-semibold uppercase tracking-widest leading-none mt-0.5 block">
-              Admin Panel
-            </span>
           </div>
         </Link>
       </div>

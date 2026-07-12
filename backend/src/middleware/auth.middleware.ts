@@ -86,4 +86,4 @@ export const requireRole = (...roles: string[]) => {
 
 export const requireAdmin = requireRole('admin', 'super_admin');
 export const requireModerator = requireRole('admin', 'super_admin', 'moderator');
-export const requireEditor = requireRole('admin', 'super_admin', 'moderator', 'editor');
+export const requireEditor = requireRole('admin', 'super_admin', 'moderator', 'editor', 'creator');

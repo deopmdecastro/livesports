@@ -1,12 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Save, Globe, Shield, Bell,
   Tv2,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import AdminImageField from "@/components/admin/AdminImageField";
+import {
+  applyBrandingToDocument,
+  clearStoredBranding,
+  persistBranding,
+  readStoredBranding,
+  type BrandingSettings,
+} from "@/lib/branding";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -77,41 +84,19 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>("Geral");
 
   // Branding / Identity
-  const [branding, setBranding] = useState({
-    logoUrl: "",
-    faviconUrl: "",
-    ogImageUrl: "",
-    primaryColor: "#E50914",
-    siteName: "LiveSports",
-  });
+  const [branding, setBranding] = useState<BrandingSettings>(() => readStoredBranding());
 
-  // Load branding from localStorage on mount (client-only)
-  useState(() => {
-    if (typeof window === "undefined") return;
-    try {
-      const saved = JSON.parse(localStorage.getItem("livesports_branding") || "{}");
-      if (saved.logoUrl || saved.faviconUrl || saved.ogImageUrl) {
-        setBranding((prev) => ({
-          ...prev,
-          logoUrl: saved.logoUrl || "",
-          faviconUrl: saved.faviconUrl || "",
-          ogImageUrl: saved.ogImageUrl || "",
-        }));
-      }
-    } catch { /* ignore */ }
-  });
+  useEffect(() => {
+    setBranding(readStoredBranding());
+  }, []);
   const [savingBranding, setSavingBranding] = useState(false);
 
   const handleSaveBranding = async () => {
     setSavingBranding(true);
     try {
-      localStorage.setItem("livesports_branding", JSON.stringify(branding));
-      if (branding.faviconUrl) {
-        let link = document.querySelector<HTMLLinkElement>("link[rel~='icon']");
-        if (!link) { link = document.createElement("link"); document.head.appendChild(link); }
-        link.type = "image/x-icon"; link.rel = "shortcut icon"; link.href = branding.faviconUrl;
-      }
-      toast.success("Identidade visual guardada!");
+      const saved = persistBranding(branding);
+      applyBrandingToDocument(saved);
+      toast.success("Identidade visual aplicada em toda a plataforma!");
     } catch { toast.error("Erro ao guardar"); }
     finally { setSavingBranding(false); }
   };
@@ -249,8 +234,8 @@ export default function SettingsPage() {
               />
               {branding.logoUrl && (
                 <div className="rounded-lg border border-green-500/20 bg-green-500/5 p-3">
-                  <p className="text-[11px] text-green-400 font-semibold mb-1">✓ Logótipo definido — será aplicado após guardar</p>
-                  <p className="text-[10px] text-gray-500">O logótipo é guardado localmente e aplicado na sessão atual. Para persistir entre dispositivos, use um URL de CDN.</p>
+                  <p className="text-[11px] text-green-400 font-semibold mb-1">✓ Logótipo pronto para aplicar</p>
+                  <p className="text-[10px] text-gray-500">Ao guardar, a navbar, o painel admin e o Creator Studio passam a usar este logótipo imediatamente.</p>
                 </div>
               )}
             </div>
@@ -271,7 +256,7 @@ export default function SettingsPage() {
               />
               {branding.faviconUrl && (
                 <div className="rounded-lg border border-green-500/20 bg-green-500/5 p-3">
-                  <p className="text-[11px] text-green-400 font-semibold">✓ Favicon será aplicado após guardar</p>
+                  <p className="text-[11px] text-green-400 font-semibold">✓ Favicon pronto para atualizar todas as abas</p>
                 </div>
               )}
             </div>
@@ -301,7 +286,12 @@ export default function SettingsPage() {
             </button>
             {(branding.logoUrl || branding.faviconUrl) && (
               <button
-                onClick={() => { setBranding({ logoUrl: "", faviconUrl: "", ogImageUrl: "", primaryColor: "#E50914", siteName: "LiveSports" }); localStorage.removeItem("livesports_branding"); toast.success("Identidade visual reposta!"); }}
+                onClick={() => {
+                  const defaults = clearStoredBranding();
+                  setBranding(defaults);
+                  applyBrandingToDocument(defaults);
+                  toast.success("Identidade visual reposta!");
+                }}
                 className="inline-flex items-center gap-2 rounded-xl border border-[#2A2A2A] px-4 py-3 text-sm text-gray-400 hover:text-white transition-colors"
               >
                 Repor padrão
