@@ -20,6 +20,7 @@ import {
   X,
   RefreshCw,
   Archive,
+  ArrowRight,
 } from "lucide-react";
 import { cn, formatDateTime, formatNumber, getSportLabel } from "@/utils";
 import type { Live, LiveStatus, LiveStreamServer, SportCategory, Event } from "@/types";
@@ -735,31 +736,36 @@ export default function LivesPage() {
           <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] shadow-2xl">
 
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-[#1E1E2A] px-5 py-4">
+            <div className="flex items-center justify-between border-b border-[#1E1E2A] px-5 py-4 bg-gradient-to-r from-[#0C0C14] to-[#111118]">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-500/10 border border-red-500/20">
-                  <Radio className="h-4 w-4 text-red-400" />
+                <div className={`flex h-10 w-10 items-center justify-center rounded-xl border ${editingLive ? "bg-amber-500/10 border-amber-500/20" : "bg-red-500/10 border-red-500/20"}`}>
+                  {editingLive ? <Edit2 className="h-5 w-5 text-amber-400" /> : <Radio className="h-5 w-5 text-red-400" />}
                 </div>
                 <div>
-                  <h3 className="font-black text-white">{editingLive ? "Editar Live" : "Nova Live"}</h3>
-                  <p className="text-[11px] text-gray-500">{editingLive ? `ID: ${editingLive.id}` : "Configure a transmissão ao vivo"}</p>
+                  <h3 className="text-lg font-black text-white tracking-tight">{editingLive ? "Editar Live" : "Nova Live"}</h3>
+                  <p className="text-[11px] text-gray-500">{editingLive ? `ID: ${editingLive.id?.slice(0, 8)}...` : "Configure a transmissão ao vivo"}</p>
                 </div>
               </div>
-              <button onClick={() => setShowModal(false)} className="rounded-xl p-2 text-gray-400 hover:bg-white/5 hover:text-white"><X className="h-4 w-4" /></button>
+              <button onClick={() => setShowModal(false)} className="rounded-xl p-2.5 text-gray-500 hover:bg-white/5 hover:text-white transition-all"><X className="h-4 w-4" /></button>
             </div>
 
             {/* Tabs — underline style */}
-            <div className="flex border-b border-[#1E1E2A] px-5">
-              {(["Geral", "Streaming", "Detalhes"] as const).map((tab) => (
+            <div className="flex border-b border-[#1E1E2A] px-5 gap-1">
+              {([
+                { key: "Geral", icon: CalendarClock },
+                { key: "Streaming", icon: Radio },
+                { key: "Detalhes", icon: Edit2 },
+              ] as const).map(({ key, icon: Icon }) => (
                 <button
-                  key={tab}
-                  onClick={() => setModalTab(tab)}
-                  className={`relative px-5 py-3 text-xs font-bold transition-all ${
-                    modalTab === tab ? "text-red-400" : "text-gray-500 hover:text-gray-300"
+                  key={key}
+                  onClick={() => setModalTab(key)}
+                  className={`relative flex items-center gap-2 px-4 py-3 text-xs font-bold transition-all ${
+                    modalTab === key ? "text-red-400" : "text-gray-500 hover:text-gray-300"
                   }`}
                 >
-                  {tab}
-                  {modalTab === tab && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 w-8 rounded-full bg-[#E50914]" />}
+                  <Icon className={`w-3.5 h-3.5 ${modalTab === key ? "text-red-400" : "text-gray-600"}`} />
+                  {key}
+                  {modalTab === key && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 w-10 rounded-full bg-[#E50914]" />}
                 </button>
               ))}
             </div>
@@ -864,19 +870,26 @@ export default function LivesPage() {
               {modalTab === "Streaming" && (
                 <>
                   {/* YouTube */}
-                  <div className="rounded-xl border border-red-500/10 bg-[#1A0A0A] p-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <svg className="h-4 w-4 text-red-500" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
-                      <h4 className="text-sm font-bold text-white">YouTube / Embed</h4>
-                    </div>
-                    <p className="text-xs text-gray-500 mb-3">Transmita a partir de um vídeo do YouTube ou código iframe.</p>
-                    <div className="space-y-3">
-                      <div>
-                        <label className="mb-1 block text-[10px] font-semibold text-gray-500 uppercase">URL do YouTube</label>
-                        <input value={form.youtubeUrl} onChange={(e) => { const url = e.target.value; let embed = ""; const m = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/); if (m) embed = `https://www.youtube.com/embed/${m[1]}`; setForm({ ...form, youtubeUrl: url, youtubeEmbed: embed || form.youtubeEmbed }); }} className="input-dark w-full px-3 py-2.5 text-sm" placeholder="https://www.youtube.com/watch?v=..." />
+                  <div className="rounded-xl border border-red-500/20 bg-gradient-to-br from-[#1A0A0A] to-[#0C0C14] p-4">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-8 h-8 bg-red-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <svg className="h-4 w-4 text-red-500" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
                       </div>
                       <div>
-                        <label className="mb-1 block text-[10px] font-semibold text-gray-500 uppercase">URL Embed ou código iframe</label>
+                        <h4 className="text-sm font-bold text-white">YouTube / Embed</h4>
+                        <p className="text-[10px] text-gray-500">A URL será convertida automaticamente para embed</p>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="mb-1.5 block text-[10px] font-semibold text-gray-500 uppercase">URL do YouTube</label>
+                        <input value={form.youtubeUrl} onChange={(e) => { const url = e.target.value; let embed = ""; const m = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/); if (m) embed = `https://www.youtube.com/embed/${m[1]}`; setForm({ ...form, youtubeUrl: url, youtubeEmbed: embed || form.youtubeEmbed }); }} className="input-dark w-full px-3 py-2.5 text-sm" placeholder="https://www.youtube.com/watch?v=dQw4w9WgXcQ" />
+                      </div>
+                      <div className="flex items-center gap-2 text-[10px] text-gray-600">
+                        <ArrowRight className="w-3 h-3" />
+                        <span>Ou cole diretamente o embed:</span>
+                      </div>
+                      <div>
                         <input value={form.youtubeEmbed} onChange={(e) => setForm({ ...form, youtubeEmbed: e.target.value })} className="input-dark w-full px-3 py-2.5 text-sm font-mono" placeholder="https://www.youtube.com/embed/..." />
                       </div>
                     </div>
