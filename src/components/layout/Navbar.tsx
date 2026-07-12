@@ -8,8 +8,8 @@ import {
 import NotificationBell from "./NotificationBell";
 import BrandIdentity from "@/components/branding/BrandIdentity";
 import { useLang } from "@/lib/lang";
-import { publicApiRequest, getStoredUser, logout as performLogout } from "@/lib/api";
-import type { ApiListResponse, Live, StoredUser, SearchResult, SearchResponse } from "@/types";
+import { publicApiRequest, getStoredUser, logout as performLogout, type ApiListResponse } from "@/lib/api";
+import type { Live, StoredUser, SearchResult, SearchResponse } from "@/types";
 
 /* ── Debounce hook ── */
 function useDebounce<T>(value: T, delay: number): T {

@@ -233,11 +233,8 @@ export default function BannersPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ active: !currentActive }),
       });
-      const json = await res.json();
-      if (json.success) {
-        setHeroSlides((prev) => prev.map((s) => s.id === id ? { ...s, active: !currentActive } : s));
-        toast.success(!currentActive ? "Slide ativado!" : "Slide desativado!");
-      }
+      setHeroSlides((prev) => prev.map((s) => s.id === id ? { ...s, active: !currentActive } : s));
+      toast.success(!currentActive ? "Slide ativado!" : "Slide desativado!");
     } catch (err) {
       toast.error("Erro ao atualizar status");
     }
@@ -336,11 +333,8 @@ export default function BannersPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ active: !currentActive }),
       });
-      const json = await res.json();
-      if (json.success) {
-        setBanners((prev) => prev.map((b) => b.id === id ? { ...b, active: !currentActive } : b));
-        toast.success(!currentActive ? "Banner ativado!" : "Banner desativado!");
-      }
+      setBanners((prev) => prev.map((b) => b.id === id ? { ...b, active: !currentActive } : b));
+      toast.success(!currentActive ? "Banner ativado!" : "Banner desativado!");
     } catch (err) {
       toast.error("Erro ao atualizar status");
     }
@@ -664,7 +658,7 @@ export default function BannersPage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <FieldLabel>Ordem</FieldLabel>
-                  <Input type="number" value={heroForm.sortOrder} onChange={(v) => setHeroForm({ ...heroForm, sortOrder: parseInt(v) || 0 })} disabled={heroModal === "view"} />
+                  <Input type="number" value={String(heroForm.sortOrder)} onChange={(v) => setHeroForm({ ...heroForm, sortOrder: parseInt(v) || 0 })} disabled={heroModal === "view"} />
                 </div>
                 <div>
                   <FieldLabel>Status</FieldLabel>

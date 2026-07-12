@@ -116,7 +116,7 @@ function LiveCard({ event, live }: { event: Event; live?: Live }) {
           <span className="text-[10px] text-white/25">
             {new Date(event.scheduledAt).toLocaleDateString("pt-PT", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
           </span>
-          {event.viewerCount > 0 && (
+          {(event.viewerCount ?? 0) > 0 && (
             <span className="flex items-center gap-1 text-[10px] text-white/25">
               <Eye className="h-3 w-3 text-[#E50914]/60" /> {event.viewerCount}
             </span>
