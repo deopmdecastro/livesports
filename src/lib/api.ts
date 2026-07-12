@@ -254,7 +254,16 @@ async function coreFetch<T>(
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
           ...(init.headers || {}),
         },
-        cache: isGet && cacheTtl > 0 ? "force-cache" : "no-store",
+        // Always bypass the browser's persistent HTTP cache. The app already
+        // has its own in-memory TTL cache above (cacheGet/cacheSet), which is
+        // scoped to the page's lifetime and correctly resets on refresh.
+        // "force-cache" here made fetch() reuse whatever HTTP response was
+        // first cached for this URL — including on a hard refresh — so a
+        // newly-saved logo or newly-published article could keep being
+        // served stale indefinitely. "no-store" ensures every request that
+        // reaches this point (i.e. missed the in-memory cache) actually hits
+        // the network.
+        cache: "no-store",
       });
     };
 
