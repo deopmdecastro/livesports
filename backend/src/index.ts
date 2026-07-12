@@ -292,6 +292,7 @@ app.use('/api/events', eventRoutes);
 app.use('/api/competitions', competitionRoutes);
 
 app.use('/api/users', userRoutes);
+app.use('/api/ads/positions', positionsRoutes); // must come before /api/ads (which has a GET /:id catch-all)
 app.use('/api/ads', adRoutes);
 app.use('/api/news', newsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
@@ -309,7 +310,6 @@ app.use('/api/notifications', notificationsRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/banners', bannerRoutes);
 app.use('/api/campaigns', campaignsRoutes);
-app.use('/api/ads/positions', positionsRoutes);
 
 // Apply mutation limiter to write operations on all routes
 app.use('/api/', (req, res, next) => {

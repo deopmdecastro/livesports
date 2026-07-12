@@ -16,7 +16,7 @@ router.get('/', async (_req, res, next) => {
   try {
     const rows = await prisma.$queryRawUnsafe<any[]>(`
       SELECT position, COUNT(*)::bigint as ad_count,
-             COUNT(*) FILTER (WHERE active=true)::bigint as active_count
+             COUNT(*) FILTER (WHERE status='active')::bigint as active_count
       FROM "ads" GROUP BY position ORDER BY position
     `);
     const items = DEFAULT_POSITIONS.map((pos,i) => {
