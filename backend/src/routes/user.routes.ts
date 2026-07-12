@@ -107,6 +107,28 @@ router.delete('/roles/:name', authenticateToken, requireAdmin, async (req, res, 
 });
 
 
+// GET /api/users/me — perfil do utilizador autenticado (evita o 404 de
+// /api/users/me cair no /:id e tratar "me" como um id literal).
+router.get('/me', authenticateToken, async (req: AuthRequest, res, next) => {
+  try {
+    const rows = await prisma.$queryRawUnsafe<any[]>(`${selectUserSql} WHERE id = $1 LIMIT 1`, req.user!.id);
+    if (!rows[0]) {
+      res.status(404).json({ success: false, error: 'Utilizador nao encontrado' });
+      return;
+    }
+    res.json({ success: true, data: mapUser(rows[0]) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// GET /api/users/me/watchlist — lista de favoritos/histórico do utilizador.
+// A tabela de watchlist ainda não existe; devolve lista vazia para que a
+// página /me/watchlist renderize o estado vazio sem 404.
+router.get('/me/watchlist', authenticateToken, async (_req: AuthRequest, res) => {
+  res.json({ success: true, data: { items: [] } });
+});
+
 router.get('/:id', authenticateToken, async (req: AuthRequest, res, next) => {
   try {
     // Prevent IDOR: only admins/moderators or the user themselves may view this profile.
