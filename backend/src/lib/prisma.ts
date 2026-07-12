@@ -338,7 +338,9 @@ export async function ensureRuntimeSchema() {
     try { await prisma.$executeRawUnsafe(sql); } catch { /* column/table may already exist */ }
   };
 
-  // api_keys table
+  // api_keys table — create enums first
+  await safeExec(`DO $$ BEGIN CREATE TYPE "api_key_status" AS ENUM ('active', 'inactive', 'expired'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`);
+  await safeExec(`DO $$ BEGIN CREATE TYPE "api_usage_type" AS ENUM ('live_streams', 'game_events', 'game_data', 'statistics', 'competitions', 'teams', 'players', 'shields', 'logos', 'flags', 'standings', 'odds', 'news'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`);
   await safeExec(`
     CREATE TABLE IF NOT EXISTS "api_keys" (
       "id" TEXT NOT NULL DEFAULT gen_random_uuid()::TEXT,
