@@ -19,7 +19,11 @@ import CompetitionCarousel from "@/components/landing/CompetitionCarousel";
 import { competitionThemeStyle, getCompetitionTheme } from "@/lib/competition-theme";
 import AdSlot from "@/components/ads/AdSlot";
 
-const apiBase = () => process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+// Always use the relative /api path here — this runs in the browser, and
+// Next.js's rewrite (next.config.ts) proxies it server-side to the backend.
+// Building the URL from NEXT_PUBLIC_API_URL directly breaks in Docker, since
+// that value is an internal hostname (e.g. http://backend:3001) the browser
+// cannot resolve.
 
 interface WCTeam {
   id: string;
@@ -309,7 +313,7 @@ export default function WorldCupSection({
     let cancelled = false;
     setLoading(true);
 
-    fetch(`${apiBase()}/api/competitions/public/${encodeURIComponent(selectedSlug)}`, { cache: "no-store" })
+    fetch(`/api/competitions/public/${encodeURIComponent(selectedSlug)}`, { cache: "no-store" })
       .then((res) => res.json())
       .then((payload) => {
         if (cancelled) return;

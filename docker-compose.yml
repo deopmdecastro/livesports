@@ -7,14 +7,20 @@ services:
       context: .
       dockerfile: docker/Dockerfile.frontend
       args:
-        NEXT_PUBLIC_API_URL: http://backend:3001
+        # NEXT_PUBLIC_* vars are inlined into the browser bundle at build time,
+        # so this MUST be a hostname the user's browser can resolve — not the
+        # Docker service name. "backend" only exists inside the compose network.
+        NEXT_PUBLIC_API_URL: http://localhost:3001
+        # Used only for server-to-server calls (SSR, Next.js rewrites), so the
+        # internal service name is correct and faster here.
         API_INTERNAL_URL: http://backend:3001
     ports:
       - "3002:3000"
     environment:
       - NODE_ENV=production
-      # use service name for inter-container calls
-      - NEXT_PUBLIC_API_URL=http://backend:3001
+      # Browser-facing URL (sockets, direct client fetches) — must resolve from the host.
+      - NEXT_PUBLIC_API_URL=http://localhost:3001
+      # Server-to-server URL — uses the internal Docker network.
       - API_INTERNAL_URL=http://backend:3001
     depends_on:
       - backend
