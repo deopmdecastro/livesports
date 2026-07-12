@@ -379,7 +379,7 @@ export async function ensureRuntimeSchema() {
       "provider" VARCHAR(200) NOT NULL,
       "base_url" TEXT,
       "key_value" TEXT NOT NULL,
-      "status" TEXT NOT NULL DEFAULT 'active',
+      "status" "api_key_status" NOT NULL DEFAULT 'active',
       "priority" INTEGER NOT NULL DEFAULT 1,
       "request_limit" INTEGER,
       "requests_used" INTEGER NOT NULL DEFAULT 0,
@@ -387,11 +387,45 @@ export async function ensureRuntimeSchema() {
       "last_used_at" TIMESTAMPTZ,
       "last_synced_at" TIMESTAMPTZ,
       "expires_at" TIMESTAMPTZ,
-      "usage_types" TEXT[] DEFAULT '{}',
+      "usage_types" "api_usage_type"[] DEFAULT '{}',
       "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       "updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       CONSTRAINT "api_keys_pkey" PRIMARY KEY ("id")
     )
+  `);
+
+  // ── Self-heal legacy installs ──────────────────────────────────────────────
+  // Older versions of this bootstrap (and DBs created before migration 003
+  // existed) created "status"/"usage_types" as plain TEXT instead of the
+  // proper enum types. CREATE TABLE IF NOT EXISTS above is a no-op on those
+  // pre-existing columns, so we explicitly upgrade them here on every boot —
+  // this is what actually fixes already-running deployments (the SQL files
+  // under docker-entrypoint-initdb.d only run once, on a brand-new volume).
+  await safeExec(`
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'api_keys' AND column_name = 'status' AND data_type = 'text'
+      ) THEN
+        ALTER TABLE "api_keys" ALTER COLUMN "status" DROP DEFAULT;
+        ALTER TABLE "api_keys" ALTER COLUMN "status" TYPE "api_key_status" USING status::text::"api_key_status";
+        ALTER TABLE "api_keys" ALTER COLUMN "status" SET DEFAULT 'active';
+      END IF;
+    END $$;
+  `);
+  await safeExec(`
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'api_keys' AND column_name = 'usage_types' AND udt_name = '_text'
+      ) THEN
+        ALTER TABLE "api_keys" ALTER COLUMN "usage_types" DROP DEFAULT;
+        ALTER TABLE "api_keys" ALTER COLUMN "usage_types" TYPE "api_usage_type"[] USING usage_types::text[]::"api_usage_type"[];
+        ALTER TABLE "api_keys" ALTER COLUMN "usage_types" SET DEFAULT '{}';
+      END IF;
+    END $$;
   `);
 
   await safeExec(`DO $$ BEGIN CREATE TYPE "log_level" AS ENUM ('debug', 'info', 'warn', 'error', 'fatal'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`);

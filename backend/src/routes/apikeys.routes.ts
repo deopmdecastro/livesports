@@ -222,7 +222,7 @@ router.post('/', async (req, res, next) => {
       return;
     }
     const d = parsed.data;
-    const usageTypesLiteral = d.usageTypes.length > 0 ? `ARRAY[${d.usageTypes.map((t) => `'${t}'`).join(',')}]::TEXT[]` : "'{}'::TEXT[]";
+    const usageTypesLiteral = d.usageTypes.length > 0 ? `ARRAY[${d.usageTypes.map((t) => `'${t}'`).join(',')}]::"api_usage_type"[]` : "'{}'::\"api_usage_type\"[]";
     const rows = await prisma.$queryRawUnsafe<any[]>(
       `INSERT INTO "api_keys" (name, description, provider, base_url, key_value, status, priority, request_limit, expires_at, usage_types)
        VALUES ($1,$2,$3,$4,$5,$6::api_key_status,$7,$8,$9::timestamptz,${usageTypesLiteral})
@@ -237,8 +237,12 @@ router.post('/', async (req, res, next) => {
       res.status(500).json({ success: false, error: 'Tabela api_keys não existe — execute as migrações ou reinicie o servidor.' });
       return;
     }
-    if (error?.message?.includes('type "api_key_status" does not exist')) {
-      res.status(500).json({ success: false, error: 'Tipo api_key_status não encontrado — reinicie o servidor para recriar os tipos.' });
+    if (error?.message?.includes('type "api_key_status" does not exist') || error?.message?.includes('type "api_usage_type" does not exist')) {
+      res.status(500).json({ success: false, error: 'Tipos api_key_status/api_usage_type não encontrados — reinicie o servidor para recriar os tipos.' });
+      return;
+    }
+    if (error?.message?.includes('column "usage_types" is of type')) {
+      res.status(500).json({ success: false, error: 'Coluna usage_types com tipo desatualizado — reinicie o servidor para migrar automaticamente o schema.' });
       return;
     }
     next(error);
@@ -262,7 +266,7 @@ router.put('/:id', async (req, res, next) => {
       res.status(400).json({ success: false, error: 'Nome e provedor sao obrigatorios' });
       return;
     }
-    const usageTypesLiteral = (d.usageTypes || []).length > 0 ? `ARRAY[${(d.usageTypes || []).map((t) => `'${t}'`).join(',')}]::TEXT[]` : "'{}'::TEXT[]";
+    const usageTypesLiteral = (d.usageTypes || []).length > 0 ? `ARRAY[${(d.usageTypes || []).map((t) => `'${t}'`).join(',')}]::"api_usage_type"[]` : "'{}'::\"api_usage_type\"[]";
 
     // If keyValue not provided, keep existing
     let keyValueParam: string | null = d.keyValue || null;
