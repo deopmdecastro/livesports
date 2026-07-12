@@ -732,172 +732,128 @@ export default function LivesPage() {
 
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-white/10 bg-[#0E0E16] shadow-2xl">
+          <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] shadow-2xl">
 
-            {/* Modal header */}
-            <div className="flex items-center justify-between border-b border-white/10 p-5">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-[#1E1E2A] px-5 py-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#E50914]/15 border border-[#E50914]/20">
-                  <Radio className="h-4 w-4 text-[#E50914]" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-500/10 border border-red-500/20">
+                  <Radio className="h-4 w-4 text-red-400" />
                 </div>
                 <div>
-                  <h3 className="text-base font-black text-white">{editingLive ? "Editar Live" : "Nova Live"}</h3>
-                  <p className="text-[11px] text-gray-500">{editingLive ? `ID: ${editingLive.id}` : "Crie uma transmissão ao vivo"}</p>
+                  <h3 className="font-black text-white">{editingLive ? "Editar Live" : "Nova Live"}</h3>
+                  <p className="text-[11px] text-gray-500">{editingLive ? `ID: ${editingLive.id}` : "Configure a transmissão ao vivo"}</p>
                 </div>
               </div>
-              <button onClick={() => setShowModal(false)} className="rounded-xl p-2 text-gray-400 transition-colors hover:bg-white/8 hover:text-white">
-                <X className="h-4 w-4" />
-              </button>
+              <button onClick={() => setShowModal(false)} className="rounded-xl p-2 text-gray-400 hover:bg-white/5 hover:text-white"><X className="h-4 w-4" /></button>
             </div>
 
-            {/* Tab nav */}
-            <div className="flex gap-1 border-b border-white/10 px-5 pt-3">
+            {/* Tabs — underline style */}
+            <div className="flex border-b border-[#1E1E2A] px-5">
               {(["Geral", "Streaming", "Detalhes"] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setModalTab(tab)}
-                  className={`rounded-t-lg px-4 py-2.5 text-xs font-bold transition-all ${
-                    modalTab === tab
-                      ? "bg-[#E50914] text-white shadow"
-                      : "text-gray-500 hover:text-gray-300 hover:bg-white/5"
+                  className={`relative px-5 py-3 text-xs font-bold transition-all ${
+                    modalTab === tab ? "text-red-400" : "text-gray-500 hover:text-gray-300"
                   }`}
                 >
                   {tab}
+                  {modalTab === tab && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 w-8 rounded-full bg-[#E50914]" />}
                 </button>
               ))}
             </div>
 
-            <div className="p-5 space-y-4">
+            <div className="p-5 space-y-5">
 
               {/* ── TAB: GERAL ── */}
               {modalTab === "Geral" && (
                 <>
-                  {/* Title field for new lives (allows creating without event) */}
+                  {/* Event linking (only for new lives) */}
                   {!editingLive && (
-                    <div>
-                      <label className="mb-1.5 block text-xs font-semibold text-gray-300">Título da Live <span className="text-[#E50914]">*</span></label>
-                      <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="input-dark w-full px-3 py-2.5 text-sm" placeholder="Ex: Real Madrid vs Barcelona" />
-                      <p className="mt-1 text-[10px] text-gray-500">Obrigatorio se nao vincular a um evento.</p>
-                    </div>
-                  )}
-
-                  {/* Optional event linking section */}
-                  {!editingLive && (
-                    <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
-                      <div className="mb-3 flex items-center justify-between gap-2">
+                    <div className="rounded-xl border border-red-500/10 bg-red-500/[0.03] p-4">
+                      <div className="flex items-center justify-between gap-2 mb-3">
                         <div className="flex items-center gap-2">
                           <CalendarClock className="h-4 w-4 text-red-400" />
                           <span className="text-sm font-bold text-white">Vincular a Evento (opcional)</span>
                         </div>
                         {eventSearchLoading && <span className="text-[10px] text-red-400 animate-pulse">A pesquisar...</span>}
                       </div>
-                      <p className="mb-3 text-xs text-gray-500">Vincule a um evento existente para preencher automaticamente os dados.</p>
+                      <p className="mb-3 text-xs text-gray-500">Selecione um evento existente para preencher automaticamente os dados.</p>
                       <div className="relative mb-3">
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
-                        <input
-                          value={eventQuery}
-                          onChange={(e) => setEventQuery(e.target.value)}
-                          placeholder="Filtrar eventos por nome, equipa, liga..."
-                          className="input-dark h-10 w-full pl-9 pr-4 text-sm"
-                        />
+                        <input value={eventQuery} onChange={(e) => setEventQuery(e.target.value)} placeholder="Filtrar eventos..." className="input-dark h-10 w-full pl-9 pr-4 text-sm" />
                       </div>
                       <AdminSelect
                         value={form.eventId}
                         onChange={(value) => { setForm((prev) => ({ ...prev, eventId: value })); handlePickEvent(value); }}
-                        options={eventOptions.length ? eventOptions.map((ev) => ({ value: ev.id, label: ev.title })) : [{ value: "", label: "Selecione um evento (opcional)" }]}
+                        options={eventOptions.length ? eventOptions.map((ev) => ({ value: ev.id, label: ev.title })) : [{ value: "", label: "Nenhum evento selecionado" }]}
                         ariaLabel="Selecionar evento"
                       />
                       {form.eventId && (
                         <div className="mt-3 flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 flex-1">
                             <CheckCircle className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" />
-                            <span className="text-xs text-emerald-300">
-                              Evento: <strong>{eventOptions.find((e) => e.id === form.eventId)?.title}</strong>
-                            </span>
+                            <span className="text-xs text-emerald-300 truncate">Vinculado a: <strong>{eventOptions.find((e) => e.id === form.eventId)?.title}</strong></span>
                           </div>
-                          <button
-                            onClick={() => setForm((prev) => ({ ...prev, eventId: "" }))}
-                            className="text-[10px] text-red-400 hover:text-red-300 font-semibold px-2"
-                          >
-                            Remover
-                          </button>
+                          <button onClick={() => setForm((prev) => ({ ...prev, eventId: "" }))} className="text-[10px] text-red-400 hover:text-red-300 font-semibold px-2 flex-shrink-0">Remover</button>
                         </div>
                       )}
                     </div>
                   )}
 
-                  {editingLive && (
-                    <div>
-                      <label className="mb-1.5 block text-xs font-semibold text-gray-300">Título <span className="text-[#E50914]">*</span></label>
-                      <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="input-dark w-full px-3 py-2.5 text-sm" placeholder="Título da live" />
-                    </div>
-                  )}
+                  {/* Title */}
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold text-gray-400">
+                      {!editingLive && !form.eventId ? "Título da Live" : "Título"} <span className="text-[#E50914]">*</span>
+                    </label>
+                    <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="input-dark w-full px-3 py-2.5 text-sm" placeholder="Ex: Real Madrid vs Barcelona" />
+                    {!editingLive && !form.eventId && <p className="mt-1 text-[10px] text-gray-600">Obrigatório se não vincular a um evento.</p>}
+                  </div>
 
-                  <AdminImageField
-                    label="Capa / Thumbnail"
-                    value={form.thumbnail}
-                    onChange={(value) => setForm({ ...form, thumbnail: value, banner: value })}
-                    aspectClassName="aspect-video"
-                    sizeHint={IMAGE_SIZE_PRESETS.liveThumbnail}
-                  />
+                  {/* Thumbnail */}
+                  <AdminImageField label="Capa / Thumbnail" value={form.thumbnail} onChange={(value) => setForm({ ...form, thumbnail: value, banner: value })} aspectClassName="aspect-video" sizeHint={IMAGE_SIZE_PRESETS.liveThumbnail} />
 
+                  {/* Sport + League */}
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
-                      <label className="mb-1.5 block text-xs font-semibold text-gray-300">Desporto</label>
-                      <AdminSelect value={form.sport} onChange={(value) => setForm({ ...form, sport: value as SportCategory })} options={sportOptions} ariaLabel="Desporto" disabled={!editingLive} />
+                      <label className="mb-1.5 block text-xs font-semibold text-gray-400">Desporto</label>
+                      <AdminSelect value={form.sport} onChange={(value) => setForm({ ...form, sport: value as SportCategory })} options={sportOptions} ariaLabel="Desporto" disabled={!!form.eventId && !editingLive} />
                     </div>
                     <div>
-                      <label className="mb-1.5 block text-xs font-semibold text-gray-300">Liga / Competição</label>
-                      <input value={form.league} onChange={(e) => setForm({ ...form, league: e.target.value })} className="input-dark w-full px-3 py-2.5 text-sm" placeholder="Ex: Premier League" />
+                      <label className="mb-1.5 block text-xs font-semibold text-gray-400">Liga / Competição</label>
+                      <input value={form.league} onChange={(e) => setForm({ ...form, league: e.target.value })} className="input-dark w-full px-3 py-2.5 text-sm" placeholder="Premier League" disabled={!!form.eventId && !editingLive} />
                     </div>
                   </div>
 
-                  {/* VS display */}
-                  <div className="rounded-xl border border-white/8 bg-black/20 p-4">
-                    <p className="mb-3 text-xs font-bold text-gray-400 uppercase tracking-widest">Confronto</p>
+                  {/* VS block */}
+                  <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+                    <p className="mb-3 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Confronto</p>
                     <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-                      <div>
-                        <label className="mb-1 block text-[10px] font-semibold text-gray-500 uppercase">Time A</label>
-                        <input value={form.teamA} onChange={(e) => setForm({ ...form, teamA: e.target.value })} className="input-dark w-full px-3 py-2 text-sm" placeholder="Nome do time A" />
+                      <input value={form.teamA} onChange={(e) => setForm({ ...form, teamA: e.target.value })} className="input-dark w-full px-3 py-2 text-sm" placeholder="Nome da equipa A" disabled={!!form.eventId && !editingLive} />
+                      <div className="flex items-center gap-2 shrink-0">
+                        <input type="number" min={0} value={form.scoreA ?? ""} onChange={(e) => setForm({ ...form, scoreA: e.target.value === "" ? undefined : Number(e.target.value) })} className="input-dark w-10 h-9 text-center text-sm font-black" placeholder="0" />
+                        <span className="text-sm font-black text-gray-500">vs</span>
+                        <input type="number" min={0} value={form.scoreB ?? ""} onChange={(e) => setForm({ ...form, scoreB: e.target.value === "" ? undefined : Number(e.target.value) })} className="input-dark w-10 h-9 text-center text-sm font-black" placeholder="0" />
                       </div>
-                      <div className="text-center">
-                        <span className="text-lg font-black text-gray-600">VS</span>
-                        <div className="flex gap-1 mt-1">
-                          <input
-                            type="number" min={0} value={form.scoreA ?? ""}
-                            onChange={(e) => setForm({ ...form, scoreA: e.target.value === "" ? undefined : Number(e.target.value) })}
-                            className="input-dark w-10 px-1 py-1 text-sm text-center font-black"
-                            placeholder="0"
-                          />
-                          <span className="text-gray-600 self-center">:</span>
-                          <input
-                            type="number" min={0} value={form.scoreB ?? ""}
-                            onChange={(e) => setForm({ ...form, scoreB: e.target.value === "" ? undefined : Number(e.target.value) })}
-                            className="input-dark w-10 px-1 py-1 text-sm text-center font-black"
-                            placeholder="0"
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="mb-1 block text-[10px] font-semibold text-gray-500 uppercase">Time B</label>
-                        <input value={form.teamB} onChange={(e) => setForm({ ...form, teamB: e.target.value })} className="input-dark w-full px-3 py-2 text-sm" placeholder="Nome do time B" />
-                      </div>
+                      <input value={form.teamB} onChange={(e) => setForm({ ...form, teamB: e.target.value })} className="input-dark w-full px-3 py-2 text-sm" placeholder="Nome da equipa B" disabled={!!form.eventId && !editingLive} />
                     </div>
                     <div className="mt-3">
-                      <label className="mb-1 block text-xs font-semibold text-gray-400">Tempo de jogo</label>
-                      <input value={form.matchTime} onChange={(e) => setForm({ ...form, matchTime: e.target.value })} className="input-dark w-full px-3 py-2 text-sm" placeholder="Ex: 45'" />
+                      <label className="mb-1 block text-[10px] font-semibold text-gray-500 uppercase">Tempo de jogo</label>
+                      <input value={form.matchTime} onChange={(e) => setForm({ ...form, matchTime: e.target.value })} className="input-dark w-full px-3 py-2 text-xs" placeholder="Ex: 45'" />
                     </div>
                   </div>
 
+                  {/* Date + Featured */}
                   <div>
-                    <label className="mb-1.5 block text-xs font-semibold text-gray-300">Data e hora <span className="text-[#E50914]">*</span></label>
+                    <label className="mb-1.5 block text-xs font-semibold text-gray-400">Data e hora <span className="text-[#E50914]">*</span></label>
                     <input type="datetime-local" value={form.scheduledAt} onChange={(e) => setForm({ ...form, scheduledAt: e.target.value })} className="input-dark w-full px-3 py-2.5 text-sm" />
                   </div>
 
-                  <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 hover:bg-amber-500/8 transition-colors">
-                    <input type="checkbox" checked={form.featured} onChange={(e) => setForm({ ...form, featured: e.target.checked })} className="h-4 w-4 accent-[#E50914]" />
+                  <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-amber-500/20 bg-amber-500/[0.04] p-3 hover:bg-amber-500/[0.08] transition-colors">
+                    <input type="checkbox" checked={form.featured} onChange={(e) => setForm({ ...form, featured: e.target.checked })} className="h-4 w-4 accent-[#E50914] rounded" />
                     <div>
-                      <span className="text-sm font-semibold text-amber-300">⭐ Destacar na homepage</span>
+                      <span className="text-sm font-semibold text-amber-300">Destacar na homepage</span>
                       <p className="text-[10px] text-gray-500 mt-0.5">Aparece no Hero e na secção de destaques</p>
                     </div>
                   </label>
@@ -907,69 +863,42 @@ export default function LivesPage() {
               {/* ── TAB: STREAMING ── */}
               {modalTab === "Streaming" && (
                 <>
-                  {/* YouTube Integration */}
-                  <div className="rounded-xl border border-red-500/20 bg-[#1A0A0A] p-4 mb-4">
+                  {/* YouTube */}
+                  <div className="rounded-xl border border-red-500/10 bg-[#1A0A0A] p-4">
                     <div className="flex items-center gap-2 mb-3">
-                      <svg className="h-4 w-4 text-red-500" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-                      </svg>
+                      <svg className="h-4 w-4 text-red-500" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
                       <h4 className="text-sm font-bold text-white">YouTube / Embed</h4>
                     </div>
-                    <p className="text-xs text-gray-500 mb-3">Incorpore um video do YouTube ou codigo iframe.</p>
-
+                    <p className="text-xs text-gray-500 mb-3">Transmita a partir de um vídeo do YouTube ou código iframe.</p>
                     <div className="space-y-3">
                       <div>
                         <label className="mb-1 block text-[10px] font-semibold text-gray-500 uppercase">URL do YouTube</label>
-                        <input
-                          value={form.youtubeUrl}
-                          onChange={(e) => {
-                            const url = e.target.value;
-                            // Auto-extract embed URL from YouTube URL
-                            let embed = "";
-                            const videoIdMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-                            if (videoIdMatch) {
-                              embed = `https://www.youtube.com/embed/${videoIdMatch[1]}`;
-                            }
-                            setForm({ ...form, youtubeUrl: url, youtubeEmbed: embed || form.youtubeEmbed });
-                          }}
-                          className="input-dark w-full px-3 py-2.5 text-sm"
-                          placeholder="https://www.youtube.com/watch?v=..."
-                        />
+                        <input value={form.youtubeUrl} onChange={(e) => { const url = e.target.value; let embed = ""; const m = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/); if (m) embed = `https://www.youtube.com/embed/${m[1]}`; setForm({ ...form, youtubeUrl: url, youtubeEmbed: embed || form.youtubeEmbed }); }} className="input-dark w-full px-3 py-2.5 text-sm" placeholder="https://www.youtube.com/watch?v=..." />
                       </div>
                       <div>
-                        <label className="mb-1 block text-[10px] font-semibold text-gray-500 uppercase">URL Embed (ou iframe codigo)</label>
-                        <input
-                          value={form.youtubeEmbed}
-                          onChange={(e) => setForm({ ...form, youtubeEmbed: e.target.value })}
-                          className="input-dark w-full px-3 py-2.5 text-sm font-mono"
-                          placeholder="https://www.youtube.com/embed/... ou <iframe...>"
-                        />
+                        <label className="mb-1 block text-[10px] font-semibold text-gray-500 uppercase">URL Embed ou código iframe</label>
+                        <input value={form.youtubeEmbed} onChange={(e) => setForm({ ...form, youtubeEmbed: e.target.value })} className="input-dark w-full px-3 py-2.5 text-sm font-mono" placeholder="https://www.youtube.com/embed/..." />
                       </div>
                     </div>
                   </div>
 
-                  <div className="rounded-xl border border-[#E50914]/15 bg-[#E50914]/5 p-4">
+                  {/* Stream Servers */}
+                  <div className="rounded-xl border border-[#E50914]/10 bg-[#E50914]/[0.03] p-4">
                     <div className="flex items-center gap-2 mb-3">
                       <Server className="h-4 w-4 text-[#E50914]" />
                       <h4 className="text-sm font-bold text-white">Servidores de Stream</h4>
                     </div>
-                    <p className="text-xs text-gray-500 mb-4">Adicione um ou mais servidores. O utilizador pode escolher entre eles no player.</p>
+                    <p className="text-xs text-gray-500 mb-4">Adicione servidores HLS/M3U8. O utilizador poderá escolher entre eles no player.</p>
 
                     <div className="space-y-3">
                       {form.streamServers.map((server, index) => (
-                        <div key={server.id} className="rounded-xl border border-white/8 bg-[#111118] p-4">
+                        <div key={server.id} className="rounded-xl border border-white/[0.06] bg-[#111118] p-4">
                           <div className="mb-3 flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#E50914]/15 text-[10px] font-black text-[#E50914]">{index + 1}</span>
-                              <span className="text-xs font-bold text-gray-300">Servidor {index + 1}</span>
+                              <span className="text-xs font-bold text-gray-300">{server.name || `Servidor ${index + 1}`}</span>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => setForm({ ...form, streamServers: form.streamServers.length > 1 ? form.streamServers.filter((s) => s.id !== server.id) : [{ ...server, url: "" }] })}
-                              className="flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-semibold text-gray-500 hover:bg-red-500/10 hover:text-red-400 transition-colors"
-                            >
-                              <Trash2 className="h-3 w-3" /> Remover
-                            </button>
+                            <button type="button" onClick={() => setForm({ ...form, streamServers: form.streamServers.length > 1 ? form.streamServers.filter((s) => s.id !== server.id) : [{ ...server, url: "" }] })} className="rounded-lg px-2 py-1 text-[10px] font-semibold text-gray-500 hover:bg-red-500/10 hover:text-red-400 transition-colors"><Trash2 className="h-3 w-3 inline mr-1" />Remover</button>
                           </div>
                           <div className="grid gap-3 sm:grid-cols-2">
                             <div className="sm:col-span-2">
@@ -977,23 +906,19 @@ export default function LivesPage() {
                               <input value={server.url} onChange={(e) => setForm({ ...form, streamServers: form.streamServers.map((s) => s.id === server.id ? { ...s, url: e.target.value } : s) })} className="input-dark w-full px-3 py-2.5 text-sm font-mono" placeholder="https://example.com/live.m3u8" />
                             </div>
                             <div>
-                              <label className="mb-1 block text-[10px] font-semibold text-gray-500 uppercase">Nome do servidor</label>
+                              <label className="mb-1 block text-[10px] font-semibold text-gray-500 uppercase">Nome</label>
                               <input value={server.name} onChange={(e) => setForm({ ...form, streamServers: form.streamServers.map((s) => s.id === server.id ? { ...s, name: e.target.value } : s) })} className="input-dark w-full px-3 py-2 text-sm" placeholder="Servidor Principal" />
                             </div>
                             <div>
                               <label className="mb-1 block text-[10px] font-semibold text-gray-500 uppercase">Qualidade</label>
-                              <input value={server.quality || ""} onChange={(e) => setForm({ ...form, streamServers: form.streamServers.map((s) => s.id === server.id ? { ...s, quality: e.target.value } : s) })} className="input-dark w-full px-3 py-2 text-sm" placeholder="Full HD • 1080p" />
+                              <input value={server.quality || ""} onChange={(e) => setForm({ ...form, streamServers: form.streamServers.map((s) => s.id === server.id ? { ...s, quality: e.target.value } : s) })} className="input-dark w-full px-3 py-2 text-sm" placeholder="Full HD · 1080p" />
                             </div>
                           </div>
                         </div>
                       ))}
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => setForm({ ...form, streamServers: [...form.streamServers, createStreamServer(form.streamServers.length)] })}
-                      className="mt-3 w-full flex items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 py-3 text-xs font-semibold text-gray-500 hover:border-[#E50914]/40 hover:text-[#E50914] hover:bg-[#E50914]/5 transition-all"
-                    >
+                    <button type="button" onClick={() => setForm({ ...form, streamServers: [...form.streamServers, createStreamServer(form.streamServers.length)] })} className="mt-3 w-full flex items-center justify-center gap-2 rounded-xl border border-dashed border-white/10 py-3 text-xs font-semibold text-gray-500 hover:border-[#E50914]/40 hover:text-[#E50914] hover:bg-[#E50914]/5 transition-all">
                       <Plus className="h-4 w-4" /> Adicionar servidor
                     </button>
                   </div>
@@ -1003,67 +928,33 @@ export default function LivesPage() {
               {/* ── TAB: DETALHES ── */}
               {modalTab === "Detalhes" && (
                 <>
-                  <div>
-                    <label className="mb-1.5 block text-xs font-semibold text-gray-300">Descrição</label>
-                    <textarea
-                      value={form.description}
-                      onChange={(e) => setForm({ ...form, description: e.target.value })}
-                      rows={4}
-                      className="input-dark w-full resize-none px-3 py-2.5 text-sm"
-                      placeholder="Descrição da transmissão, informações do jogo..."
-                    />
+                  <div className="space-y-2">
+                    <label className="block text-xs font-semibold text-gray-400">Descrição da transmissão</label>
+                    <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={4} maxLength={1000} className="input-dark w-full resize-none px-3 py-2.5 text-sm" placeholder="Informações sobre a transmissão, contexto do jogo, observações..." />
+                    <p className="text-right text-[10px] text-gray-600">{form.description.length} / 1000</p>
                   </div>
 
-                  <AdminImageField
-                    label="Banner (formato wide)"
-                    value={form.banner}
-                    onChange={(v) => setForm({ ...form, banner: v })}
-                    aspectClassName="aspect-[21/9]"
-                    sizeHint={IMAGE_SIZE_PRESETS.siteBanner}
-                  />
+                  <AdminImageField label="Banner (formato wide)" value={form.banner} onChange={(v) => setForm({ ...form, banner: v })} aspectClassName="aspect-[21/9]" sizeHint={IMAGE_SIZE_PRESETS.siteBanner} />
 
-                  <AdminImageField
-                    label="Logo da Liga"
-                    value={form.leagueLogo}
-                    onChange={(v) => setForm({ ...form, leagueLogo: v })}
-                    aspectClassName="aspect-square"
-                    sizeHint={{ width: 128, height: 128 }}
-                  />
-
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <AdminImageField
-                      label="Logo Time A"
-                      value={form.teamALogo}
-                      onChange={(v) => setForm({ ...form, teamALogo: v })}
-                      aspectClassName="aspect-square"
-                      sizeHint={{ width: 128, height: 128 }}
-                    />
-                    <AdminImageField
-                      label="Logo Time B"
-                      value={form.teamBLogo}
-                      onChange={(v) => setForm({ ...form, teamBLogo: v })}
-                      aspectClassName="aspect-square"
-                      sizeHint={{ width: 128, height: 128 }}
-                    />
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <AdminImageField label="Logo da Liga" value={form.leagueLogo} onChange={(v) => setForm({ ...form, leagueLogo: v })} aspectClassName="aspect-square" sizeHint={{ width: 128, height: 128 }} compact />
+                    <AdminImageField label="Escudo Equipa A" value={form.teamALogo} onChange={(v) => setForm({ ...form, teamALogo: v })} aspectClassName="aspect-square" sizeHint={{ width: 128, height: 128 }} compact />
+                    <AdminImageField label="Escudo Equipa B" value={form.teamBLogo} onChange={(v) => setForm({ ...form, teamBLogo: v })} aspectClassName="aspect-square" sizeHint={{ width: 128, height: 128 }} compact />
                   </div>
                 </>
               )}
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-between gap-3 border-t border-white/10 p-5">
-              <div className="flex gap-1">
-                {(["Geral", "Streaming", "Detalhes"] as const).map((tab, i) => (
-                  <button key={tab} onClick={() => setModalTab(tab)} className={`h-1.5 rounded-full transition-all ${modalTab === tab ? "w-6 bg-[#E50914]" : "w-1.5 bg-white/20"}`} />
+            <div className="flex items-center justify-between gap-3 border-t border-[#1E1E2A] px-5 py-4">
+              <div className="flex gap-1.5">
+                {(["Geral", "Streaming", "Detalhes"] as const).map((tab) => (
+                  <button key={tab} onClick={() => setModalTab(tab)} className={`h-1.5 rounded-full transition-all ${modalTab === tab ? "w-6 bg-red-500" : "w-1.5 bg-white/15"}`} />
                 ))}
               </div>
               <div className="flex gap-3">
-                <button onClick={() => setShowModal(false)} className="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-gray-300 transition-colors hover:bg-white/8 hover:text-white">
-                  Cancelar
-                </button>
-                <button onClick={handleSave} className="rounded-xl bg-gradient-to-r from-[#E50914] to-[#B00000] px-5 py-2.5 text-sm font-bold text-white shadow-[0_4px_16px_rgba(229,9,20,0.3)] transition-all hover:from-[#FF1A24] hover:to-[#E50914]">
-                  {editingLive ? "Salvar alterações" : "Criar Live"}
-                </button>
+                <button onClick={() => setShowModal(false)} className="rounded-xl border border-[#1E1E2A] bg-[#111118] px-5 py-2.5 text-sm text-gray-300 hover:text-white hover:border-white/15 transition-all">Cancelar</button>
+                <button onClick={handleSave} className="rounded-xl bg-[#E50914] px-6 py-2.5 text-sm font-bold text-white shadow-[0_4px_20px_rgba(229,9,20,0.25)] hover:bg-[#C50010] transition-all">{editingLive ? "Guardar Alterações" : "Criar Live"}</button>
               </div>
             </div>
           </div>
