@@ -32,8 +32,8 @@ export default function AdPositionsPage() {
   const load = async () => {
     setLoading(true);
     try {
-      const data = await apiRequest<{ data: Position[] }>("/ads/positions");
-      const items = (data?.data || []).map((p: any) => ({
+      const data = await apiRequest<Position[]>("/ads/positions");
+      const items = (data || []).map((p: any) => ({
         ...p,
         label: POSITION_LABELS[p.position] || p.position,
       }));

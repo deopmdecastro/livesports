@@ -185,6 +185,7 @@ interface CacheEntry {
 }
 
 const _responseCache = new Map<string, CacheEntry>();
+const _inFlightGetRequests = new Map<string, Promise<unknown>>();
 const DEFAULT_CACHE_TTL = 30 * 1000; // 30 seconds
 
 function cacheGet<T>(key: string): T | null {
@@ -213,7 +214,7 @@ export function invalidateCache(pathPattern?: string): void {
 
 // ─── Core fetch wrapper ───────────────────────────────────────────────────────
 
-interface FetchOptions extends RequestInit {
+export interface FetchOptions extends RequestInit {
   /** TTL in ms for GET response caching. 0 = no cache. Default: 0. */
   cacheTtl?: number;
   /** Skip auth header even if token is present */
@@ -238,75 +239,92 @@ async function coreFetch<T>(
 
   const token = noAuth ? null : getToken();
   const url = `${API_URL}${path}`;
+  const requestKey = `${noAuth ? "public" : token ? "auth" : "anon"}:${path}`;
 
-  const doFetch = async (): Promise<Response> => {
-    return fetch(url, {
-      ...init,
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...(init.headers || {}),
-      },
-      cache: isGet && cacheTtl > 0 ? "force-cache" : "no-store",
-    });
+  if (isGet && _inFlightGetRequests.has(requestKey)) {
+    return _inFlightGetRequests.get(requestKey) as Promise<T>;
+  }
+
+  const executeRequest = async (): Promise<T> => {
+    const doFetch = async (): Promise<Response> => {
+      return fetch(url, {
+        ...init,
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(init.headers || {}),
+        },
+        cache: isGet && cacheTtl > 0 ? "force-cache" : "no-store",
+      });
+    };
+
+    let response: Response;
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        response = await doFetch();
+        break;
+      } catch (err) {
+        lastError = err as Error;
+        if (attempt < retries) {
+          await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+          continue;
+        }
+        throw new Error(`Erro de rede: ${lastError.message}`);
+      }
+    }
+
+    // Token expired — try refresh once
+    if (response!.status === 401 && attemptRefresh && !noAuth) {
+      const newToken = await refreshAccessToken();
+      if (newToken) {
+        return coreFetch<T>(path, { ...options, headers: { Authorization: `Bearer ${newToken}` } }, false);
+      }
+      // Refresh failed — clear session and redirect to login
+      clearAuthSession();
+      if (typeof window !== "undefined") {
+        window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+      }
+      throw new Error("Sessao expirada. Por favor, inicia sessao novamente.");
+    }
+
+    const payload = await response!.json().catch(() => ({}));
+
+    if (!response!.ok || payload.success === false) {
+      let message = payload.error || `Erro ${response!.status}`;
+      // Friendlier messages for common errors
+      if (response!.status === 503) {
+        message = `Serviço indisponível — a base de dados não está acessível.
+Inicie o PostgreSQL: docker-compose up -d postgres`;
+      } else if (response!.status === 500) {
+        message = `${message} (Erro interno — verifique os logs do servidor)`;
+      }
+      const error = new Error(message) as Error & { status?: number; requestId?: string };
+      error.status = response!.status;
+      error.requestId = payload.requestId;
+      throw error;
+    }
+
+    const data = payload.data as T;
+
+    // Cache successful GET responses
+    if (isGet && cacheTtl > 0) {
+      cacheSet(`${path}`, data, cacheTtl);
+    }
+
+    return data;
   };
 
-  let response: Response;
-  let lastError: Error | null = null;
+  const requestPromise = executeRequest().finally(() => {
+    if (isGet) _inFlightGetRequests.delete(requestKey);
+  });
 
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    try {
-      response = await doFetch();
-      break;
-    } catch (err) {
-      lastError = err as Error;
-      if (attempt < retries) {
-        await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
-        continue;
-      }
-      throw new Error(`Erro de rede: ${lastError.message}`);
-    }
+  if (isGet) {
+    _inFlightGetRequests.set(requestKey, requestPromise);
   }
 
-  // Token expired — try refresh once
-  if (response!.status === 401 && attemptRefresh && !noAuth) {
-    const newToken = await refreshAccessToken();
-    if (newToken) {
-      return coreFetch<T>(path, { ...options, headers: { Authorization: `Bearer ${newToken}` } }, false);
-    }
-    // Refresh failed — clear session and redirect to login
-    clearAuthSession();
-    if (typeof window !== "undefined") {
-      window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
-    }
-    throw new Error("Sessao expirada. Por favor, inicia sessao novamente.");
-  }
-
-  const payload = await response!.json().catch(() => ({}));
-
-  if (!response!.ok || payload.success === false) {
-    let message = payload.error || `Erro ${response!.status}`;
-    // Friendlier messages for common errors
-    if (response!.status === 503) {
-      message = `Serviço indisponível — a base de dados não está acessível.
-Inicie o PostgreSQL: docker-compose up -d postgres`;
-    } else if (response!.status === 500) {
-      message = `${message} (Erro interno — verifique os logs do servidor)`;
-    }
-    const error = new Error(message) as Error & { status?: number; requestId?: string };
-    error.status = response!.status;
-    error.requestId = payload.requestId;
-    throw error;
-  }
-
-  const data = payload.data as T;
-
-  // Cache successful GET responses
-  if (isGet && cacheTtl > 0) {
-    cacheSet(`${path}`, data, cacheTtl);
-  }
-
-  return data;
+  return requestPromise;
 }
 
 // ─── Public API exports ───────────────────────────────────────────────────────
@@ -314,7 +332,7 @@ Inicie o PostgreSQL: docker-compose up -d postgres`;
 /**
  * Authenticated API request. Automatically attaches Bearer token and refreshes on 401.
  */
-export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
+export async function apiRequest<T>(path: string, init: FetchOptions = {}): Promise<T> {
   return coreFetch<T>(path, init);
 }
 
@@ -323,9 +341,9 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
  */
 export async function publicApiRequest<T>(
   path: string,
-  options: { cacheTtl?: number } = {},
+  options: Omit<FetchOptions, "noAuth"> = {},
 ): Promise<T> {
-  return coreFetch<T>(path, { noAuth: true, cacheTtl: options.cacheTtl ?? 0 });
+  return coreFetch<T>(path, { ...options, noAuth: true, cacheTtl: options.cacheTtl ?? 0 });
 }
 
 /**

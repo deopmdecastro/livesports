@@ -62,6 +62,7 @@ if (!process.env.JWT_SECRET || !process.env.JWT_REFRESH_SECRET) {
 }
 
 const app = express();
+app.set('trust proxy', 1);
 const httpServer = createServer(app);
 
 // ─── CORS configuration (multi-origin support) ────────────────────────────────
@@ -140,35 +141,39 @@ app.use((_req, res, next) => {
 app.use(compression() as express.RequestHandler);
 
 // ─── Rate Limiting ────────────────────────────────────────────────────────────
+const rateLimitingEnabled = process.env.DISABLE_RATE_LIMIT !== 'true' && process.env.NODE_ENV === 'production';
+const skipRateLimit = (req: express.Request) => !rateLimitingEnabled || req.method === 'OPTIONS' || req.path === '/health';
+
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 200, // increased for public API consumption
+  max: Number(process.env.API_RATE_LIMIT_MAX || 1000),
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, error: 'Muitas requisições, tente novamente mais tarde.' },
-  skip: (req) => req.method === 'OPTIONS' || req.path === '/health',
+  skip: skipRateLimit,
+  keyGenerator: (req) => getRateLimitKey(req),
 });
 app.use('/api/', limiter);
 
 // Auth rate limit (stricter — prevent brute force)
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: Number(process.env.AUTH_RATE_LIMIT_MAX || 10),
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, error: 'Muitas tentativas de login, aguarde 15 minutos.' },
-  skip: (req) => req.method === 'OPTIONS',
+  skip: skipRateLimit,
   keyGenerator: (req) => getRateLimitKey(req),
 });
 
 // Upload/mutation rate limit
 const mutationLimiter = rateLimit({
   windowMs: 1 * 60 * 1000,
-  max: 30,
+  max: Number(process.env.MUTATION_RATE_LIMIT_MAX || 30),
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, error: 'Muitas operações de escrita. Aguarde um momento.' },
-  skip: (req) => req.method === 'OPTIONS',
+  skip: skipRateLimit,
   keyGenerator: (req) => getRateLimitKey(req),
 });
 
@@ -288,6 +293,14 @@ app.get('/health', async (_req, res) => {
 });
 
 // ─── API Routes ───────────────────────────────────────────────────────────────
+// Apply mutation limiter before the route handlers so write requests are actually throttled.
+app.use('/api/', (req, res, next) => {
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+    return mutationLimiter(req, res, next);
+  }
+  next();
+});
+
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/lives', liveRoutes);
 app.use('/api/events', eventRoutes);
@@ -313,14 +326,6 @@ app.use('/api/stats', statsRoutes);
 app.use('/api/banners', bannerRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/campaigns', campaignsRoutes);
-
-// Apply mutation limiter to write operations on all routes
-app.use('/api/', (req, res, next) => {
-  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-    return mutationLimiter(req, res, next);
-  }
-  next();
-});
 
 // ─── 404 Handler ──────────────────────────────────────────────────────────────
 app.use('*', (req, res) => {
