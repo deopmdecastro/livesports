@@ -72,6 +72,37 @@ router.put('/env/:envKey', async (req, res, next) => {
 });
 
 
+
+// ── Bridges the two "API Keys" UIs together ────────────────────────────────
+// The frontend has two tabs that look related but write to different places:
+//   - "Chaves" (this router's DB-backed CRUD below) — a generic record store.
+//   - "Descoberta" (PUT /env/:envKey above) — writes straight to process.env
+//     and the .env file, which is what the actual integrations
+//     (newsapi.ts, newsdata.ts, thesportsdb.ts, competition-sync.ts,
+//     rapidapi-live-stream.ts) read from at request time.
+// A key saved only in the DB table was therefore never "live" — it recorded
+// fine but nothing consumed it. When a DB-backed key's `provider` matches one
+// of the built-in integrations below, mirror the value into the env var too,
+// so saving in either tab actually powers the same running integration.
+const PROVIDER_TO_ENV_KEY: Record<string, string> = {
+  api_football: 'API_FOOTBALL_KEY',
+  football_data: 'FOOTBALL_DATA_API_TOKEN',
+  thesportsdb: 'THESPORTSDB_API_KEY',
+  newsdata: 'NEWSDATA_API_KEY',
+  newsapi: 'NEWSAPI_KEY',
+};
+
+function syncToEnvIfKnownProvider(provider: string, keyValue: string | null | undefined) {
+  const envKey = PROVIDER_TO_ENV_KEY[provider];
+  if (!envKey || !keyValue) return;
+  process.env[envKey] = keyValue;
+  try {
+    persistEnvValue(envKey, keyValue);
+  } catch (writeErr) {
+    console.error('Falha ao persistir .env a partir de API Keys:', writeErr);
+  }
+}
+
 const apiKeySchema = z.object({
   name: z.string().trim().min(1).max(200),
   description: z.string().trim().nullish(),
@@ -281,6 +312,7 @@ router.post('/', async (req, res, next) => {
       d.status, d.priority, d.requestLimit ?? null, d.expiresAt ?? null,
       ...usageTypesArr,
     );
+    syncToEnvIfKnownProvider(d.provider, d.keyValue);
     res.status(201).json({ success: true, data: mapKey(rows[0]) });
   } catch (error: any) {
     console.error('[api-keys POST] Failed to create API key:', error?.message || error);
@@ -321,7 +353,7 @@ router.put('/:id', async (req, res, next) => {
       res.status(400).json({ success: false, error: 'Nome e provedor sao obrigatorios' });
       return;
     }
-    const usageTypesLiteral = (d.usageTypes || []).length > 0 ? `ARRAY[${(d.usageTypes || []).map((t) => `'${t}'`).join(',')}]::TEXT[]` : "'{}'::TEXT[]";
+    const usageTypesLiteral = (d.usageTypes || []).length > 0 ? `ARRAY[${(d.usageTypes || []).map((t) => `'${t}'`).join(',')}]::"api_usage_type"[]` : "'{}'::\"api_usage_type\"[]";
 
     // If keyValue not provided, keep existing
     let keyValueParam: string | null = d.keyValue || null;
@@ -343,6 +375,7 @@ router.put('/:id', async (req, res, next) => {
       d.status, d.priority, d.requestLimit ?? null, d.expiresAt ?? null,
     );
     if (!rows[0]) { res.status(404).json({ success: false, error: 'API Key não encontrada' }); return; }
+    syncToEnvIfKnownProvider(d.provider, keyValueParam);
     res.json({ success: true, data: mapKey(rows[0]) });
   } catch (error) {
     next(error);

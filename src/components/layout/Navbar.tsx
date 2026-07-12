@@ -62,7 +62,7 @@ export default function Navbar() {
   useEffect(() => {
     const fetchCount = async () => {
       try {
-        const data = await publicApiRequest<ApiListResponse<Live>>("/lives?status=live&limit=50");
+        const data = await publicApiRequest<ApiListResponse<Live>>("/lives?status=live&limit=50", { cacheTtl: 60_000 });
         setLiveCount(data.pagination?.total ?? data.items?.length ?? 0);
       } catch { setLiveCount(0); }
     };

@@ -160,7 +160,7 @@ export default function AdminHeader({ title = "Dashboard", onMenuToggle }: Admin
   useEffect(() => {
     const fetchLiveCount = async () => {
       try {
-        const data = await apiRequest<{ liveNow?: number; items?: unknown[] }>("/lives/stats");
+        const data = await apiRequest<{ liveNow?: number; items?: unknown[] }>("/lives/stats", { cacheTtl: 25_000 });
         setLiveCount(data.liveNow ?? (Array.isArray(data.items) ? data.items.length : 0) ?? 0);
       } catch { /* silently fail */ }
     };
@@ -174,7 +174,7 @@ export default function AdminHeader({ title = "Dashboard", onMenuToggle }: Admin
     const loadProfile = async () => {
       try {
         // GET /auth/me returns the user object directly (not wrapped in `user`).
-        const data = await apiRequest<{ name?: string; email?: string }>("/auth/me");
+        const data = await apiRequest<{ name?: string; email?: string }>("/auth/me", { cacheTtl: 60_000 });
         if (data.name) setUserName(data.name);
         if (data.email) setUserEmail(data.email);
       } catch { /* fall back to defaults */ }

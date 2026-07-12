@@ -22,6 +22,8 @@ export const DEFAULT_BRANDING: BrandingSettings = {
 };
 
 export const BRANDING_UPDATED_EVENT = "livesports:branding-updated";
+const BRANDING_CACHE_TTL_MS = 60_000;
+let brandingRequest: Promise<BrandingSettings> | null = null;
 
 function isObjectLike(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -77,28 +79,38 @@ export function clearStoredBranding(): BrandingSettings {
  * localStorage so every component listening to BRANDING_UPDATED_EVENT / the
  * "storage" event picks it up — including the footer logo.
  */
-export async function fetchBranding(): Promise<BrandingSettings> {
-  const response = await publicApiRequest<{ data: Partial<BrandingSettings> }>("/settings/branding", {
-    cacheTtl: 0,
-  });
-  const normalized = normalizeBranding(response.data);
-  if (typeof window !== "undefined") {
-    window.localStorage.setItem(BRANDING_STORAGE_KEY, JSON.stringify(normalized));
-    window.dispatchEvent(new CustomEvent(BRANDING_UPDATED_EVENT, { detail: normalized }));
-  }
-  return normalized;
+export async function fetchBranding(force = false): Promise<BrandingSettings> {
+  if (!force && brandingRequest) return brandingRequest;
+
+  const request = publicApiRequest<Partial<BrandingSettings>>("/settings/branding", {
+    cacheTtl: force ? 0 : BRANDING_CACHE_TTL_MS,
+  })
+    .then((response) => {
+      const normalized = normalizeBranding(response);
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(BRANDING_STORAGE_KEY, JSON.stringify(normalized));
+        window.dispatchEvent(new CustomEvent(BRANDING_UPDATED_EVENT, { detail: normalized }));
+      }
+      return normalized;
+    })
+    .finally(() => {
+      brandingRequest = null;
+    });
+
+  brandingRequest = request;
+  return request;
 }
 
 /**
  * Persists branding to the backend (admin only) and mirrors it locally.
  */
 export async function saveBranding(branding: Partial<BrandingSettings>): Promise<BrandingSettings> {
-  const response = await apiRequest<{ data: Partial<BrandingSettings> }>("/settings/branding", {
+  const response = await apiRequest<Partial<BrandingSettings>>("/settings/branding", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(normalizeBranding(branding)),
   });
-  return persistBranding(response.data);
+  return persistBranding(response);
 }
 
 /**

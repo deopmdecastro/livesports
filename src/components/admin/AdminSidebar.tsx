@@ -109,7 +109,7 @@ export default function AdminSidebar() {
     let cancelled = false;
     const load = async () => {
       try {
-        const data = await apiRequest<SidebarStats>("/dashboard/sidebar-stats");
+        const data = await apiRequest<SidebarStats>("/dashboard/sidebar-stats", { cacheTtl: 20_000 });
         if (!cancelled) setStats(data);
       } catch { /* ignore */ }
     };

@@ -28,6 +28,6 @@ RUN mkdir -p uploads && chown backend:nodejs uploads /app/prisma || true
 USER backend
 
 EXPOSE 3001
-CMD ["node", "dist/src/index.js"]
+CMD ["npm", "run", "start"]
 
 
