@@ -131,6 +131,21 @@ cd backend && npm run dev  # http://localhost:3001
 - **Email:** admin@livesports.com
 - **Senha:** admin123
 
+### Seeds recomendados para desenvolvimento
+Depois de configurar a base de dados, execute:
+
+```bash
+cd backend
+npm run db:seed
+```
+
+Contas padrão criadas pelo seed:
+- **Admin:** `admin@livesports.local` / `Admin123!`
+- **Utilizador normal:** `user@livesports.local` / `User12345!`
+- **Criador:** `creator@livesports.local` / `Creator123!`
+
+Pode personalizar estes dados com as variáveis `SEED_*` no `.env`.
+
 ### Roles de Utilizadores
 | Role | Permissões |
 |------|-----------|

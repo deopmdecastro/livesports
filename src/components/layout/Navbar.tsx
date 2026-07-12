@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
-  Search, Menu, X, ChevronDown, Globe, Trophy, User, LogOut, Shield, Play, Clock, Radio, Tv2, Zap,
+  Search, Menu, X, ChevronDown, Globe, Trophy, User, LogOut, Shield, Play, Clock, Radio, Tv2,
 } from "lucide-react";
 import NotificationBell from "./NotificationBell";
+import BrandIdentity from "@/components/branding/BrandIdentity";
 import { useLang } from "@/lib/lang";
 import { publicApiRequest, getStoredUser, logout as performLogout } from "@/lib/api";
 import type { ApiListResponse, Live, StoredUser, SearchResult, SearchResponse } from "@/types";
@@ -133,15 +134,7 @@ export default function Navbar() {
 
             {/* Logo */}
             <Link href="/" className="flex items-center gap-2.5 flex-shrink-0 group">
-              <div className="relative">
-                <div className="bg-gradient-to-br from-[#E50914] to-[#B00000] rounded-lg p-1.5 shadow-[0_0_12px_rgba(229,9,20,0.3)] group-hover:shadow-[0_0_20px_rgba(229,9,20,0.5)] transition-all">
-                  <Zap className="w-4 h-4 text-white fill-white" />
-                </div>
-              </div>
-              <div className="flex flex-col leading-none">
-                <span className="text-gradient text-sm font-black tracking-tight">LIVE</span>
-                <span className="text-white text-sm font-black tracking-widest -mt-0.5">SPORTS</span>
-              </div>
+              <BrandIdentity mode="navbar" />
             </Link>
 
             {/* World Cup badge */}

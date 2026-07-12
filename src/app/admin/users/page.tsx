@@ -32,6 +32,7 @@ const roleLabels: Record<UserRole, string> = {
   admin: "Admin",
   moderator: "Moderador",
   editor: "Editor",
+  creator: "Criador",
   user: "Utilizador",
 };
 
@@ -40,11 +41,13 @@ const roleColors: Record<UserRole, string> = {
   admin: "border-red-500/30 bg-red-500/15 text-red-200",
   moderator: "border-red-500/30 bg-red-500/15 text-red-200",
   editor: "border-emerald-500/30 bg-emerald-500/15 text-emerald-200",
+  creator: "border-yellow-500/30 bg-yellow-500/15 text-yellow-200",
   user: "border-white/10 bg-white/5 text-gray-300",
 };
 
 const roleOptions = [
   { value: "user", label: "Utilizador" },
+  { value: "creator", label: "Criador" },
   { value: "editor", label: "Editor" },
   { value: "moderator", label: "Moderador" },
   { value: "admin", label: "Admin" },

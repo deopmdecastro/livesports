@@ -5,10 +5,11 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, Radio, BarChart3, Settings, LogOut,
-  Tv2, Users, HeadphonesIcon, ChevronLeft, Menu, X,
+  Tv2, Users, HeadphonesIcon, ChevronLeft, Menu,
 } from "lucide-react";
 import { cn } from "@/utils";
 import { getStoredUser, logout } from "@/lib/api";
+import BrandIdentity from "@/components/branding/BrandIdentity";
 
 const navItems = [
   { label: "Dashboard", href: "/creator", icon: LayoutDashboard, exact: true },
@@ -40,18 +41,7 @@ export default function CreatorLayout({ children }: { children: React.ReactNode 
     <aside className="w-60 h-screen bg-[#0A0A0F] border-r border-[#1A1A24] flex flex-col overflow-hidden">
       <div className="p-4 border-b border-[#1A1A24]">
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="bg-gradient-to-br from-[#E50914] to-[#B00000] rounded-xl p-2 shadow-[0_0_16px_rgba(229,9,20,0.35)]">
-            <Tv2 className="w-4 h-4 text-white" />
-          </div>
-          <div>
-            <div className="flex items-center gap-1">
-              <span className="text-white font-black text-base leading-none tracking-tight">LIVE</span>
-              <span className="text-[#E50914] font-black text-base leading-none tracking-tight">SPORTS</span>
-            </div>
-            <span className="text-[9px] text-gray-600 font-semibold uppercase tracking-widest mt-0.5 block">
-              Creator Studio
-            </span>
-          </div>
+          <BrandIdentity mode="creator" subtitle="Creator Studio" />
         </Link>
       </div>
 
