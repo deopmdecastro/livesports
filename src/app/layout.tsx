@@ -115,7 +115,7 @@ const websiteJsonLd = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR" className="dark" suppressHydrationWarning>
-      <head>
+      <head suppressHydrationWarning>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 
@@ -132,11 +132,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
 
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var raw=localStorage.getItem('livesports_branding');if(!raw)return;var data=JSON.parse(raw)||{};var favicon=data.faviconUrl||'/favicon.svg';var rels=['icon','shortcut icon','apple-touch-icon'];rels.forEach(function(rel){var link=document.querySelector("link[rel='"+rel+"']");if(!link){link=document.createElement('link');link.rel=rel;document.head.appendChild(link);}link.href=favicon;});document.documentElement.style.setProperty('--brand-primary', data.primaryColor || '#E50914');if(data.siteName&&document.title.indexOf('LiveSports')!==-1){document.title=document.title.replaceAll('LiveSports', data.siteName);}}catch(e){}})();`,
-          }}
-        />
+
 
         {/* JSON-LD Structured Data */}
         <script
