@@ -62,6 +62,7 @@ export default function CompetitionEditPage() {
     status: "active" as CompetitionStatus,
     format: "league" as CompetitionFormat,
     themeColor: "#3D195B",
+    isFeaturedCard: false,
   });
 
   useEffect(() => {
@@ -82,6 +83,7 @@ export default function CompetitionEditPage() {
           status: (data.status as CompetitionStatus) || "active",
           format: (data.format as CompetitionFormat) || "league",
           themeColor: data.themeColor || getCompetitionTheme(data).primary,
+          isFeaturedCard: Boolean(data.isFeaturedCard),
         });
         setPageForm(competitionPageFormFromData(data));
       })
@@ -112,11 +114,13 @@ export default function CompetitionEditPage() {
           status: form.status,
           format: form.format,
           themeColor: form.themeColor || null,
+          isFeaturedCard: form.isFeaturedCard,
           ...pagePayload,
         }),
       });
 
       setCompetition(updated);
+      setForm((prev) => ({ ...prev, isFeaturedCard: Boolean(updated.isFeaturedCard) }));
       setPageForm(competitionPageFormFromData(updated));
       toast.success("Competicao atualizada!");
     } catch (e) {
@@ -270,6 +274,34 @@ export default function CompetitionEditPage() {
               .map(([slug, color]) => `${slug} ${color}`)
               .join(" · ")}
           </p>
+        </div>
+
+        <div className="mt-4">
+          <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-white/10 bg-white/5 p-4">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={form.isFeaturedCard}
+              onClick={() => setForm((prev) => ({ ...prev, isFeaturedCard: !prev.isFeaturedCard }))}
+              className={`relative mt-0.5 inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${
+                form.isFeaturedCard ? "bg-[#E50914]" : "bg-white/15"
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  form.isFeaturedCard ? "translate-x-6" : "translate-x-1"
+                }`}
+              />
+            </button>
+            <span>
+              <span className="block text-sm font-semibold text-white">Destacar no card de destaque</span>
+              <span className="mt-0.5 block text-xs text-gray-500">
+                Mostra esta competição no card &quot;Não perca nenhum jogo...&quot; da homepage, usando a cor da
+                competição definida acima. Ativar aqui desativa automaticamente o destaque de qualquer outra
+                competição — apenas uma pode estar em destaque de cada vez.
+              </span>
+            </span>
+          </label>
         </div>
 
         <div className="mt-4">

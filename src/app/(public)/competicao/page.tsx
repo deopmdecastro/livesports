@@ -8,7 +8,7 @@ export default async function CompeticaoIndexPage() {
     redirect("/");
   }
 
-  const preferred = competitions.find((c) => c.slug === DEFAULT_COMPETITION_SLUG);
+  const preferred = competitions.find((c) => c.isFeaturedCard) || competitions.find((c) => c.slug === DEFAULT_COMPETITION_SLUG);
   const target = preferred || competitions[0];
 
   redirect(`/competicao/${target.slug}`);

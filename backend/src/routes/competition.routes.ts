@@ -11,7 +11,7 @@ const COMPETITION_SELECT = `
   hero_badge, hero_badge_icon, hero_title_line1, hero_title_line2, hero_description,
   stat_teams, stat_games, stat_host_countries, stat_stadiums,
   host_countries, section_title, cta_title, cta_description, cta_button_text,
-  groups_data, theme_color
+  groups_data, theme_color, is_featured_card
 `;
 
 function parseGroupsData(value: unknown) {
@@ -58,6 +58,7 @@ function mapCompetition(row: any) {
     ctaButtonText: row.cta_button_text,
     groupsData: parseGroupsData(row.groups_data),
     themeColor: row.theme_color,
+    isFeaturedCard: Boolean(row.is_featured_card),
   };
 }
 
@@ -96,7 +97,7 @@ const EVENT_PUBLIC_SELECT = `
 
 const COMPETITION_PUBLIC_LIST_SELECT = `
   id, name, slug, season, format::text, sport::text,
-  hero_badge, hero_badge_icon, host_countries, section_title, thumbnail, theme_color
+  hero_badge, hero_badge_icon, host_countries, section_title, thumbnail, theme_color, is_featured_card
 `;
 
 function mapPublicCompetitionSummary(row: any) {
@@ -113,6 +114,7 @@ function mapPublicCompetitionSummary(row: any) {
     sectionTitle: row.section_title,
     thumbnail: row.thumbnail,
     themeColor: row.theme_color,
+    isFeaturedCard: Boolean(row.is_featured_card),
   };
 }
 
@@ -123,7 +125,7 @@ router.get('/public', async (_req, res, next) => {
       FROM "competitions"
       WHERE status = 'active'::competition_status AND COALESCE(archived, FALSE) = FALSE
       ORDER BY
-        CASE slug WHEN 'copa-do-mundo' THEN 0 ELSE 1 END,
+        is_featured_card DESC,
         host_countries ASC NULLS LAST,
         name ASC
     `);
@@ -221,6 +223,17 @@ router.post('/', authenticateToken, requireEditor, async (req, res, next) => {
       return;
     }
 
+    const isFeaturedCard = body.isFeaturedCard === true;
+
+    // Only one competition can be highlighted on the homepage CTA card, so
+    // toggling it on for this one clears it from whichever competition had
+    // it before.
+    if (isFeaturedCard) {
+      await prisma.$executeRawUnsafe(
+        `UPDATE "competitions" SET is_featured_card = FALSE WHERE is_featured_card = TRUE`
+      );
+    }
+
     const rows = await prisma.$queryRawUnsafe<any[]>(
       `
         INSERT INTO "competitions" (
@@ -230,7 +243,7 @@ router.post('/', authenticateToken, requireEditor, async (req, res, next) => {
           hero_badge, hero_badge_icon, hero_title_line1, hero_title_line2, hero_description,
           stat_teams, stat_games, stat_host_countries, stat_stadiums,
           host_countries, section_title, cta_title, cta_description, cta_button_text,
-          groups_data, theme_color
+          groups_data, theme_color, is_featured_card
         )
         VALUES (
           $1, $2, $3, $4::sport_category,
@@ -239,7 +252,7 @@ router.post('/', authenticateToken, requireEditor, async (req, res, next) => {
           $12, $13, $14, $15, $16,
           $17, $18, $19, $20,
           $21, $22, $23, $24, $25,
-          $26::jsonb, $27
+          $26::jsonb, $27, $28
         )
         RETURNING ${COMPETITION_SELECT}
       `,
@@ -269,7 +282,8 @@ router.post('/', authenticateToken, requireEditor, async (req, res, next) => {
       body.ctaDescription ?? null,
       body.ctaButtonText ?? null,
       body.groupsData ? JSON.stringify(body.groupsData) : null,
-      body.themeColor ?? null
+      body.themeColor ?? null,
+      isFeaturedCard
     );
 
     res.status(201).json({ success: true, data: mapCompetition(rows[0]) });
@@ -317,6 +331,16 @@ router.put('/:id', authenticateToken, requireEditor, async (req, res, next) => {
     const slug = body.slug ? String(body.slug).trim().toLowerCase().replace(/\s+/g, '-') : null;
     const name = body.name ? String(body.name).trim() : null;
 
+    // Only one competition can be highlighted on the homepage CTA card, so
+    // toggling it on for this one clears it from whichever competition had
+    // it before.
+    if (body.isFeaturedCard === true) {
+      await prisma.$executeRawUnsafe(
+        `UPDATE "competitions" SET is_featured_card = FALSE WHERE id != $1 AND is_featured_card = TRUE`,
+        req.params.id
+      );
+    }
+
     const rows = await prisma.$queryRawUnsafe<any[]>(
       `
         UPDATE "competitions"
@@ -348,6 +372,7 @@ router.put('/:id', authenticateToken, requireEditor, async (req, res, next) => {
           cta_button_text = COALESCE($26, cta_button_text),
           groups_data = COALESCE($27::jsonb, groups_data),
           theme_color = COALESCE($28, theme_color),
+          is_featured_card = COALESCE($29, is_featured_card),
           updated_at = NOW()
         WHERE id = $1
         RETURNING ${COMPETITION_SELECT}
@@ -379,7 +404,8 @@ router.put('/:id', authenticateToken, requireEditor, async (req, res, next) => {
       body.ctaDescription ?? null,
       body.ctaButtonText ?? null,
       body.groupsData != null ? JSON.stringify(body.groupsData) : null,
-      body.themeColor ?? null
+      body.themeColor ?? null,
+      typeof body.isFeaturedCard === 'boolean' ? body.isFeaturedCard : null
     );
 
     if (!rows[0]) {
