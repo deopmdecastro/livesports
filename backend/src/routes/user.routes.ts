@@ -2,6 +2,7 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { authenticateToken, requireAdmin, AuthRequest } from '../middleware/auth.middleware';
 import { prisma } from '../lib/prisma';
+import { parsePagination, buildPaginationMeta } from '../lib/pagination';
 
 const router = Router();
 
