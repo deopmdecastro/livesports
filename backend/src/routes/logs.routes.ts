@@ -143,6 +143,39 @@ router.get('/stats', async (_req, res, next) => {
   }
 });
 
+
+// GET /api/logs/geo — country & hourly stats
+router.get('/geo', async (_req, res, next) => {
+  try {
+    const countries = await prisma.$queryRawUnsafe<Array<{ country: string; count: bigint }>>(`
+      SELECT COALESCE(ip_country, 'Desconhecido') as country, COUNT(*)::bigint as count
+      FROM "system_logs"
+      WHERE created_at >= NOW() - INTERVAL '30 days' AND ip_country IS NOT NULL
+      GROUP BY ip_country
+      ORDER BY count DESC
+      LIMIT 10
+    `);
+
+    const hourly = await prisma.$queryRawUnsafe<Array<{ hour: number; count: bigint }>>(`
+      SELECT EXTRACT(HOUR FROM created_at)::int as hour, COUNT(*)::bigint as count
+      FROM "system_logs"
+      WHERE created_at >= NOW() - INTERVAL '7 days'
+      GROUP BY EXTRACT(HOUR FROM created_at)
+      ORDER BY hour
+    `);
+
+    res.json({
+      success: true,
+      data: {
+        countries: countries.map(c => ({ country: c.country, count: Number(c.count) })),
+        hourly: hourly.map(h => ({ hour: h.hour, count: Number(h.count) })),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // DELETE /api/logs — purge old logs
 router.delete('/', async (req, res, next) => {
   try {

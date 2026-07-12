@@ -9,10 +9,9 @@ import {
 import AdminSelect from "@/components/admin/AdminSelect";
 import AdminImageField from "@/components/admin/AdminImageField";
 import { IMAGE_SIZE_PRESETS } from "@/lib/image-upload-hints";
+import { apiRequest } from "@/lib/api";
 import AdminActionButton from "@/components/admin/AdminActionButton";
 import toast from "react-hot-toast";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 interface BannerItem {
   id: string;
@@ -130,17 +129,14 @@ export default function BannersPage() {
   const fetchBanners = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_URL}/api/banners`);
-      const json = await res.json();
-      if (json.success && json.data) {
-        const heroItems = json.data.filter((b: BannerItem) => b.position === "hero");
-        const otherItems = json.data.filter((b: BannerItem) => b.position !== "hero");
-        setHeroSlides(heroItems.sort((a: BannerItem, b: BannerItem) => a.sortOrder - b.sortOrder));
-        setBanners(otherItems);
-      }
+      const json = await apiRequest<{ items: BannerItem[] }>("/banners");
+      const items = json.items || [];
+      const heroItems = items.filter((b: BannerItem) => b.position === "hero");
+      const otherItems = items.filter((b: BannerItem) => b.position !== "hero");
+      setHeroSlides(heroItems.sort((a, b) => a.sortOrder - b.sortOrder));
+      setBanners(otherItems);
     } catch (err) {
-      console.error("Failed to fetch banners:", err);
-      toast.error("Erro ao carregar banners");
+      toast.error(err instanceof Error ? err.message : "Erro ao carregar banners");
     } finally {
       setLoading(false);
     }
@@ -195,7 +191,7 @@ export default function BannersPage() {
       };
 
       if (heroModal === "edit" && selectedHero) {
-        const res = await fetch(`${API_URL}/api/banners/${selectedHero.id}`, {
+        const res = await fetch(`/banners/${selectedHero.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -208,7 +204,7 @@ export default function BannersPage() {
           toast.error(json.error || "Erro ao atualizar");
         }
       } else {
-        const res = await fetch(`${API_URL}/api/banners`, {
+        const res = await fetch(`/banners`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -232,7 +228,7 @@ export default function BannersPage() {
 
   const toggleHeroActive = async (id: string, currentActive: boolean) => {
     try {
-      const res = await fetch(`${API_URL}/api/banners/${id}/status`, {
+      await apiRequest(`/banners/${id}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ active: !currentActive }),
@@ -250,7 +246,7 @@ export default function BannersPage() {
   const deleteHeroSlide = async (id: string) => {
     if (!confirm("Remover este slide?")) return;
     try {
-      const res = await fetch(`${API_URL}/api/banners/${id}`, { method: "DELETE" });
+      const res = await fetch(`/banners/${id}`, { method: "DELETE" });
       const json = await res.json();
       if (json.success) {
         setHeroSlides((prev) => prev.filter((s) => s.id !== id));
@@ -299,7 +295,7 @@ export default function BannersPage() {
       };
 
       if (bannerModal === "edit" && selectedBanner) {
-        const res = await fetch(`${API_URL}/api/banners/${selectedBanner.id}`, {
+        const res = await fetch(`/banners/${selectedBanner.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -312,7 +308,7 @@ export default function BannersPage() {
           toast.error(json.error || "Erro ao atualizar");
         }
       } else {
-        const res = await fetch(`${API_URL}/api/banners`, {
+        const res = await fetch(`/banners`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -335,7 +331,7 @@ export default function BannersPage() {
 
   const toggleBannerActive = async (id: string, currentActive: boolean) => {
     try {
-      const res = await fetch(`${API_URL}/api/banners/${id}/status`, {
+      await apiRequest(`/banners/${id}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ active: !currentActive }),
@@ -353,7 +349,7 @@ export default function BannersPage() {
   const deleteBanner = async (id: string) => {
     if (!confirm("Remover este banner?")) return;
     try {
-      const res = await fetch(`${API_URL}/api/banners/${id}`, { method: "DELETE" });
+      const res = await fetch(`/banners/${id}`, { method: "DELETE" });
       const json = await res.json();
       if (json.success) {
         setBanners((prev) => prev.filter((b) => b.id !== id));

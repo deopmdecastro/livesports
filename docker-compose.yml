@@ -81,6 +81,7 @@ services:
       - ./backend/prisma/migrations/003_api_keys.sql:/docker-entrypoint-initdb.d/003_api_keys.sql
       - ./backend/prisma/migrations/004_logs_support_history.sql:/docker-entrypoint-initdb.d/004_logs_support_history.sql
       - ./backend/prisma/migrations/005_combined_new_tables.sql:/docker-entrypoint-initdb.d/005_combined_new_tables.sql
+      - ./backend/prisma/migrations/006_ip_country_logs.sql:/docker-entrypoint-initdb.d/006_ip_country_logs.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U livesports -d livesports_db"]
       interval: 10s
