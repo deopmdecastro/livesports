@@ -272,27 +272,36 @@ interface WorldCupSectionProps {
 }
 
 export default function WorldCupSection({
-  slug = DEFAULT_COMPETITION_SLUG,
+  slug,
   initialData = null,
   showTopAd = false,
 }: WorldCupSectionProps) {
   const { lang } = useLang();
   const [activeTab, setActiveTab] = useState<"matches" | "standings">("matches");
-  const [selectedSlug, setSelectedSlug] = useState(slug);
+  const [selectedSlug, setSelectedSlug] = useState(slug || DEFAULT_COMPETITION_SLUG);
   const [competitions, setCompetitions] = useState<PublicCompetitionSummary[]>([]);
   const [loadingCompetitions, setLoadingCompetitions] = useState(true);
   const [pageData, setPageData] = useState<PublicCompetitionPage | null>(initialData);
   const [loading, setLoading] = useState(!initialData);
 
   useEffect(() => {
-    setSelectedSlug(slug);
+    if (slug) setSelectedSlug(slug);
   }, [slug]);
 
   useEffect(() => {
     let cancelled = false;
     fetchPublicCompetitions()
       .then((items) => {
-        if (!cancelled) setCompetitions(items);
+        if (cancelled) return;
+        setCompetitions(items);
+        // No explicit slug was requested by the parent (e.g. the homepage),
+        // so follow whichever competition an admin flagged as featured.
+        // The list is already ordered featured-first by the API, so the
+        // first item is the right fallback when nothing is flagged.
+        if (!slug && items.length > 0) {
+          const featured = items.find((c) => c.isFeaturedCard) || items[0];
+          setSelectedSlug(featured.slug);
+        }
       })
       .finally(() => {
         if (!cancelled) setLoadingCompetitions(false);
@@ -301,7 +310,7 @@ export default function WorldCupSection({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [slug]);
 
   useEffect(() => {
     if (initialData && selectedSlug === slug) {

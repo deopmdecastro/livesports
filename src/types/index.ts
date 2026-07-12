@@ -147,6 +147,8 @@ export interface Competition {
   ctaButtonText?: string;
   groupsData?: CompetitionGroup[] | null;
   themeColor?: string;
+  /** Whether this competition is highlighted on the homepage CTA card ("Não perca nenhum jogo..."). Only one competition can be featured at a time. */
+  isFeaturedCard?: boolean;
 }
 
 export interface PublicCompetitionEvent {
@@ -187,6 +189,7 @@ export interface PublicCompetitionSummary {
   sectionTitle?: string;
   thumbnail?: string;
   themeColor?: string;
+  isFeaturedCard?: boolean;
 }
 
 // ==================== EVENT TYPES ====================

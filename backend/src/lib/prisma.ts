@@ -229,7 +229,17 @@ export async function ensureRuntimeSchema() {
       ADD COLUMN IF NOT EXISTS "cta_button_text" TEXT,
       ADD COLUMN IF NOT EXISTS "groups_data" JSONB,
       ADD COLUMN IF NOT EXISTS "format" "competition_format" NOT NULL DEFAULT 'groups',
-      ADD COLUMN IF NOT EXISTS "theme_color" VARCHAR(20)
+      ADD COLUMN IF NOT EXISTS "theme_color" VARCHAR(20),
+      ADD COLUMN IF NOT EXISTS "is_featured_card" BOOLEAN NOT NULL DEFAULT FALSE
+  `);
+
+  // Only one competition can be highlighted on the homepage CTA card at a time.
+  // A partial unique index enforces that at the DB level regardless of which
+  // route/admin flow flips the flag.
+  await prisma.$executeRawUnsafe(`
+    CREATE UNIQUE INDEX IF NOT EXISTS "competitions_single_featured_card_idx"
+      ON "competitions" (("is_featured_card"))
+      WHERE "is_featured_card" = TRUE
   `);
 
   await prisma.$executeRawUnsafe(`
@@ -246,7 +256,7 @@ export async function ensureRuntimeSchema() {
         "hero_badge", "hero_badge_icon", "hero_title_line1", "hero_title_line2", "hero_description",
         "stat_teams", "stat_games", "stat_host_countries", "stat_stadiums",
         "host_countries", "section_title", "cta_title", "cta_description", "cta_button_text",
-        "theme_color", "thumbnail", "banner"
+        "theme_color", "thumbnail", "banner", "is_featured_card"
       )
       SELECT
         'comp-wc-2026', 'Copa do Mundo FIFA 2026', 'copa-do-mundo', '2026', 'football'::sport_category,
@@ -261,7 +271,8 @@ export async function ensureRuntimeSchema() {
         'Assistir ao Vivo',
         '#FFD700',
         'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/2026_FIFA_World_Cup.svg/120px-2026_FIFA_World_Cup.svg.png',
-        'https://images.unsplash.com/photo-1574629810360-7efbbe195778?auto=format&fit=crop&w=1600&q=80'
+        'https://images.unsplash.com/photo-1574629810360-7efbbe195778?auto=format&fit=crop&w=1600&q=80',
+        TRUE
       WHERE NOT EXISTS (SELECT 1 FROM "competitions" WHERE "slug" = 'copa-do-mundo')
     `);
   } catch (seedErr: unknown) {
@@ -276,6 +287,16 @@ export async function ensureRuntimeSchema() {
       "thumbnail" = COALESCE("thumbnail", 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/2026_FIFA_World_Cup.svg/120px-2026_FIFA_World_Cup.svg.png'),
       "banner" = COALESCE("banner", 'https://images.unsplash.com/photo-1574629810360-7efbbe195778?auto=format&fit=crop&w=1600&q=80')
     WHERE "slug" = 'copa-do-mundo'
+  `);
+
+  // Existing installs upgrading from before "is_featured_card" existed won't have
+  // any competition flagged yet — default the World Cup to featured so the
+  // homepage CTA card keeps working exactly as before until an admin changes it.
+  await prisma.$executeRawUnsafe(`
+    UPDATE "competitions"
+    SET "is_featured_card" = TRUE
+    WHERE "slug" = 'copa-do-mundo'
+      AND NOT EXISTS (SELECT 1 FROM "competitions" WHERE "is_featured_card" = TRUE)
   `);
 
   for (const seed of COMPETITION_SEEDS) {

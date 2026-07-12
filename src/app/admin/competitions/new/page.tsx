@@ -50,6 +50,7 @@ export default function CompetitionNewPage() {
     status: "active" | "draft" | "completed";
     format: CompetitionFormat;
     themeColor: string;
+    isFeaturedCard: boolean;
   }>({
     name: "",
     slug: "",
@@ -63,6 +64,7 @@ export default function CompetitionNewPage() {
     status: "active",
     format: "league",
     themeColor: "#3D195B",
+    isFeaturedCard: false,
   });
 
   const [saving, setSaving] = useState(false);
@@ -108,6 +110,7 @@ export default function CompetitionNewPage() {
           status: form.status,
           format: form.format,
           themeColor: form.themeColor || null,
+          isFeaturedCard: form.isFeaturedCard,
         }),
       });
 
@@ -259,6 +262,34 @@ export default function CompetitionNewPage() {
           <p className="mt-1.5 text-[11px] text-gray-500">
             Cor predominante do logotipo (ex: UCL azul #0A1D56, Bundesliga vermelho #D20515).
           </p>
+        </div>
+
+        <div className="mt-4">
+          <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-white/10 bg-white/5 p-4">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={form.isFeaturedCard}
+              onClick={() => setForm((prev) => ({ ...prev, isFeaturedCard: !prev.isFeaturedCard }))}
+              className={`relative mt-0.5 inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${
+                form.isFeaturedCard ? "bg-[#E50914]" : "bg-white/15"
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  form.isFeaturedCard ? "translate-x-6" : "translate-x-1"
+                }`}
+              />
+            </button>
+            <span>
+              <span className="block text-sm font-semibold text-white">Destacar no card de destaque</span>
+              <span className="mt-0.5 block text-xs text-gray-500">
+                Mostra esta competição no card &quot;Não perca nenhum jogo...&quot; da homepage, usando a cor da
+                competição definida acima. Ativar aqui desativa automaticamente o destaque de qualquer outra
+                competição — apenas uma pode estar em destaque de cada vez.
+              </span>
+            </span>
+          </label>
         </div>
 
         <div className="mt-4">
