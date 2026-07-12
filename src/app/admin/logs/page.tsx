@@ -69,7 +69,7 @@ export default function AdminLogsPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [logsData, statsData, apiData] = await Promise.all([
+      const [logsData, statsData, apiData, geoData] = await Promise.all([
         apiRequest<LogsResponse>("/logs?limit=100"),
         apiRequest<LogStatsResponse>("/logs/stats"),
         apiRequest<ApiConsumptionResponse>("/reports/api-consumption"),

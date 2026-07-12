@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Zap, Facebook, Twitter, Instagram, Youtube, Mail, Globe, Send, CheckCircle } from "lucide-react";
 import { useLang } from "@/lib/lang";
+import { useBranding } from "@/lib/branding";
 
 const socialLinks = [
   { icon: Facebook, href: "#", label: "Facebook" },
@@ -15,6 +16,7 @@ const socialLinks = [
 
 export default function Footer() {
   const { lang, setLang, t } = useLang();
+  const branding = useBranding();
   const [email, setEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
   const [subscribing, setSubscribing] = useState(false);
@@ -119,23 +121,35 @@ export default function Footer() {
           {/* Brand */}
           <div className="col-span-2 md:col-span-3 lg:col-span-2">
             <Link href="/" className="flex items-center gap-2.5 mb-5 group">
-              <div className="bg-gradient-to-br from-[#E50914] to-[#B00000] rounded-xl p-2 group-hover:shadow-red transition-all">
-                <Zap className="w-5 h-5 text-white fill-white" />
-              </div>
-              <div className="flex flex-col leading-none">
-                <span
-                  className="gradient-text-red font-black text-lg"
-                  style={{ fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: "0.05em" }}
-                >
-                  LIVE
-                </span>
-                <span
-                  className="text-white font-black text-lg tracking-widest"
-                  style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
-                >
-                  SPORTS
-                </span>
-              </div>
+              {branding.logoUrl ? (
+                <div className="flex h-11 items-center">
+                  <img
+                    src={branding.logoUrl}
+                    alt={branding.siteName}
+                    className="max-h-11 w-auto max-w-[180px] object-contain"
+                  />
+                </div>
+              ) : (
+                <>
+                  <div className="bg-gradient-to-br from-[#E50914] to-[#B00000] rounded-xl p-2 group-hover:shadow-red transition-all">
+                    <Zap className="w-5 h-5 text-white fill-white" />
+                  </div>
+                  <div className="flex flex-col leading-none">
+                    <span
+                      className="gradient-text-red font-black text-lg"
+                      style={{ fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: "0.05em" }}
+                    >
+                      LIVE
+                    </span>
+                    <span
+                      className="text-white font-black text-lg tracking-widest"
+                      style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
+                    >
+                      SPORTS
+                    </span>
+                  </div>
+                </>
+              )}
             </Link>
 
             <p className="text-gray-500 text-sm leading-relaxed mb-6 max-w-[280px]">
@@ -252,7 +266,7 @@ export default function Footer() {
         {/* Bottom */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-gray-600 text-sm">
-            © 2026 LiveSports. {t.footer_rights}
+            © 2026 {branding.siteName}. {t.footer_rights}
           </p>
           <div className="flex items-center gap-4">
             <span className="text-gray-600 text-xs">{t.footer_made_with}</span>

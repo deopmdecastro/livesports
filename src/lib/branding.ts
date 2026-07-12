@@ -1,3 +1,8 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { apiRequest, publicApiRequest } from "@/lib/api";
+
 export const BRANDING_STORAGE_KEY = "livesports_branding";
 
 export interface BrandingSettings {
@@ -65,6 +70,67 @@ export function clearStoredBranding(): BrandingSettings {
     window.dispatchEvent(new CustomEvent(BRANDING_UPDATED_EVENT, { detail: { ...DEFAULT_BRANDING } }));
   }
   return { ...DEFAULT_BRANDING };
+}
+
+/**
+ * Fetches branding from the backend (source of truth) and syncs it into
+ * localStorage so every component listening to BRANDING_UPDATED_EVENT / the
+ * "storage" event picks it up — including the footer logo.
+ */
+export async function fetchBranding(): Promise<BrandingSettings> {
+  const response = await publicApiRequest<{ data: Partial<BrandingSettings> }>("/settings/branding", {
+    cacheTtl: 0,
+  });
+  const normalized = normalizeBranding(response.data);
+  if (typeof window !== "undefined") {
+    window.localStorage.setItem(BRANDING_STORAGE_KEY, JSON.stringify(normalized));
+    window.dispatchEvent(new CustomEvent(BRANDING_UPDATED_EVENT, { detail: normalized }));
+  }
+  return normalized;
+}
+
+/**
+ * Persists branding to the backend (admin only) and mirrors it locally.
+ */
+export async function saveBranding(branding: Partial<BrandingSettings>): Promise<BrandingSettings> {
+  const response = await apiRequest<{ data: Partial<BrandingSettings> }>("/settings/branding", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(normalizeBranding(branding)),
+  });
+  return persistBranding(response.data);
+}
+
+/**
+ * Live branding for any client component (navbar, footer, sidebar...).
+ * Reads the local cache first for an instant paint, fetches the API value
+ * on mount, and stays in sync when settings are saved elsewhere (same tab
+ * via BRANDING_UPDATED_EVENT, other tabs via the "storage" event).
+ */
+export function useBranding(): BrandingSettings {
+  const [branding, setBranding] = useState<BrandingSettings>(() => readStoredBranding());
+
+  useEffect(() => {
+    fetchBranding().then(setBranding).catch(() => {
+      /* keep whatever was cached locally if the API is unreachable */
+    });
+
+    const refresh = () => setBranding(readStoredBranding());
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key && event.key !== BRANDING_STORAGE_KEY) return;
+      refresh();
+    };
+
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener(BRANDING_UPDATED_EVENT, refresh as EventListener);
+
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener(BRANDING_UPDATED_EVENT, refresh as EventListener);
+    };
+  }, []);
+
+  return branding;
 }
 
 function setOrCreateLink(rel: string, href: string, type?: string) {

@@ -10,8 +10,10 @@ import AdminImageField from "@/components/admin/AdminImageField";
 import {
   applyBrandingToDocument,
   clearStoredBranding,
-  persistBranding,
+  DEFAULT_BRANDING,
+  fetchBranding,
   readStoredBranding,
+  saveBranding,
   type BrandingSettings,
 } from "@/lib/branding";
 
@@ -87,14 +89,16 @@ export default function SettingsPage() {
   const [branding, setBranding] = useState<BrandingSettings>(() => readStoredBranding());
 
   useEffect(() => {
-    setBranding(readStoredBranding());
+    fetchBranding()
+      .then(setBranding)
+      .catch(() => setBranding(readStoredBranding()));
   }, []);
   const [savingBranding, setSavingBranding] = useState(false);
 
   const handleSaveBranding = async () => {
     setSavingBranding(true);
     try {
-      const saved = persistBranding(branding);
+      const saved = await saveBranding(branding);
       applyBrandingToDocument(saved);
       toast.success("Identidade visual aplicada em toda a plataforma!");
     } catch { toast.error("Erro ao guardar"); }
@@ -286,11 +290,16 @@ export default function SettingsPage() {
             </button>
             {(branding.logoUrl || branding.faviconUrl) && (
               <button
-                onClick={() => {
-                  const defaults = clearStoredBranding();
-                  setBranding(defaults);
-                  applyBrandingToDocument(defaults);
-                  toast.success("Identidade visual reposta!");
+                onClick={async () => {
+                  clearStoredBranding();
+                  try {
+                    const defaults = await saveBranding(DEFAULT_BRANDING);
+                    setBranding(defaults);
+                    applyBrandingToDocument(defaults);
+                    toast.success("Identidade visual reposta!");
+                  } catch {
+                    toast.error("Erro ao repor");
+                  }
                 }}
                 className="inline-flex items-center gap-2 rounded-xl border border-[#2A2A2A] px-4 py-3 text-sm text-gray-400 hover:text-white transition-colors"
               >

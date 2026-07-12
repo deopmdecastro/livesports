@@ -433,6 +433,15 @@ enum BannerPosition {
   @@map("banner_position")
 }
 
+// ==================== SITE SETTINGS ====================
+model SiteSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("site_settings")
+}
+
 // ==================== AUDIT LOGS ====================
 model AuditLog {
   id         String   @id @default(cuid())

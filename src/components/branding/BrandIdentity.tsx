@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Tv2, Zap } from "lucide-react";
-import { BRANDING_UPDATED_EVENT, readStoredBranding, type BrandingSettings } from "@/lib/branding";
+import { useBranding } from "@/lib/branding";
 
 interface BrandIdentityProps {
   mode?: "navbar" | "sidebar" | "creator";
@@ -10,32 +10,8 @@ interface BrandIdentityProps {
   className?: string;
 }
 
-function useBrandingState() {
-  const [branding, setBranding] = useState<BrandingSettings>(() => readStoredBranding());
-
-  useEffect(() => {
-    const refresh = () => setBranding(readStoredBranding());
-    refresh();
-
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key && event.key !== "livesports_branding") return;
-      refresh();
-    };
-
-    window.addEventListener("storage", handleStorage);
-    window.addEventListener(BRANDING_UPDATED_EVENT, refresh as EventListener);
-
-    return () => {
-      window.removeEventListener("storage", handleStorage);
-      window.removeEventListener(BRANDING_UPDATED_EVENT, refresh as EventListener);
-    };
-  }, []);
-
-  return branding;
-}
-
 export default function BrandIdentity({ mode = "navbar", subtitle, className = "" }: BrandIdentityProps) {
-  const branding = useBrandingState();
+  const branding = useBranding();
   const initials = useMemo(() => {
     const words = (branding.siteName || "LiveSports").trim().split(/\s+/).filter(Boolean);
     if (words.length === 1) return words[0].slice(0, 2).toUpperCase();

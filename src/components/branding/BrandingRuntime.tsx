@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffect } from "react";
-import { applyBrandingToDocument, BRANDING_UPDATED_EVENT, readStoredBranding } from "@/lib/branding";
+import { applyBrandingToDocument, BRANDING_UPDATED_EVENT, fetchBranding, readStoredBranding } from "@/lib/branding";
 
 export default function BrandingRuntime() {
   useEffect(() => {
     const applyCurrent = () => applyBrandingToDocument(readStoredBranding());
     applyCurrent();
+    fetchBranding().then(applyBrandingToDocument).catch(() => {
+      /* fall back to whatever was cached locally */
+    });
 
     const handleStorage = (event: StorageEvent) => {
       if (event.key && event.key !== "livesports_branding") return;

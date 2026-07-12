@@ -34,6 +34,7 @@ import chatRoutes from './routes/chat.routes';
 import notificationsRoutes from './routes/notifications.routes';
 import statsRoutes from './routes/stats.routes';
 import bannerRoutes from './routes/banner.routes';
+import settingsRoutes from './routes/settings.routes';
 import { setIo } from './lib/socket';
 import { addViewer, removeViewer } from './lib/realtime';
 import { ensureRuntimeSchema } from './lib/prisma';
@@ -309,6 +310,7 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/banners', bannerRoutes);
+app.use('/api/settings', settingsRoutes);
 app.use('/api/campaigns', campaignsRoutes);
 
 // Apply mutation limiter to write operations on all routes
