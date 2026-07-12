@@ -40,8 +40,8 @@ export default function CampaignsPage() {
   const load = async () => {
     setLoading(true);
     try {
-      const data = await apiRequest<{ data: Campaign[] }>("/campaigns");
-      setCampaigns(data?.data || []);
+      const data = await apiRequest<Campaign[]>("/campaigns");
+      setCampaigns(data || []);
     } catch (err) {
       toast.error("Erro ao carregar campanhas");
     } finally { setLoading(false); }
