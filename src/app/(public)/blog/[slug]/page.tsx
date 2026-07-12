@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import ArticleClient from "@/components/blog/ArticleClient";
 import { serverApiRequest } from "@/lib/server-api";
-import { buildArticleGroups } from "@/lib/blog";
-import { mockNews } from "@/lib/mock-data";
 import type { NewsArticle } from "@/types";
 import type { ApiListResponse } from "@/lib/api";
 
@@ -25,20 +23,7 @@ async function loadArticle(slug: string): Promise<{ article: NewsArticle; transl
     return { article, translations, related };
   }
 
-  const fallbackArticle = mockNews.find((item) => item.slug === slug);
-  if (!fallbackArticle) return null;
-
-  const fallbackGroup = buildArticleGroups(mockNews).find((group) => group.variants.some((item) => item.slug === slug));
-  const fallbackTranslations = fallbackGroup?.variants || [fallbackArticle];
-  const fallbackRelated = mockNews.filter(
-    (item) => item.slug !== slug && (item.sport || "other") === (fallbackArticle.sport || "other")
-  );
-
-  return {
-    article: fallbackArticle,
-    translations: fallbackTranslations,
-    related: fallbackRelated,
-  };
+  return null;
 }
 
 export async function generateMetadata({
