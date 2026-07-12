@@ -405,6 +405,68 @@ export async function ensureRuntimeSchema() {
   await safeExec(`CREATE INDEX IF NOT EXISTS "system_logs_created_at_idx" ON "system_logs"("created_at" DESC)`);
   await safeExec(`CREATE INDEX IF NOT EXISTS "system_logs_level_idx" ON "system_logs"("level")`);
   await safeExec(`ALTER TABLE "system_logs" ADD COLUMN IF NOT EXISTS "ip_country" TEXT`);
+  // creator_applications table
+  await safeExec(`DO $$ BEGIN CREATE TYPE "creator_app_status" AS ENUM ('pending', 'approved', 'rejected'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`);
+  await safeExec(`
+    CREATE TABLE IF NOT EXISTS "creator_applications" (
+      "id" TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      "user_id" TEXT NOT NULL,
+      "channel_name" VARCHAR(200) NOT NULL,
+      "description" TEXT,
+      "sport" TEXT,
+      "social_links" JSONB DEFAULT '{}',
+      "status" TEXT DEFAULT 'pending',
+      "admin_notes" TEXT,
+      "reviewed_by" TEXT,
+      "reviewed_at" TIMESTAMPTZ,
+      "created_at" TIMESTAMPTZ DEFAULT NOW(),
+      "updated_at" TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+  await safeExec(`ALTER TABLE "creator_applications" ALTER COLUMN "status" TYPE "creator_app_status" USING "status"::"creator_app_status"`);
+  await safeExec(`CREATE INDEX IF NOT EXISTS "idx_creator_applications_user" ON "creator_applications"("user_id")`);
+  await safeExec(`CREATE INDEX IF NOT EXISTS "idx_creator_applications_status" ON "creator_applications"("status")`);
+
+  // channels table
+  await safeExec(`DO $$ BEGIN CREATE TYPE "channel_status" AS ENUM ('active', 'suspended', 'pending', 'inactive'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`);
+  await safeExec(`
+    CREATE TABLE IF NOT EXISTS "channels" (
+      "id" TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      "user_id" TEXT NOT NULL,
+      "name" VARCHAR(200) NOT NULL,
+      "slug" VARCHAR(200) UNIQUE NOT NULL,
+      "description" TEXT,
+      "avatar" TEXT,
+      "banner" TEXT,
+      "sport" TEXT,
+      "country" TEXT,
+      "status" TEXT DEFAULT 'pending',
+      "verified" BOOLEAN DEFAULT false,
+      "subscriber_count" INTEGER DEFAULT 0,
+      "total_views" INTEGER DEFAULT 0,
+      "live_count" INTEGER DEFAULT 0,
+      "website_url" TEXT,
+      "social_links" JSONB DEFAULT '{}',
+      "created_at" TIMESTAMPTZ DEFAULT NOW(),
+      "updated_at" TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+  await safeExec(`ALTER TABLE "channels" ALTER COLUMN "status" TYPE "channel_status" USING "status"::"channel_status"`);
+  await safeExec(`CREATE INDEX IF NOT EXISTS "idx_channels_user" ON "channels"("user_id")`);
+  await safeExec(`CREATE INDEX IF NOT EXISTS "idx_channels_status" ON "channels"("status")`);
+
+  // channel_subscriptions table
+  await safeExec(`
+    CREATE TABLE IF NOT EXISTS "channel_subscriptions" (
+      "id" TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      "channel_id" TEXT NOT NULL,
+      "user_id" TEXT NOT NULL,
+      "created_at" TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE("channel_id","user_id")
+    )
+  `);
+
+
   await safeExec(`CREATE INDEX IF NOT EXISTS "system_logs_ip_country_idx" ON "system_logs"("ip_country")`);
 
   // support_tickets table
