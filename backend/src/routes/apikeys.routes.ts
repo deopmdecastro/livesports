@@ -225,7 +225,7 @@ router.post('/', async (req, res, next) => {
     const usageTypesLiteral = d.usageTypes.length > 0 ? `ARRAY[${d.usageTypes.map((t) => `'${t}'`).join(',')}]::TEXT[]` : "'{}'::TEXT[]";
     const rows = await prisma.$queryRawUnsafe<any[]>(
       `INSERT INTO "api_keys" (name, description, provider, base_url, key_value, status, priority, request_limit, expires_at, usage_types)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,${usageTypesLiteral})
+       VALUES ($1,$2,$3,$4,$5,$6::api_key_status,$7,$8,$9::timestamptz,${usageTypesLiteral})
        RETURNING *`,
       d.name, d.description ?? null, d.provider, d.baseUrl ?? null, d.keyValue,
       d.status, d.priority, d.requestLimit ?? null, d.expiresAt ?? null,
@@ -277,7 +277,7 @@ router.put('/:id', async (req, res, next) => {
 
     const rows = await prisma.$queryRawUnsafe<any[]>(
       `UPDATE "api_keys" SET name=$2,description=$3,provider=$4,base_url=$5,key_value=$6,
-       status=$7,priority=$8,request_limit=$9,expires_at=$10::timestamptz,
+       status=$7::api_key_status,priority=$8,request_limit=$9,expires_at=$10::timestamptz,
        usage_types=${usageTypesLiteral},updated_at=NOW()
        WHERE id=$1 RETURNING *`,
       req.params.id, d.name, d.description ?? null, d.provider, d.baseUrl ?? null, keyValueParam,
@@ -294,7 +294,7 @@ router.put('/:id', async (req, res, next) => {
 router.patch('/:id/status', async (req, res, next) => {
   try {
     const rows = await prisma.$queryRawUnsafe<any[]>(
-      `UPDATE "api_keys" SET status=$2, updated_at=NOW() WHERE id=$1 RETURNING *`,
+      `UPDATE "api_keys" SET status=$2::api_key_status, updated_at=NOW() WHERE id=$1 RETURNING *`,
       req.params.id, req.body.status
     );
     if (!rows[0]) { res.status(404).json({ success: false, error: 'API Key não encontrada' }); return; }
