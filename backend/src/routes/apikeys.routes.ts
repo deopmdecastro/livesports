@@ -254,12 +254,20 @@ router.post('/', async (req, res, next) => {
     }
     const d = parsed.data;
     const usageTypesLiteral = d.usageTypes.length > 0 ? `ARRAY[${d.usageTypes.map((t) => `'${t}'`).join(',')}]::"api_usage_type"[]` : "'{}'::\"api_usage_type\"[]";
+    // `status` is embedded as a literal (not a bound $N param) on purpose:
+    // it's already restricted to a closed Zod enum above, so this is safe,
+    // and it sidesteps a Prisma quirk where $queryRawUnsafe binds JS strings
+    // with an explicit `text` OID — Postgres then refuses the `::api_key_status`
+    // cast on that bound parameter ("column is of type api_key_status but
+    // expression is of type text"), even though the exact same cast works
+    // fine on an inline literal.
+    const statusLiteral = `'${d.status}'::api_key_status`;
     const rows = await prisma.$queryRawUnsafe<any[]>(
       `INSERT INTO "api_keys" (name, description, provider, base_url, key_value, status, priority, request_limit, expires_at, usage_types)
-       VALUES ($1,$2,$3,$4,$5,$6::api_key_status,$7,$8,$9::timestamptz,${usageTypesLiteral})
+       VALUES ($1,$2,$3,$4,$5,${statusLiteral},$6,$7,$8::timestamptz,${usageTypesLiteral})
        RETURNING *`,
       d.name, d.description ?? null, d.provider, d.baseUrl ?? null, d.keyValue,
-      d.status, d.priority, d.requestLimit ?? null, d.expiresAt ?? null,
+      d.priority, d.requestLimit ?? null, d.expiresAt ?? null,
     );
     syncToEnvIfKnownProvider(d.provider, d.keyValue);
     res.status(201).json({ success: true, data: mapKey(rows[0]) });
@@ -311,13 +319,14 @@ router.put('/:id', async (req, res, next) => {
       keyValueParam = existing[0]?.key_value || null;
     }
 
+    const statusLiteral = `'${d.status}'::api_key_status`;
     const rows = await prisma.$queryRawUnsafe<any[]>(
       `UPDATE "api_keys" SET name=$2,description=$3,provider=$4,base_url=$5,key_value=$6,
-       status=$7::api_key_status,priority=$8,request_limit=$9,expires_at=$10::timestamptz,
+       status=${statusLiteral},priority=$7,request_limit=$8,expires_at=$9::timestamptz,
        usage_types=${usageTypesLiteral},updated_at=NOW()
        WHERE id=$1 RETURNING *`,
       req.params.id, d.name, d.description ?? null, d.provider, d.baseUrl ?? null, keyValueParam,
-      d.status, d.priority, d.requestLimit ?? null, d.expiresAt ?? null,
+      d.priority, d.requestLimit ?? null, d.expiresAt ?? null,
     );
     if (!rows[0]) { res.status(404).json({ success: false, error: 'API Key não encontrada' }); return; }
     syncToEnvIfKnownProvider(d.provider, keyValueParam);
@@ -330,9 +339,14 @@ router.put('/:id', async (req, res, next) => {
 // PATCH /api/api-keys/:id/status
 router.patch('/:id/status', async (req, res, next) => {
   try {
+    const allowedStatuses = ['active', 'inactive', 'expired'];
+    if (!allowedStatuses.includes(req.body.status)) {
+      res.status(400).json({ success: false, error: `status deve ser um de: ${allowedStatuses.join(', ')}` });
+      return;
+    }
     const rows = await prisma.$queryRawUnsafe<any[]>(
-      `UPDATE "api_keys" SET status=$2::api_key_status, updated_at=NOW() WHERE id=$1 RETURNING *`,
-      req.params.id, req.body.status
+      `UPDATE "api_keys" SET status='${req.body.status}'::api_key_status, updated_at=NOW() WHERE id=$1 RETURNING *`,
+      req.params.id
     );
     if (!rows[0]) { res.status(404).json({ success: false, error: 'API Key não encontrada' }); return; }
     res.json({ success: true, data: mapKey(rows[0]) });
@@ -369,15 +383,19 @@ router.post('/:id/test', async (req, res, next) => {
     }
 
     const baseUrl = row.base_url as string | null;
-    if (!baseUrl) {
+    const provider = (row.provider as string).toLowerCase();
+    const isKnownProvider = provider.includes('api_football') || provider.includes('rapidapi')
+      || provider.includes('football_data') || provider.includes('football-data')
+      || provider.includes('thesportsdb') || provider.includes('newsapi') || provider.includes('newsdata');
+    if (!baseUrl && !isKnownProvider) {
       res.json({ success: true, data: { reachable: false, latencyMs: null, statusCode: null, message: 'URL base não configurada — não é possível testar.' } });
       return;
     }
 
     // Build a simple test request based on provider
-    const provider = (row.provider as string).toLowerCase();
     const apiKey = row.key_value as string;
     const headers: Record<string, string> = {};
+    const queryParams: Record<string, string> = {};
 
     if (provider.includes('api_football') || provider.includes('rapidapi')) {
       headers['x-rapidapi-key'] = apiKey;
@@ -386,6 +404,10 @@ router.post('/:id/test', async (req, res, next) => {
       headers['X-Auth-Token'] = apiKey;
     } else if (provider.includes('thesportsdb')) {
       // TheSportsDB uses key in URL path — just ping base
+    } else if (provider.includes('newsapi')) {
+      headers['X-Api-Key'] = apiKey;
+    } else if (provider.includes('newsdata')) {
+      queryParams['apikey'] = apiKey;
     } else {
       headers['Authorization'] = `Bearer ${apiKey}`;
     }
@@ -397,17 +419,34 @@ router.post('/:id/test', async (req, res, next) => {
           ? 'https://api.football-data.org/v4/competitions?limit=1'
           : provider.includes('thesportsdb')
             ? `https://www.thesportsdb.com/api/v1/json/${apiKey}/all_leagues.php`
-            : baseUrl;
+            : provider.includes('newsapi')
+              ? 'https://newsapi.org/v2/top-headlines?category=sports&country=us&pageSize=1'
+              : provider.includes('newsdata')
+                ? 'https://newsdata.io/api/1/latest?category=sports&language=en'
+                : (baseUrl as string);
 
       const response = await axios.get(testUrl, {
         headers,
+        params: Object.keys(queryParams).length > 0 ? queryParams : undefined,
         timeout: 8000,
         validateStatus: () => true,
       });
 
       const latencyMs = Date.now() - startAt;
       const statusCode = response.status;
-      const reachable = statusCode >= 200 && statusCode < 500;
+      // Some providers (notably RapidAPI/api-sports) return HTTP 200 even
+      // with an invalid key, surfacing the failure only in the JSON body.
+      const body = response.data;
+      const bodyHasErrors = !!(body && typeof body === 'object' && (
+        (Array.isArray(body.errors) ? body.errors.length > 0 : body.errors && Object.keys(body.errors).length > 0) ||
+        body.status === 'error'
+      ));
+      const isAuthError = statusCode === 401 || statusCode === 403;
+      // Only a genuine 2xx (and no body-level error) counts as success.
+      // Anything else — including 401/403 (invalid key), which a naive
+      // "< 500" check used to wave through as if it had worked — is a
+      // real failure and must be reported as one.
+      const reachable = statusCode >= 200 && statusCode < 300 && !bodyHasErrors;
 
       // Update last_used_at and error_count
       if (reachable) {
@@ -422,16 +461,19 @@ router.post('/:id/test', async (req, res, next) => {
         );
       }
 
+      const message = reachable
+        ? `Conectividade OK (${statusCode}) — ${latencyMs}ms`
+        : isAuthError || bodyHasErrors
+          ? `Chave inválida ou sem permissão (HTTP ${statusCode})`
+          : statusCode === 429
+            ? 'Limite de pedidos excedido (HTTP 429) — tente novamente mais tarde'
+            : statusCode === 404
+              ? 'Endpoint não encontrado (HTTP 404) — verifique o URL base'
+              : `Erro de conectividade (HTTP ${statusCode})`;
+
       res.json({
         success: true,
-        data: {
-          reachable,
-          latencyMs,
-          statusCode,
-          message: reachable
-            ? `Conectividade OK (${statusCode}) — ${latencyMs}ms`
-            : `Erro de conectividade (HTTP ${statusCode})`,
-        },
+        data: { reachable, latencyMs, statusCode, message },
       });
     } catch (fetchErr: any) {
       await prisma.$executeRawUnsafe(

@@ -483,8 +483,8 @@ export default function EventsPage() {
                   {/* Team search side-by-side */}
                   {modalMode !== "view" && (
                     <div className="grid gap-3 sm:grid-cols-2">
-                      <AdminTeamSearchField label="Equipa A (TheSportsDB)" onApply={(team) => setForm((c) => ({ ...c, teamA: team.name, teamALogo: team.badge || c.teamALogo, league: c.league || team.league, leagueLogo: c.leagueLogo || team.badge || c.leagueLogo }))} />
-                      <AdminTeamSearchField label="Equipa B (TheSportsDB)" onApply={(team) => setForm((c) => ({ ...c, teamB: team.name, teamBLogo: team.badge || c.teamBLogo }))} />
+                      <AdminTeamSearchField label="Equipa A (TheSportsDB)" initialValue={form.teamA} onApply={(team) => setForm((c) => ({ ...c, teamA: team.name, teamALogo: team.badge || c.teamALogo, league: c.league || team.league, leagueLogo: c.leagueLogo || team.badge || c.leagueLogo }))} />
+                      <AdminTeamSearchField label="Equipa B (TheSportsDB)" initialValue={form.teamB} onApply={(team) => setForm((c) => ({ ...c, teamB: team.name, teamBLogo: team.badge || c.teamBLogo }))} />
                     </div>
                   )}
 
@@ -527,7 +527,7 @@ export default function EventsPage() {
                               type="number" min={0}
                               value={form.scoreA}
                               onChange={(e) => setForm({ ...form, scoreA: e.target.value })}
-                              className="input-dark w-12 h-12 text-center text-xl font-black rounded-xl bg-[#111118] border-[#1E1E2A] placeholder:text-gray-700"
+                              className="input-dark input-score w-12 h-12 text-center text-xl font-black rounded-xl bg-[#111118] border-[#1E1E2A] placeholder:text-gray-700"
                               placeholder="0"
                             />
                             <span className="text-[10px] font-bold text-gray-600 uppercase">vs</span>
@@ -536,7 +536,7 @@ export default function EventsPage() {
                               type="number" min={0}
                               value={form.scoreB}
                               onChange={(e) => setForm({ ...form, scoreB: e.target.value })}
-                              className="input-dark w-12 h-12 text-center text-xl font-black rounded-xl bg-[#111118] border-[#1E1E2A] placeholder:text-gray-700"
+                              className="input-dark input-score w-12 h-12 text-center text-xl font-black rounded-xl bg-[#111118] border-[#1E1E2A] placeholder:text-gray-700"
                               placeholder="0"
                             />
                           </div>

@@ -11,6 +11,10 @@ interface TeamSearchProps {
   disabled?: boolean;
   hint?: string;
   className?: string;
+  /** Pre-fills the search box — e.g. the team already saved on this event —
+   *  so re-opening "Editar Evento" doesn't show an empty search field next
+   *  to a match that already has both teams set. */
+  initialValue?: string;
 }
 
 export function TeamSearch({
@@ -20,13 +24,25 @@ export function TeamSearch({
   disabled = false,
   hint,
   className = "",
+  initialValue = "",
 }: TeamSearchProps) {
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialValue);
   const [results, setResults] = useState<SportsTeamSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Keep the box in sync if the team is set/cleared from outside (e.g. the
+  // parent form resets, or a different event is loaded into the same
+  // mounted modal) without clobbering text the user is actively typing.
+  const lastInitialValue = useRef(initialValue);
+  useEffect(() => {
+    if (initialValue !== lastInitialValue.current) {
+      lastInitialValue.current = initialValue;
+      setQuery(initialValue);
+    }
+  }, [initialValue]);
 
   useEffect(() => {
     if (query.trim().length < 2) {
@@ -136,15 +152,17 @@ interface AdminTeamSearchFieldProps {
   label: string;
   onApply: (team: SportsTeamSearchResult) => void;
   disabled?: boolean;
+  initialValue?: string;
 }
 
-export function AdminTeamSearchField({ label, onApply, disabled = false }: AdminTeamSearchFieldProps) {
+export function AdminTeamSearchField({ label, onApply, disabled = false, initialValue }: AdminTeamSearchFieldProps) {
   return (
     <TeamSearch
       label={label}
       disabled={disabled}
       hint='Chave free: teste "Arsenal". Premium desbloqueia pesquisa completa.'
       onSelect={onApply}
+      initialValue={initialValue}
     />
   );
 }
