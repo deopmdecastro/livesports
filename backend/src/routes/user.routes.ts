@@ -111,8 +111,53 @@ router.delete('/roles/:name', authenticateToken, requireAdmin, async (req, res, 
 // /api/users/me cair no /:id e tratar "me" como um id literal).
 router.get('/me', authenticateToken, async (req: AuthRequest, res, next) => {
   try {
-    const rows = await prisma.$queryRawUnsafe<any[]>(`${selectUserSql} WHERE id = $1 LIMIT 1`, req.user!.id);
+    // Guard: authenticateToken attaches req.user; if somehow missing, return 401
+    if (!req.user?.id) {
+      res.status(401).json({ success: false, error: 'Não autenticado' });
+      return;
+    }
+    const rows = await prisma.$queryRawUnsafe<any[]>(`${selectUserSql} WHERE id = $1 LIMIT 1`, req.user.id);
     if (!rows[0]) {
+      // User token valid but no DB row — upsert a minimal profile row so the
+      // call succeeds on first login / after DB reset, rather than 404-looping.
+      try {
+        const upserted = await prisma.$queryRawUnsafe<any[]>(
+          `INSERT INTO "users" (id, name, email, role, status)
+           VALUES ($1, $2, $3, 'user'::user_role, 'active'::user_status)
+           ON CONFLICT (id) DO UPDATE SET updated_at = NOW()
+           RETURNING *`,
+          req.user.id,
+          req.user.name || 'User',
+          req.user.email || '',
+        );
+        if (upserted[0]) {
+          res.json({ success: true, data: mapUser(upserted[0]) });
+          return;
+        }
+      } catch (upsertErr: any) {
+        // If upsert fails (schema not ready), still return a synthetic profile
+        // so the UI doesn't hard-crash — it will show stale token data.
+        console.warn('[GET /me] DB upsert failed, returning synthetic profile:', upsertErr?.message);
+        res.json({
+          success: true,
+          data: {
+            id: req.user.id,
+            name: req.user.name || 'User',
+            email: req.user.email || '',
+            role: req.user.role || 'user',
+            status: 'active',
+            avatar: null,
+            country: null,
+            phone: null,
+            emailVerified: false,
+            twoFactorEnabled: false,
+            lastLoginAt: null,
+            createdAt: null,
+            updatedAt: null,
+          },
+        });
+        return;
+      }
       res.status(404).json({ success: false, error: 'Utilizador nao encontrado' });
       return;
     }

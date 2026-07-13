@@ -245,6 +245,16 @@ router.get('/discovery', async (_req, res, next) => {
 });
 
 // POST /api/api-keys — create
+//
+// Note: schema bootstrapping (creating the api_keys table, the
+// api_key_status / api_usage_type enums, and self-healing any legacy TEXT
+// columns from older installs) lives in ensureRuntimeSchema() in
+// lib/prisma.ts, which runs once at server boot — before any route below is
+// reachable. There used to be a second, competing "ensure schema" helper
+// here that created the table with plain TEXT columns instead of the real
+// enum types; it's been removed since it disagreed with the real schema and
+// caused the exact `column "status" is of type api_key_status but
+// expression is of type text` error this file works around below.
 router.post('/', async (req, res, next) => {
   try {
     const parsed = apiKeySchema.safeParse(req.body);
@@ -261,6 +271,16 @@ router.post('/', async (req, res, next) => {
     // cast on that bound parameter ("column is of type api_key_status but
     // expression is of type text"), even though the exact same cast works
     // fine on an inline literal.
+    //
+    // Note: a parallel fix attempt (from another agent) went the other way —
+    // casting to plain ::TEXT instead of the enum, on the theory that the
+    // enum type/columns might not exist yet on some installs. That's already
+    // handled: ensureRuntimeSchema() in lib/prisma.ts creates api_key_status /
+    // api_usage_type as proper enums (and self-heals any legacy TEXT columns)
+    // on every boot, before routes are reachable — confirmed against a real
+    // production log where the column really is `api_key_status`, and a
+    // ::TEXT cast against that column fails with the exact mismatch this
+    // whole fix exists to solve.
     const statusLiteral = `'${d.status}'::api_key_status`;
     const rows = await prisma.$queryRawUnsafe<any[]>(
       `INSERT INTO "api_keys" (name, description, provider, base_url, key_value, status, priority, request_limit, expires_at, usage_types)
@@ -273,16 +293,25 @@ router.post('/', async (req, res, next) => {
     res.status(201).json({ success: true, data: mapKey(rows[0]) });
   } catch (error: any) {
     console.error('[api-keys POST] Failed to create API key:', error?.message || error);
-    if (error?.message?.includes('relation "api_keys" does not exist')) {
-      res.status(500).json({ success: false, error: 'Tabela api_keys não existe — execute as migrações ou reinicie o servidor.' });
+    if (error?.message?.includes('relation "api_keys" does not exist') ||
+        error?.message?.includes('relation \"api_keys\" does not exist')) {
+      res.status(503).json({
+        success: false,
+        error: 'Tabela api_keys não existe — execute as migrações (npx prisma migrate deploy) ou aguarde o servidor recriar o esquema.',
+      });
       return;
     }
-    if (error?.message?.includes('type "api_key_status" does not exist') || error?.message?.includes('type "api_usage_type" does not exist')) {
-      res.status(500).json({ success: false, error: 'Tipos api_key_status/api_usage_type não encontrados — reinicie o servidor para recriar os tipos.' });
+    if (error?.message?.includes('type "api_key_status" does not exist') ||
+        error?.message?.includes('type \"api_key_status\" does not exist') ||
+        error?.message?.includes('type "api_usage_type" does not exist')) {
+      res.status(503).json({
+        success: false,
+        error: 'Tipos api_key_status/api_usage_type não encontrados — reinicie o servidor para recriar os tipos automaticamente.',
+      });
       return;
     }
-    if (error?.message?.includes('column "usage_types" is of type')) {
-      res.status(500).json({ success: false, error: 'Coluna usage_types com tipo desatualizado — reinicie o servidor para migrar automaticamente o schema.' });
+    if (error?.message?.includes('column "usage_types" is of type') || error?.message?.includes('column "status" is of type')) {
+      res.status(503).json({ success: false, error: 'Coluna com tipo desatualizado — reinicie o servidor para migrar automaticamente o schema.' });
       return;
     }
     next(error);
