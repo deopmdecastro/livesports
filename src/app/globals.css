@@ -826,3 +826,23 @@ body {
 .trophy-glow {
   filter: drop-shadow(0 0 12px rgba(255,215,0,0.5)) drop-shadow(0 0 24px rgba(255,215,0,0.2));
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   ACESSIBILIDADE — prefers-reduced-motion
+   Respeita a preferência do utilizador, desativando animações decorativas
+   (ticker, partículas, pulsos, shimmer) mantendo o essencial legível/estático.
+   ═══════════════════════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .ticker-track { animation: none !important; }
+  .particle-dot { display: none; }
+  .card:hover, .wc-card:hover, .hover-lift:hover, .stat-card:hover {
+    transform: none;
+  }
+  html { scroll-behavior: auto; }
+}
