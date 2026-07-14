@@ -155,8 +155,9 @@ export default function Navbar() {
               {/* More dropdown */}
               <div className="relative">
                 <button onClick={() => setMoreOpen(!moreOpen)}
+                  aria-haspopup="true" aria-expanded={moreOpen} aria-label="Mais categorias"
                   className="flex items-center gap-0.5 px-3 py-2 text-[13px] font-medium text-white/50 hover:text-white transition-colors">
-                  Mais <ChevronDown className={`h-3 w-3 transition-transform ${moreOpen ? "rotate-180" : ""}`} />
+                  Mais <ChevronDown aria-hidden="true" className={`h-3 w-3 transition-transform ${moreOpen ? "rotate-180" : ""}`} />
                 </button>
                 {moreOpen && (
                   <div className="absolute top-full left-0 mt-1 w-44 surface-raised rounded-xl shadow-xl border border-white/[0.06] py-1.5 overflow-hidden z-50">
@@ -176,8 +177,8 @@ export default function Navbar() {
               {/* Search */}
               <div ref={searchRef} className="relative hidden md:block">
                 <div className="flex items-center gap-2 bg-white/[0.03] border border-white/[0.06] rounded-lg pl-3 pr-2 py-1.5 transition-all focus-within:border-[#E50914]/30 focus-within:bg-white/[0.05]">
-                  <Search className="w-3.5 h-3.5 text-white/25" />
-                  <input type="text" placeholder="Pesquisar..."
+                  <Search aria-hidden="true" className="w-3.5 h-3.5 text-white/25" />
+                  <input type="search" placeholder="Pesquisar..." aria-label="Pesquisar jogos, competições e notícias"
                     value={searchQuery}
                     onChange={(e) => { setSearchQuery(e.target.value); setSearchOpen(true); }}
                     className="bg-transparent text-[13px] text-white placeholder-white/25 outline-none w-[160px] lg:w-[200px]" />
@@ -206,8 +207,9 @@ export default function Navbar() {
 
               {/* Language */}
               <button onClick={() => setLang(lang === "pt" ? "en" : "pt")}
+                aria-label={lang === "pt" ? "Mudar idioma para inglês" : "Switch language to Portuguese"}
                 className="hidden sm:flex btn btn-ghost btn-sm gap-1.5 text-white/40 hover:text-white">
-                <Globe className="w-3.5 h-3.5" />
+                <Globe aria-hidden="true" className="w-3.5 h-3.5" />
                 <span className="text-[11px] font-bold uppercase">{lang === "pt" ? "EN" : "PT"}</span>
               </button>
 
@@ -218,6 +220,7 @@ export default function Navbar() {
               {user ? (
                 <div ref={userMenuRef} className="relative">
                   <button onClick={() => setUserMenuOpen(!userMenuOpen)}
+                    aria-haspopup="true" aria-expanded={userMenuOpen} aria-label={`Menu de ${user.name || "utilizador"}`}
                     className="flex items-center gap-2 btn btn-ghost btn-sm rounded-full">
                     <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#E50914] to-[#B00000] flex items-center justify-center text-white font-bold text-xs">
                       {user.name?.charAt(0).toUpperCase() || "U"}
@@ -249,8 +252,10 @@ export default function Navbar() {
               )}
 
               {/* Mobile toggle */}
-              <button onClick={() => setMobileOpen(!mobileOpen)} className="lg:hidden btn btn-ghost btn-icon text-white/60">
-                {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              <button onClick={() => setMobileOpen(!mobileOpen)}
+                aria-label={mobileOpen ? "Fechar menu" : "Abrir menu"} aria-expanded={mobileOpen}
+                className="lg:hidden btn btn-ghost btn-icon text-white/60">
+                {mobileOpen ? <X aria-hidden="true" className="w-5 h-5" /> : <Menu aria-hidden="true" className="w-5 h-5" />}
               </button>
             </div>
           </div>
@@ -264,8 +269,8 @@ export default function Navbar() {
           <div className="relative bg-[#030409] border-t border-white/[0.04] px-5 py-6 max-h-[calc(100vh-80px)] overflow-y-auto space-y-4">
             {/* Search */}
             <div className="flex items-center gap-2 bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-2.5">
-              <Search className="w-4 h-4 text-white/25 flex-shrink-0" />
-              <input type="text" placeholder={t.nav_search_placeholder} value={searchQuery}
+              <Search aria-hidden="true" className="w-4 h-4 text-white/25 flex-shrink-0" />
+              <input type="search" placeholder={t.nav_search_placeholder} aria-label={t.nav_search_placeholder} value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="bg-transparent text-sm text-white placeholder-white/25 outline-none flex-1" />
             </div>
