@@ -95,6 +95,7 @@ export default function CompetitionCarousel({ competitions, selectedSlug, onSele
               type="button"
               data-slug={item.slug}
               onClick={() => onSelect(item.slug)}
+              aria-pressed={active}
               className={`group flex w-[200px] flex-shrink-0 snap-start items-center gap-3 rounded-xl border p-3 text-left transition-all ${
                 active ? "shadow-lg" : "border-[#1E1E2A] bg-[#0E0E16]/80 hover:bg-[#111118]"
               }`}

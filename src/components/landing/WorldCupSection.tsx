@@ -470,10 +470,14 @@ export default function WorldCupSection({
           </Link>
         </div>
 
-        <div className="flex items-center gap-1 mb-6 bg-[#0E0E16] border border-[#1E1E2A] rounded-xl p-1 w-fit">
+        <div className="flex items-center gap-1 mb-6 bg-[#0E0E16] border border-[#1E1E2A] rounded-xl p-1 w-fit" role="tablist" aria-label={lang === "pt" ? "Ver jogos ou classificação" : "View matches or standings"}>
           {tabs.map((tab) => (
             <button
               key={tab.id}
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              id={`wc-tab-${tab.id}`}
+              aria-controls={`wc-tabpanel-${tab.id}`}
               onClick={() => setActiveTab(tab.id)}
               className={`px-5 py-2 text-sm font-bold rounded-lg transition-all ${
                 activeTab === tab.id
