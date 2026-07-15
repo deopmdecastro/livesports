@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Clock, Play, Eye, Users, Zap, Trophy, Tv2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, Play, Eye, Users, Zap, Trophy, Tv2, Radio, BarChart3, Star } from "lucide-react";
 import type { Ad, Live } from "@/types";
 import { publicApiRequest, type ApiListResponse } from "@/lib/api";
 import { resolveCountryFlagUrl } from "@/lib/flags";
@@ -402,6 +402,26 @@ export default function HeroSection() {
                   className="btn btn-secondary btn-lg">
                   <Users className="h-5 w-5" /> {t.hero_create_account}
                 </Link>
+              </div>
+
+              {/* Trust / feature strip */}
+              <div className="mt-8 flex flex-wrap items-center gap-x-7 gap-y-4">
+                {[
+                  { icon: Radio, l1: "Transmissões", l2: "Ao Vivo" },
+                  { icon: BarChart3, l1: "Estatísticas", l2: "Em Tempo Real" },
+                  { icon: Tv2, l1: "Conteúdo", l2: "Exclusivo" },
+                  { icon: Star, l1: "Melhor", l2: "Experiência" },
+                ].map(({ icon: Icon, l1, l2 }) => (
+                  <div key={l1} className="flex items-center gap-2.5">
+                    <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-[#E50914]/30 bg-[#E50914]/5">
+                      <Icon aria-hidden="true" className="h-4 w-4 text-[#E50914]" />
+                    </span>
+                    <span className="leading-tight">
+                      <span className="block text-[10px] font-bold uppercase tracking-wider text-white/70">{l1}</span>
+                      <span className="block text-[10px] font-bold uppercase tracking-wider text-white/30">{l2}</span>
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
 
