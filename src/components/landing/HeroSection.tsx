@@ -134,6 +134,7 @@ function LiveHeroCard({ live }: { live: Live }) {
 export default function HeroSection() {
   const { t } = useLang();
   const [current, setCurrent] = useState(0);
+  const [paused, setPaused] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [allLives, setAllLives] = useState<Live[]>([]);
   const [ads, setAds] = useState<Ad[]>([]);
@@ -223,7 +224,8 @@ export default function HeroSection() {
 
   /* ── Auto-play ── */
   useEffect(() => {
-    if (slides.length <= 1) return;
+    if (slides.length <= 1 || paused) return;
+    if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
     autoPlayRef.current = setInterval(() => {
       setIsTransitioning(true);
       setTimeout(() => {
@@ -232,7 +234,7 @@ export default function HeroSection() {
       }, 300);
     }, 6000);
     return () => { if (autoPlayRef.current) clearInterval(autoPlayRef.current); };
-  }, [slides.length]);
+  }, [slides.length, paused]);
 
   /* ── Countdown ── */
   useEffect(() => {
@@ -274,13 +276,27 @@ export default function HeroSection() {
     .slice(0, 3);
 
   return (
-    <section className="relative h-[92vh] min-h-[640px] max-h-[960px] overflow-hidden bg-[#020307]">
+    <section
+      className="relative h-[92vh] min-h-[640px] max-h-[960px] overflow-hidden bg-[#020307]"
+      role="region"
+      aria-roledescription="carousel"
+      aria-label="Destaques ao vivo"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocus={() => setPaused(true)}
+      onBlur={() => setPaused(false)}
+    >
       {/* ── Background slides ── */}
       {slides.map((item, index) => (
         <div key={item.id}
           className={`absolute inset-0 transition-all duration-700 ${index === current && !isTransitioning ? "opacity-100 scale-100" : "opacity-0 scale-105"}`}
           style={{ transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)" }}>
-          <img loading="lazy" src={item.image} alt="" className="h-full w-full object-cover object-center" />
+          <img
+            src={item.image}
+            alt=""
+            loading={index === 0 ? "eager" : "lazy"}
+            fetchPriority={index === 0 ? "high" : "auto"}
+            className="h-full w-full object-cover object-center" />
         </div>
       ))}
 
@@ -292,6 +308,9 @@ export default function HeroSection() {
       {/* Decorative glow orbs */}
       <div className="absolute top-20 right-20 w-80 h-80 rounded-full bg-[#E50914]/4 blur-[100px] pointer-events-none" />
       <div className="absolute bottom-10 left-10 w-60 h-60 rounded-full bg-red-500/3 blur-[80px] pointer-events-none" />
+
+      {/* Anúncio para leitores de ecrã da mudança de destaque */}
+      <p className="sr-only" aria-live="polite">{slide.title}</p>
 
       {/* ── Content ── */}
       <div className="relative z-10 flex h-full items-center">
@@ -434,12 +453,15 @@ export default function HeroSection() {
         <>
           <div className="absolute bottom-8 left-1/2 z-20 flex -translate-x-1/2 items-center gap-4">
             <button onClick={() => goTo((current - 1 + slides.length) % slides.length)}
+              aria-label="Destaque anterior"
               className="btn btn-ghost btn-icon rounded-full border border-white/[0.06]">
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft aria-hidden="true" className="h-4 w-4" />
             </button>
             <div className="flex items-center gap-2">
               {slides.map((item, index) => (
                 <button key={item.id} onClick={() => goTo(index)}
+                  aria-label={`Ir para destaque ${index + 1} de ${slides.length}`}
+                  aria-current={index === current}
                   className={`rounded-full transition-all duration-500 ${
                     index === current
                       ? "w-8 h-1.5 bg-gradient-to-r from-[#E50914] to-[#FF6B6B]"
@@ -447,8 +469,9 @@ export default function HeroSection() {
               ))}
             </div>
             <button onClick={() => goTo((current + 1) % slides.length)}
+              aria-label="Próximo destaque"
               className="btn btn-ghost btn-icon rounded-full border border-white/[0.06]">
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight aria-hidden="true" className="h-4 w-4" />
             </button>
           </div>
           <div className="absolute top-8 right-8 z-10 hidden lg:flex items-center gap-2 text-xs font-bold text-white/30">
