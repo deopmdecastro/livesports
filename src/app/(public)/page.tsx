@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import HeroSection from "@/components/landing/HeroSection";
+import SportQuickStrip from "@/components/landing/SportQuickStrip";
 import LiveNowSection from "@/components/landing/LiveNowSection";
 import SportCategoriesSection from "@/components/landing/SportCategoriesSection";
 import BenefitsSection from "@/components/landing/BenefitsSection";
@@ -18,6 +19,7 @@ export default function HomePage() {
   return (
     <>
       <HeroSection />
+      <SportQuickStrip />
       <LiveNowSection />
       <section className="mx-auto grid max-w-[1400px] gap-4 px-4 py-4 lg:grid-cols-[1fr_320px] lg:px-6">
         <AdSlot position="in_content" />
