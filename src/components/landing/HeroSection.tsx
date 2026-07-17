@@ -333,6 +333,9 @@ export default function HeroSection() {
   return (
     <section
       className="relative overflow-hidden bg-[#05060a] px-4 pb-24 pt-[112px] lg:px-6 lg:pb-28 lg:pt-[118px]"
+      role="region"
+      aria-roledescription="carousel"
+      aria-label="Destaques ao vivo"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)}
@@ -340,6 +343,7 @@ export default function HeroSection() {
     >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_18%,rgba(229,9,20,0.12),transparent_25%),radial-gradient(circle_at_78%_28%,rgba(44,77,255,0.08),transparent_18%),linear-gradient(180deg,#04050a_0%,#05060a_42%,#06070c_100%)]" />
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[560px] grid-pattern opacity-[0.07]" />
+      <p className="sr-only" aria-live="polite">{slide.title}</p>
 
       <div className="relative mx-auto max-w-[1400px]">
         <div className="relative overflow-hidden rounded-[34px] border border-white/[0.08] bg-[#090b10] shadow-[0_30px_120px_rgba(0,0,0,0.48)]">
@@ -522,7 +526,8 @@ export default function HeroSection() {
                   <button
                     key={item.id}
                     onClick={() => setCurrent(index)}
-                    aria-label={`Ir para o slide ${index + 1}`}
+                    aria-label={`Ir para o slide ${index + 1} de ${slides.length}`}
+                    aria-current={index === current}
                     className={`rounded-full transition-all duration-300 ${
                       index === current ? "h-2 w-10 bg-gradient-to-r from-[#E50914] to-[#ff6b73]" : "h-2 w-2 bg-white/18 hover:bg-white/35"
                     }`}
