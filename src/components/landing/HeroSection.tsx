@@ -17,19 +17,24 @@ function isImageValue(value?: string) {
 function TeamCrest({ logo, name, code, size = "md" }: {
   logo?: string; name?: string; code?: string; size?: "sm" | "md" | "lg";
 }) {
-  const sizeMap = { sm: 32, md: 48, lg: 64 };
+  const sizeMap = { sm: 32, md: 48, lg: 72 };
+  const sizeClasses = {
+    sm: "w-8 h-8",
+    md: "w-12 h-12 lg:w-14 lg:h-14",
+    lg: "w-16 h-16 lg:w-20 lg:h-20",
+  };
   const px = sizeMap[size];
   const flagUrl = resolveCountryFlagUrl({ code, name, logo, size: px });
   const src = flagUrl || (isImageValue(logo) ? logo : null);
 
   if (src) return (
     <img loading="lazy" src={src} alt={name || ""}
-      className="w-12 h-12 lg:w-14 lg:h-14 rounded-full border-2 border-white/10 object-cover bg-black/40 p-0.5" />
+      className={`${sizeClasses[size]} rounded-full border-2 border-white/10 object-cover bg-black/40 p-0.5`} />
   );
   const initials = (name || "?").slice(0, 2).toUpperCase();
   return (
-    <div className="w-12 h-12 lg:w-14 lg:h-14 flex items-center justify-center rounded-full
-      border-2 border-white/8 bg-gradient-to-br from-[#1A1A28] to-[#0A0A14] font-black text-white text-sm">
+    <div className={`${sizeClasses[size]} flex items-center justify-center rounded-full
+      border-2 border-white/8 bg-gradient-to-br from-[#1A1A28] to-[#0A0A14] font-black text-white text-sm`}>
       {initials}
     </div>
   );
@@ -72,9 +77,9 @@ function LiveHeroCard({ live }: { live: Live }) {
           </div>
         )}
 
-        <div className="relative p-5">
+        <div className="relative p-6">
           {/* League header */}
-          <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
               {isImageValue(live.leagueLogo)
                 ? <img loading="lazy" src={live.leagueLogo} alt="" className="h-5 w-5 object-contain opacity-80" />
@@ -87,26 +92,26 @@ function LiveHeroCard({ live }: { live: Live }) {
           </div>
 
           {/* Teams & Score */}
-          <div className="flex items-center justify-center gap-5 mb-5 py-2">
-            <div className="flex flex-col items-center gap-2 flex-1">
-              <TeamCrest logo={live.teamALogo} name={live.teamA} />
+          <div className="flex items-center justify-center gap-4 mb-6 py-2">
+            <div className="flex flex-col items-center gap-2.5 flex-1">
+              <TeamCrest logo={live.teamALogo} name={live.teamA} size="lg" />
               <span className="text-[13px] font-bold text-white/90 text-center leading-tight line-clamp-2">
                 {live.teamA || "Time A"}
               </span>
             </div>
 
             {hasScore ? (
-              <div className="flex items-center gap-2">
-                <span className="text-3xl font-black text-white tabular-nums">{live.scoreA}</span>
-                <span className="text-lg font-bold text-white/30">–</span>
-                <span className="text-3xl font-black text-white tabular-nums">{live.scoreB}</span>
+              <div className="flex items-center gap-2.5">
+                <span className="text-5xl font-black text-white tabular-nums">{live.scoreA}</span>
+                <span className="text-xl font-bold text-white/25">–</span>
+                <span className="text-5xl font-black text-white tabular-nums">{live.scoreB}</span>
               </div>
             ) : (
               <span className="text-lg font-bold text-white/20">VS</span>
             )}
 
-            <div className="flex flex-col items-center gap-2 flex-1">
-              <TeamCrest logo={live.teamBLogo} name={live.teamB} />
+            <div className="flex flex-col items-center gap-2.5 flex-1">
+              <TeamCrest logo={live.teamBLogo} name={live.teamB} size="lg" />
               <span className="text-[13px] font-bold text-white/90 text-center leading-tight line-clamp-2">
                 {live.teamB || "Time B"}
               </span>
