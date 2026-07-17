@@ -2,42 +2,30 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Clock, Play, Eye, Users, Zap, Trophy, Tv2, Radio, BarChart3, Star } from "lucide-react";
+import {
+  BarChart3,
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Eye,
+  MapPin,
+  Play,
+  Radio,
+  Sparkles,
+  Star,
+  Trophy,
+  Tv2,
+  Users,
+  Zap,
+} from "lucide-react";
 import type { Ad, Live } from "@/types";
 import { publicApiRequest, type ApiListResponse } from "@/lib/api";
 import { resolveCountryFlagUrl } from "@/lib/flags";
 import { useLang } from "@/lib/lang";
 
-/* ── Helpers ──────────────────────────────────────────────────────────────── */
-
 function isImageValue(value?: string) {
   return Boolean(value && (/^(https?:|data:|blob:)/.test(value) || value.startsWith("/")));
-}
-
-function TeamCrest({ logo, name, code, size = "md" }: {
-  logo?: string; name?: string; code?: string; size?: "sm" | "md" | "lg";
-}) {
-  const sizeMap = { sm: 32, md: 48, lg: 72 };
-  const sizeClasses = {
-    sm: "w-8 h-8",
-    md: "w-12 h-12 lg:w-14 lg:h-14",
-    lg: "w-16 h-16 lg:w-20 lg:h-20",
-  };
-  const px = sizeMap[size];
-  const flagUrl = resolveCountryFlagUrl({ code, name, logo, size: px });
-  const src = flagUrl || (isImageValue(logo) ? logo : null);
-
-  if (src) return (
-    <img loading="lazy" src={src} alt={name || ""}
-      className={`${sizeClasses[size]} rounded-full border-2 border-white/10 object-cover bg-black/40 p-0.5`} />
-  );
-  const initials = (name || "?").slice(0, 2).toUpperCase();
-  return (
-    <div className={`${sizeClasses[size]} flex items-center justify-center rounded-full
-      border-2 border-white/8 bg-gradient-to-br from-[#1A1A28] to-[#0A0A14] font-black text-white text-sm`}>
-      {initials}
-    </div>
-  );
 }
 
 function formatViewers(n: number) {
@@ -46,108 +34,170 @@ function formatViewers(n: number) {
   return String(n);
 }
 
+function TeamBadge({
+  logo,
+  name,
+  code,
+  size = "lg",
+}: {
+  logo?: string;
+  name?: string;
+  code?: string;
+  size?: "sm" | "md" | "lg";
+}) {
+  const pxMap = { sm: 42, md: 54, lg: 70 };
+  const wrapperMap = {
+    sm: "h-11 w-11",
+    md: "h-14 w-14",
+    lg: "h-[70px] w-[70px]",
+  };
+  const src = resolveCountryFlagUrl({ code, name, logo, size: pxMap[size] }) || (isImageValue(logo) ? logo : null);
+
+  if (src) {
+    return (
+      <div className={`flex ${wrapperMap[size]} items-center justify-center rounded-[18px] border border-white/10 bg-black/30 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]`}>
+        <img src={src} alt={name || ""} className="h-full w-full rounded-[14px] object-contain" loading="lazy" />
+      </div>
+    );
+  }
+
+  return (
+    <div className={`flex ${wrapperMap[size]} items-center justify-center rounded-[18px] border border-white/10 bg-gradient-to-br from-[#151720] to-[#08090f] text-sm font-black text-white`}>
+      {(name || "?").slice(0, 2).toUpperCase()}
+    </div>
+  );
+}
+
 const FALLBACK_IMAGES = [
   "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=1920&q=80",
-  "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=1920&q=80",
+  "https://images.unsplash.com/photo-1517747614396-d21a78b850e8?w=1920&q=80",
   "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=1920&q=80",
 ];
 
-/* ── LiveHeroCard ─────────────────────────────────────────────────────────── */
-
-function LiveHeroCard({ live }: { live: Live }) {
+function LiveScorePanel({ live }: { live: Live }) {
   const isLive = live.status === "live";
   const hasScore = typeof live.scoreA === "number" && typeof live.scoreB === "number";
+  const venue = live.description || live.league || "Cobertura em tempo real";
 
   return (
-    <Link href={`/watch/${live.id}`} className="group block">
-      <div className={`relative overflow-hidden rounded-2xl transition-all duration-500 group-hover:-translate-y-1
-        ${isLive
-          ? "border border-[#E50914]/30 bg-gradient-to-br from-[#14060A] via-[#0A0C14] to-[#06070D] shadow-[0_0_40px_rgba(229,9,20,0.15)]"
-          : "border border-white/8 bg-gradient-to-br from-[#0F111C] to-[#0A0C14]"}
-      `}>
-        {isLive && (
-          <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-[#E50914] to-transparent" />
-        )}
-
-        {/* Background image */}
-        {(live.banner || live.thumbnail) && (
-          <div className="absolute inset-0 opacity-8 group-hover:opacity-12 transition-opacity duration-700">
-            <img loading="lazy" src={live.banner || live.thumbnail} alt="" 
-              className="h-full w-full object-cover scale-105 group-hover:scale-110 transition-transform duration-1000" />
+    <Link
+      href={`/watch/${live.id}`}
+      className="group relative block overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(14,16,24,0.92),rgba(7,8,13,0.96))] p-5 shadow-[0_30px_90px_rgba(0,0,0,0.45)] backdrop-blur-2xl transition-all duration-300 hover:-translate-y-1 hover:border-[#E50914]/35"
+    >
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(229,9,20,0.14),transparent_42%)]" />
+      <div className="relative space-y-5">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/72">
+              <span className="h-2 w-2 rounded-full bg-sky-300" />
+              {live.league || "Transmissão principal"}
+            </span>
           </div>
-        )}
+          <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] ${
+            isLive
+              ? "bg-[#E50914]/16 text-[#ff5d66] border border-[#E50914]/25"
+              : "bg-white/[0.06] text-white/65 border border-white/10"
+          }`}>
+            {isLive ? <span className="badge-live-dot" /> : <CalendarDays className="h-3 w-3" />}
+            {isLive ? "Ao vivo" : "Agendado"}
+          </span>
+        </div>
 
-        <div className="relative p-6">
-          {/* League header */}
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-2">
-              {isImageValue(live.leagueLogo)
-                ? <img loading="lazy" src={live.leagueLogo} alt="" className="h-5 w-5 object-contain opacity-80" />
-                : <Trophy className="h-4 w-4 text-white/30" />}
-              <span className="text-[11px] font-semibold text-white/60 truncate max-w-[140px]">
-                {live.league || "Desporto"}
-              </span>
-            </div>
-            {isLive && <span className="badge-live"><span className="badge-live-dot" /> AO VIVO</span>}
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <TeamBadge logo={live.teamALogo} name={live.teamA} size="md" />
+            <span className="text-sm font-bold text-white">{live.teamA || "Equipe A"}</span>
           </div>
 
-          {/* Teams & Score */}
-          <div className="flex items-center justify-center gap-4 mb-6 py-2">
-            <div className="flex flex-col items-center gap-2.5 flex-1">
-              <TeamCrest logo={live.teamALogo} name={live.teamA} size="lg" />
-              <span className="text-[13px] font-bold text-white/90 text-center leading-tight line-clamp-2">
-                {live.teamA || "Time A"}
-              </span>
-            </div>
-
+          <div className="flex min-w-[112px] items-center justify-center gap-3 rounded-[20px] border border-white/10 bg-black/20 px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
             {hasScore ? (
-              <div className="flex items-center gap-2.5">
-                <span className="text-5xl font-black text-white tabular-nums">{live.scoreA}</span>
-                <span className="text-xl font-bold text-white/25">–</span>
-                <span className="text-5xl font-black text-white tabular-nums">{live.scoreB}</span>
-              </div>
+              <>
+                <span className="text-display text-5xl text-white">{live.scoreA}</span>
+                <span className="text-display text-2xl text-white/28">-</span>
+                <span className="text-display text-5xl text-white">{live.scoreB}</span>
+              </>
             ) : (
-              <span className="text-lg font-bold text-white/20">VS</span>
+              <span className="text-display text-3xl text-white/40">VS</span>
             )}
-
-            <div className="flex flex-col items-center gap-2.5 flex-1">
-              <TeamCrest logo={live.teamBLogo} name={live.teamB} size="lg" />
-              <span className="text-[13px] font-bold text-white/90 text-center leading-tight line-clamp-2">
-                {live.teamB || "Time B"}
-              </span>
-            </div>
           </div>
 
-          {/* Footer stats */}
-          <div className="flex items-center justify-between pt-3 border-t border-white/6">
-            <div className="flex items-center gap-3 text-[11px] text-white/40">
-              {live.viewerCount > 0 && (
-                <span className="flex items-center gap-1"><Eye className="h-3 w-3" /> {formatViewers(live.viewerCount)}</span>
-              )}
-              {live.matchTime && <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {live.matchTime}</span>}
-            </div>
-            <Play className="h-4 w-4 text-[#E50914] group-hover:scale-110 transition-transform" />
+          <div className="flex flex-col items-center gap-3 text-center">
+            <TeamBadge logo={live.teamBLogo} name={live.teamB} size="md" />
+            <span className="text-sm font-bold text-white">{live.teamB || "Equipe B"}</span>
           </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 rounded-[20px] border border-white/8 bg-white/[0.03] p-3 text-[11px] text-white/55">
+          <div className="flex items-center gap-2 truncate">
+            <Clock className="h-3.5 w-3.5 text-[#E50914]" />
+            <span>{live.matchTime || (isLive ? "Em andamento" : "Pré-jogo")}</span>
+          </div>
+          <div className="flex items-center gap-2 truncate justify-self-end">
+            <Eye className="h-3.5 w-3.5 text-[#E50914]" />
+            <span>{formatViewers(live.viewerCount || 0)}</span>
+          </div>
+          <div className="col-span-2 flex items-center gap-2 truncate border-t border-white/6 pt-3">
+            <MapPin className="h-3.5 w-3.5 text-white/35" />
+            <span className="truncate">{venue}</span>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between gap-3 border-t border-white/6 pt-4">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/35">Partida em destaque</span>
+          <span className="inline-flex items-center gap-2 text-sm font-bold text-white transition-colors group-hover:text-[#ff6b73]">
+            Ver detalhes <Play className="h-4 w-4 fill-current" />
+          </span>
         </div>
       </div>
     </Link>
   );
 }
 
-/* ── Main HeroSection Component ───────────────────────────────────────────── */
+function QuickLiveRail({ lives }: { lives: Live[] }) {
+  if (!lives.length) return null;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between px-1">
+        <span className="text-[10px] font-bold uppercase tracking-[0.24em] text-white/30">Transmissões paralelas</span>
+        <span className="text-[10px] font-bold uppercase tracking-[0.24em] text-[#E50914]">Live feed</span>
+      </div>
+      {lives.map((live) => (
+        <Link
+          key={live.id}
+          href={`/watch/${live.id}`}
+          className="group flex items-center gap-3 rounded-[22px] border border-white/8 bg-white/[0.035] px-4 py-3.5 backdrop-blur-xl transition-all duration-300 hover:border-[#E50914]/22 hover:bg-[#E50914]/[0.06]"
+        >
+          <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-black/20">
+            <TeamBadge logo={live.teamALogo} name={live.teamA} size="sm" />
+            <span className="absolute -right-1 -top-1 h-3.5 w-3.5 rounded-full border border-[#090b10] bg-[#E50914]" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-white">{live.teamA && live.teamB ? `${live.teamA} vs ${live.teamB}` : live.title}</p>
+            <p className="truncate text-[11px] text-white/38">{live.league || "Cobertura ao vivo"}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-display text-2xl text-white/90">
+              {typeof live.scoreA === "number" && typeof live.scoreB === "number" ? `${live.scoreA}-${live.scoreB}` : "AO"}
+            </p>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-white/28">{live.matchTime || "Live"}</p>
+          </div>
+        </Link>
+      ))}
+    </div>
+  );
+}
 
 export default function HeroSection() {
   const { t } = useLang();
   const [current, setCurrent] = useState(0);
   const [paused, setPaused] = useState(false);
-  const [isTransitioning, setIsTransitioning] = useState(false);
   const [allLives, setAllLives] = useState<Live[]>([]);
   const [ads, setAds] = useState<Ad[]>([]);
   const [countdown, setCountdown] = useState({ d: 0, h: 0, m: 0, s: 0 });
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const autoPlayRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  /* ── Fetch data ── */
   useEffect(() => {
     const load = async () => {
       try {
@@ -157,132 +207,132 @@ export default function HeroSection() {
         ]);
         setAllLives(livesRes.items || []);
         setAds(Array.isArray(adsRes) ? adsRes : []);
-      } catch { /* silent */ }
+      } catch {
+        /* silent */
+      }
     };
+
     load();
   }, []);
 
-  /* ── Build slides ── */
   const slides = useMemo(() => {
     const items: Array<{
-      id: string; kind: "live" | "ad"; isLive: boolean;
-      image: string; title: string; subtitle: string;
-      highlight: string; cta: string;
-      live?: Live; ad?: Ad;
+      id: string;
+      kind: "live" | "ad";
+      isLive: boolean;
+      image: string;
+      title: string;
+      subtitle: string;
+      highlight: string;
+      live?: Live;
+      ad?: Ad;
     }> = [];
 
-    const liveLives = allLives.filter((l) => l.status === "live");
-    const featured = allLives.filter((l) => l.featured && l.status !== "ended");
-    const scheduled = allLives.filter((l) => l.status === "scheduled");
+    const liveFirst = allLives.filter((item) => item.status === "live");
+    const featured = allLives.filter((item) => item.featured && item.status !== "ended");
+    const scheduled = allLives.filter((item) => item.status === "scheduled");
 
-    // Priority: live > featured > scheduled > ads
-    const priorityLives = [...liveLives, ...featured, ...scheduled].slice(0, 4);
-
-    for (const live of priorityLives) {
-      const img = live.banner || live.thumbnail || FALLBACK_IMAGES[items.length % 3];
+    for (const live of [...liveFirst, ...featured, ...scheduled]) {
+      if (items.find((entry) => entry.kind === "live" && entry.live?.id === live.id)) continue;
       items.push({
         id: `live-${live.id}`,
         kind: "live",
         isLive: live.status === "live",
-        image: img,
+        image: live.banner || live.thumbnail || FALLBACK_IMAGES[items.length % FALLBACK_IMAGES.length],
         title: live.teamA && live.teamB ? `${live.teamA} vs ${live.teamB}` : live.title,
-        subtitle: live.league || live.description || "Transmissão ao vivo",
-        highlight: live.status === "live" ? "AO VIVO" : live.status === "scheduled" ? "AGENDADO" : "DESTAQUE",
-        cta: live.status === "live" ? "Assistir Agora" : "Ver Detalhes",
+        subtitle: live.league || live.description || "A melhor plataforma de streaming desportivo em tempo real",
+        highlight: live.status === "live" ? "Ao vivo" : live.status === "scheduled" ? "Agendado" : "Destaque",
         live,
       });
+      if (items.length >= 5) break;
     }
 
-    // Fill remaining slots with ads
-    const heroAds = ads.filter((a) => a.position === "header" || a.position === "live_preroll").slice(0, 2);
+    const heroAds = ads.filter((ad) => ad.position === "header" || ad.position === "live_preroll");
     for (const ad of heroAds) {
       if (items.length >= 6) break;
       items.push({
         id: `ad-${ad.id}`,
         kind: "ad",
         isLive: false,
-        image: ad.imageUrl || FALLBACK_IMAGES[items.length % 3],
+        image: ad.imageUrl || FALLBACK_IMAGES[items.length % FALLBACK_IMAGES.length],
         title: ad.title,
-        subtitle: ad.campaign || "Patrocinador",
-        highlight: "PATROCINADO",
-        cta: ad.clickUrl ? "Saber Mais" : "",
+        subtitle: ad.campaign || "Patrocinado",
+        highlight: "Premium",
         ad,
       });
     }
 
-    // Fallback placeholder
-    if (items.length === 0) {
+    if (!items.length) {
       items.push({
         id: "fallback",
         kind: "ad",
         isLive: false,
         image: FALLBACK_IMAGES[0],
         title: "LiveSports",
-        subtitle: "A melhor plataforma de streaming desportivo",
-        highlight: "EM BREVE",
-        cta: "Explorar",
+        subtitle: "A melhor plataforma de streaming desportivo em tempo real",
+        highlight: "Premium",
       });
     }
 
     return items;
-  }, [allLives, ads]);
+  }, [ads, allLives]);
 
-  /* ── Auto-play ── */
   useEffect(() => {
     if (slides.length <= 1 || paused) return;
     if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
-    autoPlayRef.current = setInterval(() => {
-      setIsTransitioning(true);
-      setTimeout(() => {
-        setCurrent((c) => (c + 1) % slides.length);
-        setIsTransitioning(false);
-      }, 300);
-    }, 6000);
-    return () => { if (autoPlayRef.current) clearInterval(autoPlayRef.current); };
-  }, [slides.length, paused]);
 
-  /* ── Countdown ── */
+    autoPlayRef.current = setInterval(() => {
+      setCurrent((value) => (value + 1) % slides.length);
+    }, 6500);
+
+    return () => {
+      if (autoPlayRef.current) clearInterval(autoPlayRef.current);
+    };
+  }, [paused, slides.length]);
+
   useEffect(() => {
     const nextMatch = allLives
-      .filter((l) => l.status === "scheduled" && l.scheduledAt)
-      .sort((a, b) => new Date(a.scheduledAt!).getTime() - new Date(b.scheduledAt!).getTime())[0];
+      .filter((item) => item.status === "scheduled" && item.scheduledAt)
+      .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())[0];
 
     if (!nextMatch?.scheduledAt) return;
 
-    const tick = () => {
-      const now = Date.now();
-      const target = new Date(nextMatch.scheduledAt!).getTime();
-      const diff = Math.max(0, target - now);
+    const update = () => {
+      const diff = Math.max(0, new Date(nextMatch.scheduledAt).getTime() - Date.now());
       setCountdown({
-        d: Math.floor(diff / 86400000),
-        h: Math.floor((diff % 86400000) / 3600000),
-        m: Math.floor((diff % 3600000) / 60000),
-        s: Math.floor((diff % 60000) / 1000),
+        d: Math.floor(diff / 86_400_000),
+        h: Math.floor((diff % 86_400_000) / 3_600_000),
+        m: Math.floor((diff % 3_600_000) / 60_000),
+        s: Math.floor((diff % 60_000) / 1000),
       });
     };
-    tick();
-    intervalRef.current = setInterval(tick, 1000);
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [allLives]);
 
-  /* ── Navigation ── */
-  const goTo = (idx: number) => {
-    if (idx === current || isTransitioning) return;
-    setIsTransitioning(true);
-    setTimeout(() => { setCurrent(idx); setIsTransitioning(false); }, 300);
-  };
+    update();
+    countdownRef.current = setInterval(update, 1000);
+
+    return () => {
+      if (countdownRef.current) clearInterval(countdownRef.current);
+    };
+  }, [allLives]);
 
   const slide = slides[current];
   if (!slide) return null;
 
-  /* ── Other live feeds ── */
   const otherLives = allLives
-    .filter((l) => l.status === "live" && (slide.kind !== "live" || l.id !== slide.live?.id))
+    .filter((item) => item.status === "live" && (slide.kind !== "live" || item.id !== slide.live?.id))
     .slice(0, 3);
+
+  const headlineParts = slide.title.includes(" vs ") ? slide.title.split(" vs ") : null;
+  const featureItems = [
+    { icon: Radio, title: "Transmissões", subtitle: "Ao vivo" },
+    { icon: BarChart3, title: "Estatísticas", subtitle: "Em tempo real" },
+    { icon: Tv2, title: "Conteúdo", subtitle: "Exclusivo" },
+    { icon: Star, title: "Experiência", subtitle: "Premium" },
+  ];
 
   return (
     <section
-      className="relative h-[92vh] min-h-[640px] max-h-[960px] overflow-hidden bg-[#020307]"
+      className="relative overflow-hidden bg-[#05060a] px-4 pb-24 pt-[112px] lg:px-6 lg:pb-28 lg:pt-[118px]"
       role="region"
       aria-roledescription="carousel"
       aria-label="Destaques ao vivo"
@@ -291,221 +341,209 @@ export default function HeroSection() {
       onFocus={() => setPaused(true)}
       onBlur={() => setPaused(false)}
     >
-      {/* ── Background slides ── */}
-      {slides.map((item, index) => (
-        <div key={item.id}
-          className={`absolute inset-0 transition-all duration-700 ${index === current && !isTransitioning ? "opacity-100 scale-100" : "opacity-0 scale-105"}`}
-          style={{ transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)" }}>
-          <img
-            src={item.image}
-            alt=""
-            loading={index === 0 ? "eager" : "lazy"}
-            fetchPriority={index === 0 ? "high" : "auto"}
-            className="h-full w-full object-cover object-center" />
-        </div>
-      ))}
-
-      {/* ── Overlays ── */}
-      <div className="absolute inset-0 hero-gradient" />
-      <div className="absolute inset-0 gradient-overlay-bottom" />
-      <div className="absolute inset-0 grid-pattern opacity-10" />
-
-      {/* Decorative glow orbs */}
-      <div className="absolute top-20 right-20 w-80 h-80 rounded-full bg-[#E50914]/4 blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-10 left-10 w-60 h-60 rounded-full bg-red-500/3 blur-[80px] pointer-events-none" />
-
-      {/* Anúncio para leitores de ecrã da mudança de destaque */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_18%,rgba(229,9,20,0.12),transparent_25%),radial-gradient(circle_at_78%_28%,rgba(44,77,255,0.08),transparent_18%),linear-gradient(180deg,#04050a_0%,#05060a_42%,#06070c_100%)]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[560px] grid-pattern opacity-[0.07]" />
       <p className="sr-only" aria-live="polite">{slide.title}</p>
 
-      {/* ── Content ── */}
-      <div className="relative z-10 flex h-full items-center">
-        <div className="mx-auto w-full max-w-[1400px] px-5 lg:px-8">
-          <div className="grid lg:grid-cols-[1fr_380px] xl:grid-cols-[1fr_440px] gap-10 xl:gap-20 items-center">
+      <div className="relative mx-auto max-w-[1400px]">
+        <div className="relative overflow-hidden rounded-[34px] border border-white/[0.08] bg-[#090b10] shadow-[0_30px_120px_rgba(0,0,0,0.48)]">
+          {slides.map((item, index) => (
+            <div
+              key={item.id}
+              className={`absolute inset-0 transition-all duration-700 ${index === current ? "opacity-100 scale-100" : "opacity-0 scale-105"}`}
+            >
+              <img
+                src={item.image}
+                alt=""
+                loading={index === 0 ? "eager" : "lazy"}
+                fetchPriority={index === 0 ? "high" : "auto"}
+                className="h-full w-full object-cover object-center"
+              />
+            </div>
+          ))}
 
-            {/* ── LEFT: Main content ── */}
-            <div className="max-w-2xl stagger">
-              {/* Status badge */}
-              <div className="mb-6 flex flex-wrap items-center gap-3">
-                <span className={`badge flex items-center gap-2 ${
-                  slide.isLive ? "badge-red text-[11px] px-3 py-1.5" : "badge-blue text-[11px] px-3 py-1.5"}`}>
-                  {slide.isLive && <span className="badge-live-dot" />}
-                  {slide.highlight}
-                </span>
-                {slide.kind === "live" && slide.live?.league && (
-                  <span className="flex items-center gap-1.5 rounded-full bg-white/[0.04] border border-white/[0.06] px-3 py-1 text-[11px] font-medium text-white/50">
-                    {isImageValue(slide.live.leagueLogo) && (
-                      <img loading="lazy" src={slide.live.leagueLogo} alt="" className="h-4 w-4 object-contain" />
-                    )}
-                    {slide.live.league}
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(4,5,10,0.97)_0%,rgba(4,5,10,0.92)_22%,rgba(4,5,10,0.55)_58%,rgba(4,5,10,0.22)_100%)]" />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(229,9,20,0.10)_0%,transparent_24%,transparent_78%,rgba(3,4,9,0.92)_100%)]" />
+          <div className="absolute inset-0 border border-white/[0.03] [mask-image:linear-gradient(180deg,white,transparent)]" />
+
+          <div className="relative z-10 grid min-h-[560px] gap-8 px-6 py-8 sm:px-8 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-end lg:px-10 lg:py-10 xl:min-h-[600px] xl:px-12 xl:py-12">
+            <div className="flex max-w-[720px] flex-col justify-between gap-8">
+              <div className="space-y-6">
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className={`inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.22em] ${
+                    slide.isLive
+                      ? "border border-[#E50914]/30 bg-[#E50914]/14 text-[#ff646c]"
+                      : "border border-white/10 bg-white/[0.05] text-white/70"
+                  }`}>
+                    {slide.isLive ? <span className="badge-live-dot" /> : <Sparkles className="h-3.5 w-3.5" />}
+                    {slide.highlight}
                   </span>
-                )}
-                {slide.kind === "live" && slide.live?.viewerCount != null && slide.live.viewerCount > 0 && (
-                  <span className="flex items-center gap-1.5 rounded-full bg-white/[0.04] border border-white/[0.06] px-3 py-1 text-[11px] font-medium text-white/50">
-                    <Eye className="h-3 w-3 text-[#E50914]" />
-                    {formatViewers(slide.live.viewerCount)}
-                  </span>
-                )}
-              </div>
-
-              {/* Title */}
-              <h1 className="text-display text-5xl md:text-6xl lg:text-7xl xl:text-8xl mb-5 tracking-tight">
-                {slide.title.includes(" vs ") ? (
-                  <>
-                    <span className="text-white">{slide.title.split(" vs ")[0]}</span>
-                    <span className="text-gradient mx-2">vs</span>
-                    <span className="text-white">{slide.title.split(" vs ")[1]}</span>
-                  </>
-                ) : (
-                  <span className="text-gradient">{slide.title}</span>
-                )}
-              </h1>
-
-              <p className="mb-7 max-w-lg text-sm lg:text-base text-white/40 leading-relaxed">
-                {slide.subtitle}
-              </p>
-
-              {/* Countdown (scheduled) */}
-              {!slide.isLive && slide.kind === "live" && countdown.d + countdown.h + countdown.m + countdown.s > 0 && (
-                <div className="mb-7 flex items-center gap-4">
-                  <Clock className="h-4 w-4 text-[#E50914]" />
-                  <span className="text-sm text-white/50">{t.hero_starts_in}</span>
-                  <div className="flex items-center gap-2">
-                    {[
-                      { v: countdown.d, l: "Dias" },
-                      { v: countdown.h, l: "Hrs" },
-                      { v: countdown.m, l: "Min" },
-                      { v: countdown.s, l: "Seg" },
-                    ].map(({ v, l }, i) => (
-                      <div key={l} className="flex items-center gap-1">
-                        {i > 0 && <span className="text-white/20 font-bold">:</span>}
-                        <div className="min-w-[50px] rounded-lg border border-white/[0.06] bg-white/[0.03] px-3 py-2 text-center">
-                          <span className="block text-mono text-xl font-bold text-white">{String(v).padStart(2, "0")}</span>
-                          <span className="block text-[9px] text-white/30 uppercase tracking-widest mt-0.5">{l}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  {slide.kind === "live" && slide.live?.league ? (
+                    <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-1.5 text-[11px] font-medium text-white/72">
+                      <Trophy className="h-3.5 w-3.5 text-[#E50914]" />
+                      {slide.live.league}
+                    </span>
+                  ) : null}
+                  {slide.kind === "live" && slide.live && (slide.live.viewerCount ?? 0) > 0 ? (
+                    <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-1.5 text-[11px] font-medium text-white/72">
+                      <Eye className="h-3.5 w-3.5 text-[#E50914]" />
+                      {formatViewers(slide.live.viewerCount ?? 0)} espectadores
+                    </span>
+                  ) : null}
                 </div>
-              )}
 
-              {/* CTAs */}
-              <div className="flex flex-wrap items-center gap-3">
-                {slide.kind === "live" ? (
-                  <Link href={`/watch/${slide.live!.id}`}
-                    className="btn btn-primary btn-lg shadow-[0_0_32px_rgba(229,9,20,0.3)] group">
-                    <Play className="h-5 w-5 fill-current" />
-                    {slide.isLive ? "Assistir Agora" : "Ver Detalhes"}
-                    {slide.isLive && <span className="badge-live-dot ml-1" />}
-                  </Link>
-                ) : slide.ad?.clickUrl ? (
-                  <a href={slide.ad.clickUrl} target="_blank" rel="noreferrer"
-                    className="btn btn-primary btn-lg">
-                    <Play className="h-5 w-5 fill-current" /> {slide.cta || "Saber Mais"}
-                  </a>
+                <div className="space-y-4">
+                  <h1 className="max-w-[11ch] text-display text-[60px] leading-[0.92] text-white sm:text-[76px] lg:text-[88px] xl:text-[104px]">
+                    {headlineParts ? (
+                      <>
+                        <span>{headlineParts[0]}</span>
+                        <span className="mx-3 text-[#E50914]">vs</span>
+                        <span>{headlineParts[1]}</span>
+                      </>
+                    ) : (
+                      slide.title
+                    )}
+                  </h1>
+                  <p className="max-w-[560px] text-sm leading-7 text-white/58 sm:text-[15px]">
+                    {slide.subtitle}
+                  </p>
+                </div>
+
+                {slide.kind === "live" && !slide.isLive && countdown.d + countdown.h + countdown.m + countdown.s > 0 ? (
+                  <div className="flex flex-wrap items-center gap-3 rounded-[22px] border border-white/10 bg-black/20 px-4 py-3 backdrop-blur-xl">
+                    <span className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/45">
+                      <Clock className="h-4 w-4 text-[#E50914]" />
+                      {t.hero_starts_in}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      {[
+                        { value: countdown.d, label: "D" },
+                        { value: countdown.h, label: "H" },
+                        { value: countdown.m, label: "M" },
+                        { value: countdown.s, label: "S" },
+                      ].map((item) => (
+                        <div key={item.label} className="flex min-w-[58px] flex-col rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                          <span className="text-display text-2xl text-white">{String(item.value).padStart(2, "0")}</span>
+                          <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/28">{item.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 ) : null}
-                <Link href="/register"
-                  className="btn btn-secondary btn-lg">
-                  <Users className="h-5 w-5" /> {t.hero_create_account}
-                </Link>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  {slide.kind === "live" ? (
+                    <Link href={`/watch/${slide.live!.id}`} className="btn btn-primary btn-lg rounded-full px-7 shadow-[0_0_36px_rgba(229,9,20,0.24)]">
+                      <Play className="h-5 w-5 fill-current" />
+                      {slide.isLive ? "Ver detalhes" : t.hero_watch}
+                    </Link>
+                  ) : slide.ad?.clickUrl ? (
+                    <a href={slide.ad.clickUrl} target="_blank" rel="noreferrer" className="btn btn-primary btn-lg rounded-full px-7">
+                      <Play className="h-5 w-5 fill-current" />
+                      Explorar
+                    </a>
+                  ) : null}
+                  <Link href="/register" className="btn btn-secondary btn-lg rounded-full border-white/12 bg-black/20 px-7 text-white hover:bg-white/[0.06]">
+                    <Users className="h-5 w-5" />
+                    {t.hero_create_account}
+                  </Link>
+                </div>
               </div>
 
-              {/* Trust / feature strip */}
-              <div className="mt-8 flex flex-wrap items-center gap-x-7 gap-y-4">
-                {[
-                  { icon: Radio, l1: "Transmissões", l2: "Ao Vivo" },
-                  { icon: BarChart3, l1: "Estatísticas", l2: "Em Tempo Real" },
-                  { icon: Tv2, l1: "Conteúdo", l2: "Exclusivo" },
-                  { icon: Star, l1: "Melhor", l2: "Experiência" },
-                ].map(({ icon: Icon, l1, l2 }) => (
-                  <div key={l1} className="flex items-center gap-2.5">
-                    <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-[#E50914]/30 bg-[#E50914]/5">
-                      <Icon aria-hidden="true" className="h-4 w-4 text-[#E50914]" />
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {featureItems.map(({ icon: Icon, title, subtitle }) => (
+                  <div
+                    key={title}
+                    className="flex items-center gap-3 rounded-[22px] border border-white/8 bg-white/[0.035] px-4 py-4 backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
+                  >
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[#E50914]/25 bg-[#E50914]/10 text-[#ff5e67]">
+                      <Icon className="h-[18px] w-[18px]" />
                     </span>
                     <span className="leading-tight">
-                      <span className="block text-[10px] font-bold uppercase tracking-wider text-white/70">{l1}</span>
-                      <span className="block text-[10px] font-bold uppercase tracking-wider text-white/30">{l2}</span>
+                      <span className="block text-[11px] font-bold uppercase tracking-[0.16em] text-white/70">{title}</span>
+                      <span className="block text-[11px] font-bold uppercase tracking-[0.16em] text-white/30">{subtitle}</span>
                     </span>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* ── RIGHT: Hero card + other lives ── */}
-            <div className="hidden lg:flex flex-col gap-3">
-              {slide.kind === "live"
-                ? <LiveHeroCard live={slide.live!} />
-                : (
-                  <div className="surface-glass p-6 text-center">
-                    <Zap className="h-8 w-8 text-[#E50914] mx-auto mb-3" />
-                    <p className="text-sm font-bold text-white">Em Breve</p>
-                    <p className="text-xs text-white/40 mt-1">Próximas transmissões</p>
+            <div className="flex flex-col justify-end gap-4 lg:pl-3">
+              {slide.kind === "live" && slide.live ? (
+                <>
+                  <div className="lg:translate-y-3 xl:translate-y-5">
+                    <LiveScorePanel live={slide.live} />
                   </div>
-                )}
-
-              {/* Other live matches */}
-              {otherLives.length > 0 && (
-                <div className="space-y-2">
-                  <span className="text-[10px] font-bold text-white/20 uppercase tracking-widest px-1">
-                    Outros ao Vivo
-                  </span>
-                  {otherLives.map((l) => (
-                    <Link key={l.id} href={`/watch/${l.id}`}
-                      className="flex items-center gap-3 p-3 rounded-xl border border-white/[0.04] bg-white/[0.02]
-                        hover:border-[#E50914]/20 hover:bg-[#E50914]/5 transition-all duration-200">
-                      <span className="flex h-2 w-2 rounded-full bg-[#E50914] animate-pulse flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-white truncate">
-                          {l.teamA && l.teamB ? `${l.teamA} vs ${l.teamB}` : l.title}
-                        </p>
-                        <p className="text-[10px] text-white/30 truncate">{l.league}</p>
+                  <QuickLiveRail lives={otherLives} />
+                </>
+              ) : (
+                <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(14,16,24,0.88),rgba(7,8,13,0.96))] p-6 shadow-[0_30px_90px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
+                  <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl border border-[#E50914]/25 bg-[#E50914]/12 text-[#ff5d66]">
+                    <Zap className="h-7 w-7" />
+                  </div>
+                  <h2 className="text-heading text-3xl text-white">Experiência premium de streaming</h2>
+                  <p className="mt-3 text-sm leading-7 text-white/55">
+                    Interface ultramoderna, estatísticas em tempo real, destaques de competições e acesso rápido às transmissões do momento.
+                  </p>
+                  <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                    {[
+                      "Cobertura global",
+                      "Busca instantânea",
+                      "Placar em tempo real",
+                      "Navegação cinematográfica",
+                    ].map((item) => (
+                      <div key={item} className="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-sm font-semibold text-white/80">
+                        {item}
                       </div>
-                      {typeof l.scoreA === "number" && (
-                        <span className="text-xs font-black text-white/80 tabular-nums flex-shrink-0">
-                          {l.scoreA}–{l.scoreB}
-                        </span>
-                      )}
-                    </Link>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
           </div>
+
+          {slides.length > 1 ? (
+            <div className="relative z-10 flex flex-wrap items-center justify-between gap-4 border-t border-white/[0.06] px-6 py-4 sm:px-8 lg:px-10 xl:px-12">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setCurrent((value) => (value - 1 + slides.length) % slides.length)}
+                  aria-label="Slide anterior"
+                  className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/68 transition-colors hover:border-white/20 hover:text-white"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setCurrent((value) => (value + 1) % slides.length)}
+                  aria-label="Próximo slide"
+                  className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/68 transition-colors hover:border-white/20 hover:text-white"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {slides.map((item, index) => (
+                  <button
+                    key={item.id}
+                    onClick={() => setCurrent(index)}
+                    aria-label={`Ir para o slide ${index + 1} de ${slides.length}`}
+                    aria-current={index === current}
+                    className={`rounded-full transition-all duration-300 ${
+                      index === current ? "h-2 w-10 bg-gradient-to-r from-[#E50914] to-[#ff6b73]" : "h-2 w-2 bg-white/18 hover:bg-white/35"
+                    }`}
+                  />
+                ))}
+              </div>
+
+              <div className="flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-white/34">
+                <span className="text-white/55">{String(current + 1).padStart(2, "0")}</span>
+                <span>/</span>
+                <span>{String(slides.length).padStart(2, "0")}</span>
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
-
-      {/* ── Slide controls ── */}
-      {slides.length > 1 && (
-        <>
-          <div className="absolute bottom-8 left-1/2 z-20 flex -translate-x-1/2 items-center gap-4">
-            <button onClick={() => goTo((current - 1 + slides.length) % slides.length)}
-              aria-label="Destaque anterior"
-              className="btn btn-ghost btn-icon rounded-full border border-white/[0.06]">
-              <ChevronLeft aria-hidden="true" className="h-4 w-4" />
-            </button>
-            <div className="flex items-center gap-2">
-              {slides.map((item, index) => (
-                <button key={item.id} onClick={() => goTo(index)}
-                  aria-label={`Ir para destaque ${index + 1} de ${slides.length}`}
-                  aria-current={index === current}
-                  className={`rounded-full transition-all duration-500 ${
-                    index === current
-                      ? "w-8 h-1.5 bg-gradient-to-r from-[#E50914] to-[#FF6B6B]"
-                      : "w-1.5 h-1.5 bg-white/15 hover:bg-white/30"}`} />
-              ))}
-            </div>
-            <button onClick={() => goTo((current + 1) % slides.length)}
-              aria-label="Próximo destaque"
-              className="btn btn-ghost btn-icon rounded-full border border-white/[0.06]">
-              <ChevronRight aria-hidden="true" className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="absolute top-8 right-8 z-10 hidden lg:flex items-center gap-2 text-xs font-bold text-white/30">
-            <span className="text-white/60">{String(current + 1).padStart(2, "0")}</span>
-            <span className="text-white/15">/</span>
-            <span>{String(slides.length).padStart(2, "0")}</span>
-          </div>
-        </>
-      )}
     </section>
   );
 }
