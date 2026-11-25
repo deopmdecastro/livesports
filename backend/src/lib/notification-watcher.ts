@@ -1,11 +1,13 @@
 import { prisma } from './prisma';
 import { createNotification } from '../routes/notifications.routes';
+import { runCardNotificationCycle, ensureCardSchema } from './card-notifications';
 
 export async function ensurePushSchema() {
   await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS push_subscriptions (endpoint TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, p256dh TEXT NOT NULL, auth TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now())`);
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS push_subscriptions_user_idx ON push_subscriptions(user_id)`);
   await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS notification_preferences (user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, announcements BOOLEAN NOT NULL DEFAULT true, goals BOOLEAN NOT NULL DEFAULT true, match_start BOOLEAN NOT NULL DEFAULT true, daily BOOLEAN NOT NULL DEFAULT false, event_ids JSONB NOT NULL DEFAULT '[]', updated_at TIMESTAMPTZ NOT NULL DEFAULT now())`);
   await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS notification_event_state (event_id TEXT PRIMARY KEY, status TEXT NOT NULL, score_a INTEGER, score_b INTEGER, updated_at TIMESTAMPTZ NOT NULL DEFAULT now())`);
+  await ensureCardSchema();
   await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS notification_daily_log (user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, day DATE NOT NULL, PRIMARY KEY (user_id,day))`);
 }
 type Event = {id:string;title:string;sport:string;status:string;score_a:number|null;score_b:number|null;team_a:string|null;team_b:string|null};
@@ -41,4 +43,4 @@ export async function runNotificationCycle() {
     }
   } finally {running=false;}
 }
-export function startNotificationWatcher(){ const run=()=>runNotificationCycle().catch(e=>console.warn('[notification-watcher]',e.message)); void run(); const timer=setInterval(run,60_000);timer.unref(); }
+export function startNotificationWatcher(){ const run=()=>{void runNotificationCycle().catch(e=>console.warn('[notification-watcher]',e.message)); void runCardNotificationCycle().catch(e=>console.warn('[card-watcher]',e.message));}; run(); const timer=setInterval(run,60_000);timer.unref(); }

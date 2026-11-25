@@ -21,10 +21,11 @@ export function safePushEndpoint(endpoint: string) {
 }
 export async function sendPush(userId: string, payload: { title: string; body?: string; link?: string; id?: string; category?: string }) {
   if (!configured) return;
-  const prefs = await prisma.$queryRawUnsafe<Array<{ announcements: boolean; goals: boolean; match_start: boolean; daily: boolean }>>('SELECT announcements, goals, match_start, daily FROM notification_preferences WHERE user_id=$1', userId);
+  const prefs = await prisma.$queryRawUnsafe<Array<{ announcements: boolean; goals: boolean; cards: boolean; match_start: boolean; daily: boolean }>>('SELECT announcements, goals, cards, match_start, daily FROM notification_preferences WHERE user_id=$1', userId);
   const p = prefs[0];
   const category = payload.category;
   if (category === 'announcements' && p && !p.announcements) return;
+  if (category === 'cards' && (!p || !p.cards)) return;
   if (category === 'goals' && p && !p.goals) return;
   if (category === 'match_start' && p && !p.match_start) return;
   if (category === 'daily' && (!p || !p.daily)) return;

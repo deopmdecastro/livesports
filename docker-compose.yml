@@ -14,6 +14,7 @@ services:
         # Used only for server-to-server calls (SSR, Next.js rewrites), so the
         # internal service name is correct and faster here.
         API_INTERNAL_URL: http://backend:3001
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3002}
     ports:
       - "3002:3000"
     environment:
@@ -42,8 +43,8 @@ services:
       - REDIS_URL=redis://redis:6379
       - JWT_SECRET=${JWT_SECRET:-livesports-super-secret-key-change-in-production}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-livesports-refresh-secret-key-change-in-production}
-      - FRONTEND_URL=http://localhost:3000
-      - ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3002
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3002}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:3002}
       - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
       - SMTP_PORT=${SMTP_PORT:-587}
       - SMTP_USER=${SMTP_USER:-}
@@ -54,6 +55,10 @@ services:
       - AWS_REGION=${AWS_REGION:-us-east-1}
       - FOOTBALL_DATA_API_TOKEN=${FOOTBALL_DATA_API_TOKEN:-}
       - API_FOOTBALL_KEY=${API_FOOTBALL_KEY:-}
+      - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY:-}
+      - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY:-}
+      - VAPID_SUBJECT=${VAPID_SUBJECT:-}
+      - CARD_POLL_INTERVAL_MS=${CARD_POLL_INTERVAL_MS:-600000}
       - RAPIDAPI_KEY=${RAPIDAPI_KEY:-}
       - NEWSDATA_API_KEY=${NEWSDATA_API_KEY:-}
       - NEWSAPI_KEY=${NEWSAPI_KEY:-}

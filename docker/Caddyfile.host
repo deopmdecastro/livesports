@@ -1,0 +1,17 @@
+# Run Caddy on the host, with LIVESPORTS_DOMAIN and CADDY_EMAIL set.
+# The DNS A/AAAA records must resolve to this server and ports 80/443 must be open.
+{
+  email {$CADDY_EMAIL}
+}
+{$LIVESPORTS_DOMAIN} {
+  encode gzip zstd
+  handle /api/* {
+    reverse_proxy 127.0.0.1:3001
+  }
+  handle /socket.io/* {
+    reverse_proxy 127.0.0.1:3001
+  }
+  handle {
+    reverse_proxy 127.0.0.1:3002
+  }
+}

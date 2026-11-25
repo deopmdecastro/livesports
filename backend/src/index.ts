@@ -1,11 +1,10 @@
+import './load-env';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import morgan from 'morgan';
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
-import dotenv from 'dotenv';
-import path from 'path';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 
@@ -45,9 +44,6 @@ import { runRealContentSync } from './lib/real-sync';
 import { startSportsWatcherDaemon } from './lib/sports-watcher';
 import { structuredLogger, slowRequestWarner } from './middleware/logger.middleware';
 import { writeLog } from './routes/logs.routes';
-
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 // ─── Startup Security Checks ──────────────────────────────────────────────────
 const DEFAULT_SECRET = 'livesports-secret-key';

@@ -622,7 +622,7 @@ export async function ensureRuntimeSchema() {
     `SELECT COUNT(*)::text AS count FROM "users" WHERE "role" IN ('admin', 'super_admin') LIMIT 1`
   ).catch(() => [{ count: '0' }]);
 
-  if (parseInt((adminExists[0] as { count: string })?.count ?? '0', 10) === 0) {
+  if (parseInt((adminExists[0] as { count: string })?.count ?? '0', 10) === 0 && (process.env.NODE_ENV !== 'production' || (process.env.SEED_ADMIN_PASSWORD || '').length >= 16)) {
     const seedAdminPw = process.env.SEED_ADMIN_PASSWORD || 'admin123';
     const password = bcrypt.hashSync(seedAdminPw, 12);
     const insertAdmin = async () => {
@@ -641,6 +641,7 @@ export async function ensureRuntimeSchema() {
     try { await insertAdmin(); } catch { /* column/table may already exist */ }
   }
 
+  if (process.env.NODE_ENV !== 'production') {
   // ─── Seed demo users (creator + user) ───────────────────────────────────
   const demoPassword = bcrypt.hashSync(process.env.SEED_USER_PASSWORD || 'User12345!', 12);
   const demoCreatorPassword = bcrypt.hashSync(process.env.SEED_CREATOR_PASSWORD || 'Creator123!', 12);
@@ -688,20 +689,6 @@ export async function ensureRuntimeSchema() {
     }
   } catch { /* non-critical */ }
 
-  const adminRows = await prisma.$queryRawUnsafe<Array<{ id: string; password: string }>>(
-    `SELECT id, password FROM "users" WHERE email = 'admin@livesports.com' LIMIT 1`
-  ).catch(() => []);
-
-  const defaultAdmin = adminRows[0];
-  if (defaultAdmin && !bcrypt.compareSync('admin123', defaultAdmin.password)) {
-    const seedAdminPw = process.env.SEED_ADMIN_PASSWORD || 'admin123';
-    const password = bcrypt.hashSync(seedAdminPw, 12);
-    await prisma.$executeRawUnsafe(
-      `UPDATE "users" SET "password" = $1 WHERE id = $2`,
-      password,
-      defaultAdmin.id
-    );
-    console.warn('[ensureRuntimeSchema] admin@livesports.com password reset to documented default');
   }
 
   // ─── Seed demo notifications (if table is empty) ──────────────────────────

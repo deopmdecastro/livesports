@@ -7,3 +7,9 @@ npm-debug.log*
 .qodo
 backend/node_modules
 backend/dist
+
+.env
+.env.*
+backend/.env
+backend/.env.*
+.secrets

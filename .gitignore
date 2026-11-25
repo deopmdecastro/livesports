@@ -46,3 +46,8 @@ logs/
 !src/app/admin/logs/
 !src/app/admin/logs/page.tsx
 *.log
+
+# Private deployment keys
+.secrets/
+.env
+backend/.env
