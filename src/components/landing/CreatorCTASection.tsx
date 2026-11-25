@@ -9,13 +9,12 @@ const benefits = [
   "Chat ao vivo com os teus espectadores",
   "Sondagens interativas durante as transmissões",
   "Estatísticas de crescimento do canal",
-  "Suporte prioritário",
 ];
 
 const steps = [
   { icon: Users, label: "Cria conta", desc: "Regista-te na plataforma" },
   { icon: Tv2, label: "Cria canal", desc: "Configura o teu canal" },
-  { icon: Radio, label: "Transmite", desc: "Vai ao ar em minutos" },
+  { icon: Radio, label: "Transmite", desc: "Prepara a tua transmissão" },
   { icon: BarChart3, label: "Cresce", desc: "Analisa e melhora" },
 ];
 
@@ -44,8 +43,7 @@ export default function CreatorCTASection() {
               <span className="gradient-text-red">para o mundo inteiro</span>
             </h2>
             <p className="text-gray-400 text-base leading-relaxed mb-8">
-              Junta-te a centenas de criadores que já transmitem desporto ao vivo na nossa plataforma.
-              Ferramentas profissionais, audiência real, sem complicações.
+              Partilha conteúdo desportivo e acompanha a tua comunidade com ferramentas para criadores.
             </p>
 
             <ul className="space-y-2.5 mb-8">

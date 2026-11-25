@@ -68,7 +68,7 @@ function TeamBadge({
 }
 
 const FALLBACK_IMAGES = [
-  "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=1920&q=80",
+  "/images/landing-stadium.jpg",
   "https://images.unsplash.com/photo-1517747614396-d21a78b850e8?w=1920&q=80",
   "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=1920&q=80",
 ];
@@ -287,9 +287,9 @@ export default function HeroSection() {
         kind: "ad",
         isLive: false,
         image: FALLBACK_IMAGES[0],
-        title: "LiveSports",
-        subtitle: "A melhor plataforma de streaming desportivo em tempo real",
-        highlight: "Premium",
+        title: "O desporto começa aqui.",
+        subtitle: "Jogos, competições e transmissões num só lugar. Descobre o que está a acontecer e acompanha as tuas equipas.",
+        highlight: "O teu ponto de encontro desportivo",
       });
     }
 
@@ -351,7 +351,7 @@ export default function HeroSection() {
 
   return (
     <section
-      className="relative overflow-hidden bg-[#05060a] px-3 pb-12 pt-4 sm:px-4 sm:pb-16 sm:pt-6 lg:px-6 lg:pb-20 lg:pt-8"
+      className="relative overflow-hidden bg-[#05060a] px-4 pb-6 pt-4 sm:px-6 sm:pb-8 lg:px-8 lg:pt-7"
       role="region"
       aria-roledescription="carousel"
       aria-label="Destaques ao vivo"
@@ -365,7 +365,7 @@ export default function HeroSection() {
       <p className="sr-only" aria-live="polite">{slide.title}</p>
 
       <div className="relative mx-auto max-w-[1400px]">
-        <div className="relative overflow-hidden rounded-[34px] border border-white/[0.08] bg-[#090b10] shadow-[0_30px_120px_rgba(0,0,0,0.48)]">
+        <div className="relative overflow-hidden rounded-[24px] sm:rounded-[32px] border border-white/[0.08] bg-[#090b10] shadow-[0_30px_120px_rgba(0,0,0,0.48)]">
           {slides.map((item, index) => (
             <div
               key={item.id}
@@ -385,7 +385,7 @@ export default function HeroSection() {
           <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(229,9,20,0.10)_0%,transparent_24%,transparent_78%,rgba(3,4,9,0.92)_100%)]" />
           <div className="absolute inset-0 border border-white/[0.03] [mask-image:linear-gradient(180deg,white,transparent)]" />
 
-          <div className="relative z-10 grid min-h-[380px] gap-6 px-4 py-5 sm:min-h-[460px] sm:gap-7 sm:px-8 sm:py-7 lg:grid-cols-[minmax(0,1fr)_400px] lg:items-end lg:min-h-[520px] lg:px-10 lg:py-10 xl:min-h-[600px] xl:px-12 xl:py-12">
+          <div className="relative z-10 grid min-h-[390px] gap-6 px-6 py-9 sm:min-h-[420px] sm:px-10 sm:py-12 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-center lg:min-h-[500px] lg:px-14 lg:py-14">
             <div className="flex max-w-[720px] flex-col justify-between gap-8">
               <div className="space-y-6">
                 <div className="flex flex-wrap items-center gap-3">
@@ -412,7 +412,7 @@ export default function HeroSection() {
                 </div>
 
                 <div className="space-y-4">
-                  <h1 className="max-w-[11ch] text-display text-[42px] leading-[0.94] text-white sm:text-[60px] md:text-[76px] lg:text-[88px] xl:text-[104px]">
+                  <h1 className="max-w-[15ch] text-display text-[46px] leading-[0.98] text-white sm:text-[64px] lg:text-[78px] xl:text-[88px]">
                     {headlineParts ? (
                       <>
                         <span>{headlineParts[0]}</span>
@@ -423,7 +423,7 @@ export default function HeroSection() {
                       slide.title
                     )}
                   </h1>
-                  <p className="max-w-[560px] text-sm leading-7 text-white/58 sm:text-[15px]">
+                  <p className="max-w-[500px] text-base leading-7 text-white/80 sm:text-lg">
                     {slide.subtitle}
                   </p>
                 </div>
@@ -476,14 +476,14 @@ export default function HeroSection() {
                     <Users className="h-5 w-5" />
                     {t.hero_create_account}
                   </Link>
-                  <Link href="/futebol" className="btn btn-ghost btn-lg w-full justify-center rounded-full px-5 text-white/70 hover:text-white sm:w-auto">
+                  <Link href="/futebol" className="hidden btn btn-ghost btn-lg w-full justify-center rounded-full px-5 text-white/70 hover:text-white sm:w-auto">
                     <Trophy className="h-5 w-5" />
                     Explorar desportos
                   </Link>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2.5 sm:gap-3 xl:grid-cols-4">
+              <div className="hidden lg:grid grid-cols-2 gap-2.5 sm:gap-3 xl:grid-cols-4">
                 {featureItems.map(({ icon: Icon, title, subtitle }) => (
                   <div
                     key={title}
@@ -501,7 +501,7 @@ export default function HeroSection() {
               </div>
             </div>
 
-            <div className="flex flex-col justify-end gap-4 lg:pl-3">
+            <div className="hidden lg:flex flex-col justify-end gap-4 lg:pl-3">
               {slide.kind === "live" && slide.live ? (
                 <>
                   <div className="lg:translate-y-3 xl:translate-y-5">
