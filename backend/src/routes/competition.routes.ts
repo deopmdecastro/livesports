@@ -3,6 +3,7 @@ import { authenticateToken, requireEditor } from '../middleware/auth.middleware'
 import { prisma } from '../lib/prisma';
 import { syncAllCompetitions } from '../lib/competition-sync';
 import { getSportsWatcherStatus, runSportsWatcherCycle } from '../lib/sports-watcher';
+import { attachLiveTagsToEvents, type StoredMatchDetails } from '../lib/match-stats';
 
 const router = Router();
 
@@ -63,10 +64,23 @@ function mapCompetition(row: any) {
   };
 }
 
+function parseMatchDetails(raw: unknown): StoredMatchDetails | null {
+  if (!raw) return null;
+  if (typeof raw === 'string') {
+    try {
+      return JSON.parse(raw) as StoredMatchDetails;
+    } catch {
+      return null;
+    }
+  }
+  return raw as StoredMatchDetails;
+}
+
 function mapPublicEvent(row: any) {
   const stage =
     row.stage ||
     (row.group_name ? `Grupo ${row.group_name}` : null);
+  const matchDetails = parseMatchDetails(row.match_details);
 
   return {
     id: row.id,
@@ -85,6 +99,7 @@ function mapPublicEvent(row: any) {
     groupName: row.group_name,
     venue: row.venue,
     matchTime: row.match_time,
+    matchDetails,
   };
 }
 
@@ -92,7 +107,7 @@ const EVENT_PUBLIC_SELECT = `
   SELECT
     id, title, team_a, team_b, team_a_code, team_b_code,
     team_a_logo, team_b_logo, score_a, score_b, status::text,
-    scheduled_at, stage, group_name, venue, match_time
+    scheduled_at, stage, group_name, venue, match_time, match_details
   FROM "events"
 `;
 
@@ -197,11 +212,13 @@ router.get('/public/:slug', async (req, res, next) => {
       competition.id
     );
 
+    const mappedEvents = await attachLiveTagsToEvents(events.map(mapPublicEvent));
+
     res.json({
       success: true,
       data: {
         competition,
-        events: events.map(mapPublicEvent),
+        events: mappedEvents,
         groups: competition.groupsData || [],
       },
     });

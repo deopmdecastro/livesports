@@ -609,6 +609,7 @@ export async function ensureRuntimeSchema() {
   await safeExec(`ALTER TABLE "events" ADD COLUMN IF NOT EXISTS "import_source" TEXT`);
   await safeExec(`ALTER TABLE "events" ADD COLUMN IF NOT EXISTS "import_date" TIMESTAMPTZ`);
   await safeExec(`ALTER TABLE "events" ADD COLUMN IF NOT EXISTS "archived" BOOLEAN NOT NULL DEFAULT FALSE`);
+  await safeExec(`ALTER TABLE "events" ADD COLUMN IF NOT EXISTS "match_details" JSONB`);
   await safeExec(`ALTER TABLE "lives" ADD COLUMN IF NOT EXISTS "import_source" TEXT`);
   await safeExec(`ALTER TABLE "lives" ADD COLUMN IF NOT EXISTS "import_date" TIMESTAMPTZ`);
   await safeExec(`ALTER TABLE "lives" ADD COLUMN IF NOT EXISTS "origin_quality" TEXT`);
@@ -734,7 +735,7 @@ export async function ensureRuntimeSchema() {
           const createdDate = new Date(Date.now() - i * 3600000 * (i + 1));
           await prisma.$executeRawUnsafe(
             `INSERT INTO "notifications" ("user_id", "type", "title", "message", "link", "read", "read_at", "created_at")
-             VALUES ($1, $2::notification_type, $3, $4, $5, $6, $7, $8)`,
+             VALUES ($1, $2::notification_type, $3, $4, $5, $6, $7::timestamptz, $8::timestamptz)`,
             adminId, n.type, n.title, n.message, n.link,
             i >= 3, // first 3 unread, rest read
             i >= 3 ? new Date(Date.now() - i * 1800000).toISOString() : null,

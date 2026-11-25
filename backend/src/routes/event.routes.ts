@@ -4,6 +4,11 @@ import { z } from 'zod';
 import { authenticateToken, requireEditor } from '../middleware/auth.middleware';
 import { prisma } from '../lib/prisma';
 import { parsePagination, buildPaginationMeta } from '../lib/pagination';
+import {
+  attachLiveTagsToEvents,
+  fetchRichMatchSummaryForEvent,
+  type StoredMatchDetails,
+} from '../lib/match-stats';
 
 const router = Router();
 
@@ -38,6 +43,18 @@ const eventSchema = z.object({
   status: z.enum(['upcoming', 'live', 'finished', 'cancelled']).default('upcoming'),
 });
 
+function parseMatchDetails(raw: unknown): StoredMatchDetails | null {
+  if (!raw) return null;
+  if (typeof raw === 'string') {
+    try {
+      return JSON.parse(raw) as StoredMatchDetails;
+    } catch {
+      return null;
+    }
+  }
+  return raw as StoredMatchDetails;
+}
+
 function mapEvent(row: any) {
   return {
     id: row.id,
@@ -67,6 +84,7 @@ function mapEvent(row: any) {
     venue: row.venue,
     scheduledAt: row.scheduled_at,
     status: row.status,
+    matchDetails: parseMatchDetails(row.match_details),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     archived: Boolean(row.archived),
@@ -110,6 +128,7 @@ const selectEventSql = `
     e.venue,
     e.scheduled_at,
     e.status::text,
+    e.match_details,
     e.archived,
     e.created_at,
     e.updated_at
@@ -238,9 +257,10 @@ router.get('/', async (req, res, next) => {
     ]);
 
     const total = Number(countRows[0]?.total || 0);
+    const enriched = await attachLiveTagsToEvents(rows.map(mapEvent));
     res.json({
       success: true,
-      data: rows.map(mapEvent),
+      data: enriched,
       pagination: buildPaginationMeta(pagination, total),
     });
   } catch (error) {
@@ -298,7 +318,8 @@ router.get('/:id', async (req, res, next) => {
       res.status(404).json({ success: false, error: 'Evento nao encontrado' });
       return;
     }
-    res.json({ success: true, data: mapEvent(rows[0]) });
+    const [enriched] = await attachLiveTagsToEvents([mapEvent(rows[0])]);
+    res.json({ success: true, data: enriched });
   } catch (error) {
     next(error);
   }
@@ -306,20 +327,36 @@ router.get('/:id', async (req, res, next) => {
 
 router.get('/:id/statistics', async (req, res, next) => {
   try {
-    if (!req.params.id.startsWith('api-football-')) {
+    if (req.params.id.startsWith('api-football-')) {
+      const fixtureId = req.params.id.replace('api-football-', '');
+      const data = await fetchApiFootballFixtureData(fixtureId);
+      res.json({
+        success: true,
+        data: {
+          source: 'api-football',
+          fixtureId,
+          items: data.statistics,
+        },
+      });
+      return;
+    }
+
+    const rows = await prisma.$queryRawUnsafe<any[]>(
+      `${selectEventSql} WHERE e.id = $1 LIMIT 1`,
+      req.params.id,
+    );
+    if (!rows[0]) {
       res.json({ success: true, data: { source: 'local', items: [] } });
       return;
     }
 
-    const fixtureId = req.params.id.replace('api-football-', '');
-    const data = await fetchApiFootballFixtureData(fixtureId);
-
+    const summary = await fetchRichMatchSummaryForEvent(rows[0]);
     res.json({
       success: true,
       data: {
-        source: 'api-football',
-        fixtureId,
-        items: data.statistics,
+        source: summary.source,
+        fixtureId: summary.fixtureId,
+        items: summary.statistics,
       },
     });
   } catch (error) {
@@ -329,13 +366,25 @@ router.get('/:id/statistics', async (req, res, next) => {
 
 router.get('/:id/summary', async (req, res, next) => {
   try {
-    if (!req.params.id.startsWith('api-football-')) {
+    if (req.params.id.startsWith('api-football-')) {
+      const fixtureId = req.params.id.replace('api-football-', '');
+      const data = await fetchApiFootballFixtureData(fixtureId);
+      res.json({ success: true, data });
+      return;
+    }
+
+    const rows = await prisma.$queryRawUnsafe<any[]>(
+      `${selectEventSql} WHERE e.id = $1 LIMIT 1`,
+      req.params.id,
+    );
+    if (!rows[0]) {
       res.json({
         success: true,
         data: {
           source: 'local',
           fixtureId: null,
           fixture: null,
+          scorers: [],
           statistics: [],
           timeline: [],
           lineups: [],
@@ -344,9 +393,8 @@ router.get('/:id/summary', async (req, res, next) => {
       return;
     }
 
-    const fixtureId = req.params.id.replace('api-football-', '');
-    const data = await fetchApiFootballFixtureData(fixtureId);
-    res.json({ success: true, data });
+    const summary = await fetchRichMatchSummaryForEvent(rows[0]);
+    res.json({ success: true, data: summary });
   } catch (error) {
     next(error);
   }

@@ -1,4 +1,12 @@
-import type { Competition, CompetitionGroup, PublicCompetitionEvent, PublicCompetitionPage, PublicCompetitionSummary } from "@/types";
+import type {
+  Competition,
+  CompetitionGroup,
+  LiveMatchTag,
+  PublicCompetitionEvent,
+  PublicCompetitionPage,
+  PublicCompetitionSummary,
+  StoredMatchDetails,
+} from "@/types";
 import { resolveCountryFlagUrl } from "@/lib/flags";
 import { SERVER_API_URL } from "@/lib/server-api";
 
@@ -72,6 +80,8 @@ export interface WCMatchView {
   datetime: string;
   stage: string;
   venue?: string;
+  matchDetails?: StoredMatchDetails | null;
+  liveTag?: LiveMatchTag | null;
 }
 
 const STATUS_MAP: Record<PublicCompetitionEvent["status"], WCMatchStatus> = {
@@ -110,6 +120,8 @@ export function mapPublicEventToMatch(event: PublicCompetitionEvent): WCMatchVie
     datetime: event.scheduledAt,
     stage: event.stage || (event.groupName ? `Grupo ${event.groupName}` : ""),
     venue: event.venue || undefined,
+    matchDetails: event.matchDetails ?? null,
+    liveTag: event.liveTag ?? null,
   };
 }
 

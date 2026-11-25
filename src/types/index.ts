@@ -151,6 +151,39 @@ export interface Competition {
   isFeaturedCard?: boolean;
 }
 
+export interface MatchScorerSummary {
+  player: string;
+  minute: string;
+  teamSide: 'home' | 'away';
+  teamName: string;
+  penalty?: boolean;
+  ownGoal?: boolean;
+  assist?: string | null;
+}
+
+export interface MatchQuickStat {
+  key: string;
+  label: string;
+  home: string;
+  away: string;
+}
+
+export interface StoredMatchDetails {
+  espnEventId?: string;
+  espnSportPath?: string;
+  scorers: MatchScorerSummary[];
+  quickStats: MatchQuickStat[];
+  attendance?: number | null;
+  referee?: string | null;
+}
+
+export interface LiveMatchTag {
+  liveId: string;
+  liveStatus: 'live' | 'scheduled';
+  liveTitle: string;
+  viewerCount: number;
+}
+
 export interface PublicCompetitionEvent {
   id: string;
   title: string;
@@ -168,6 +201,8 @@ export interface PublicCompetitionEvent {
   groupName?: string | null;
   venue?: string | null;
   matchTime?: string | null;
+  matchDetails?: StoredMatchDetails | null;
+  liveTag?: LiveMatchTag | null;
 }
 
 export interface PublicCompetitionPage {
@@ -226,6 +261,8 @@ export interface Event {
   venue?: string;
   scheduledAt: string;
   status: 'upcoming' | 'live' | 'finished' | 'cancelled';
+  matchDetails?: StoredMatchDetails | null;
+  liveTag?: LiveMatchTag | null;
   createdAt: string;
   updatedAt?: string;
 }

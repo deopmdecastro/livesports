@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Trophy, Star, Globe, ChevronRight, Zap, Calendar, MapPin } from "lucide-react";
+import { Trophy, Star, Globe, ChevronRight, Zap, Calendar, MapPin, BarChart3, Radio } from "lucide-react";
 import { useLang } from "@/lib/lang";
 import {
   DEFAULT_COMPETITION_SLUG,
@@ -67,9 +67,15 @@ function formatDate(iso: string, lang: string) {
   });
 }
 
-function MatchCard({ match, lang, competitionSlug }: { match: WCMatchView; lang: string; competitionSlug: string }) {
+function MatchCard({ match, lang }: { match: WCMatchView; lang: string; competitionSlug: string }) {
   const isLive = match.status === "in_play";
   const statusLabels = lang === "pt" ? STATUS_LABEL_PT : STATUS_LABEL_EN;
+  const scorers = match.matchDetails?.scorers || [];
+  const homeScorers = scorers.filter((s) => s.teamSide === "home");
+  const awayScorers = scorers.filter((s) => s.teamSide === "away");
+  const quickStats = match.matchDetails?.quickStats || [];
+  const hasLiveStream = Boolean(match.liveTag?.liveId);
+
   const renderFlag = (flag?: string, code?: string, name?: string) => {
     const isUrl = Boolean(flag && /^(https?:|data:|\/)/.test(flag));
     if (isUrl || code || name) {
@@ -81,7 +87,7 @@ function MatchCard({ match, lang, competitionSlug }: { match: WCMatchView; lang:
           kind="country"
           size={64}
           alt={name || ""}
-          className="h-8 w-8 rounded-full object-cover"
+          className="h-9 w-9 rounded-full object-contain bg-white/[0.04] p-0.5"
         />
       );
     }
@@ -90,61 +96,149 @@ function MatchCard({ match, lang, competitionSlug }: { match: WCMatchView; lang:
   };
 
   return (
-    <div className={`wc-card rounded-2xl p-4 transition-all ${isLive ? "neon-border" : ""}`}>
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500">{match.stage}</span>
-        <span
-          className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border ${STATUS_COLOR[match.status]} flex items-center gap-1.5`}
-        >
-          {isLive && <span className="live-badge h-1.5 w-1.5 rounded-full bg-[#E50914]" />}
-          {statusLabels[match.status]}
-        </span>
-      </div>
-
-      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-        <div className="flex flex-col items-center gap-2">
-          {renderFlag(match.home_team.flag, match.home_team.code, match.home_team.name)}
-          <span className="text-xs font-bold text-white text-center leading-tight">{match.home_team.name}</span>
+    <div
+      className={`wc-card group relative rounded-2xl p-4 transition-all hover:border-[#E50914]/50 hover:-translate-y-0.5 flex flex-col justify-between ${
+        isLive || hasLiveStream ? "neon-border" : ""
+      }`}
+    >
+      <div>
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500 truncate">
+            {match.stage}
+          </span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {hasLiveStream && (
+              <Link
+                href={`/watch/${match.liveTag!.liveId}`}
+                className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border flex items-center gap-1 transition-all ${
+                  match.liveTag!.liveStatus === "live"
+                    ? "bg-[#E50914] text-white border-[#E50914] shadow-[0_0_12px_rgba(229,9,20,0.45)] hover:bg-[#ff1f2a]"
+                    : "bg-emerald-500/15 text-emerald-300 border-emerald-500/35 hover:bg-emerald-500/25"
+                }`}
+                title={match.liveTag!.liveTitle}
+              >
+                <Radio className="h-2.5 w-2.5 animate-pulse" />
+                {match.liveTag!.liveStatus === "live"
+                  ? "LIVE"
+                  : lang === "pt"
+                    ? "TEM LIVE"
+                    : "STREAM"}
+              </Link>
+            )}
+            <span
+              className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border ${STATUS_COLOR[match.status]} flex items-center gap-1.5`}
+            >
+              {isLive && <span className="live-badge h-1.5 w-1.5 rounded-full bg-[#E50914]" />}
+              {statusLabels[match.status]}
+            </span>
+          </div>
         </div>
 
-        <div className="flex flex-col items-center gap-1 px-2">
-          {match.status !== "scheduled" ? (
-            <div className="text-3xl font-black text-white score-display">
-              {match.home_score ?? 0} – {match.away_score ?? 0}
+        <Link href={`/evento/${encodeURIComponent(match.id)}`} className="block">
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+            <div className="flex flex-col items-center gap-2">
+              {renderFlag(match.home_team.flag, match.home_team.code, match.home_team.name)}
+              <span className="text-xs font-bold text-white text-center leading-tight group-hover:text-red-100">
+                {match.home_team.name}
+              </span>
             </div>
-          ) : (
-            <div className="text-center">
-              <div className="text-sm font-black text-gray-400 mb-0.5">VS</div>
+
+            <div className="flex flex-col items-center gap-1 px-2">
+              {match.status !== "scheduled" ? (
+                <div className="text-3xl font-black text-white score-display">
+                  {match.home_score ?? 0} – {match.away_score ?? 0}
+                </div>
+              ) : (
+                <div className="text-center">
+                  <div className="text-sm font-black text-gray-400 mb-0.5">VS</div>
+                </div>
+              )}
+              <span className="text-[10px] text-gray-500 flex items-center gap-1">
+                <Calendar className="h-2.5 w-2.5" />
+                {formatDate(match.datetime, lang)}
+              </span>
+            </div>
+
+            <div className="flex flex-col items-center gap-2">
+              {renderFlag(match.away_team.flag, match.away_team.code, match.away_team.name)}
+              <span className="text-xs font-bold text-white text-center leading-tight group-hover:text-red-100">
+                {match.away_team.name}
+              </span>
+            </div>
+          </div>
+
+          {scorers.length > 0 && (
+            <div className="mt-3 pt-2.5 border-t border-white/[0.06] grid grid-cols-2 gap-2 text-[10px] leading-snug">
+              <div className="space-y-0.5 text-left text-gray-300">
+                {homeScorers.slice(0, 4).map((s, idx) => (
+                  <div key={idx} className="truncate">
+                    <span className="text-emerald-400 mr-1">⚽</span>
+                    <span className="font-semibold text-gray-200">{s.player}</span>{" "}
+                    <span className="text-gray-500">{s.minute}</span>
+                    {s.penalty ? <span className="text-amber-400 ml-0.5">(P)</span> : null}
+                    {s.ownGoal ? <span className="text-red-400 ml-0.5">(AG)</span> : null}
+                  </div>
+                ))}
+              </div>
+              <div className="space-y-0.5 text-right text-gray-300">
+                {awayScorers.slice(0, 4).map((s, idx) => (
+                  <div key={idx} className="truncate">
+                    <span className="font-semibold text-gray-200">{s.player}</span>{" "}
+                    <span className="text-gray-500">{s.minute}</span>
+                    {s.penalty ? <span className="text-amber-400 ml-0.5">(P)</span> : null}
+                    {s.ownGoal ? <span className="text-red-400 ml-0.5">(AG)</span> : null}
+                    <span className="text-emerald-400 ml-1">⚽</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
-          <span className="text-[10px] text-gray-600 flex items-center gap-1">
-            <Calendar className="h-2.5 w-2.5" />
-            {formatDate(match.datetime, lang)}
-          </span>
-        </div>
 
-        <div className="flex flex-col items-center gap-2">
-          {renderFlag(match.away_team.flag, match.away_team.code, match.away_team.name)}
-          <span className="text-xs font-bold text-white text-center leading-tight">{match.away_team.name}</span>
-        </div>
+          {quickStats.length > 0 && (
+            <div className="mt-2.5 pt-2 border-t border-white/[0.05] flex items-center justify-around gap-1.5 text-[10px]">
+              {quickStats.slice(0, 3).map((st) => (
+                <div
+                  key={st.key}
+                  className="flex flex-col items-center px-2 py-1 rounded-md bg-white/[0.03] border border-white/[0.05] min-w-[68px]"
+                >
+                  <span className="text-[9px] uppercase tracking-wider text-gray-500 font-bold">
+                    {st.label}
+                  </span>
+                  <span className="font-bold text-gray-200">
+                    {st.home} <span className="text-gray-600">·</span> {st.away}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {match.venue ? (
+            <div className="mt-2.5 flex items-center justify-center gap-1 text-[10px] text-gray-500 truncate">
+              <MapPin className="h-2.5 w-2.5 shrink-0" />
+              <span className="truncate">{match.venue}</span>
+            </div>
+          ) : null}
+        </Link>
       </div>
 
-      {match.venue ? (
-        <div className="mt-3 flex items-center justify-center gap-1 text-[10px] text-gray-600">
-          <MapPin className="h-2.5 w-2.5" />
-          {match.venue}
-        </div>
-      ) : null}
-
-      {isLive ? (
+      <div className="mt-3 pt-2.5 border-t border-white/[0.06] flex items-center gap-2">
         <Link
-          href={`/competicao/${competitionSlug}`}
-          className="mt-3 flex items-center justify-center gap-2 w-full py-2 rounded-lg bg-[#E50914]/15 border border-[#E50914]/30 text-[#E50914] text-xs font-bold hover:bg-[#E50914]/25 transition-all"
+          href={`/evento/${encodeURIComponent(match.id)}`}
+          className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-lg bg-white/[0.04] border border-white/[0.08] text-gray-200 text-[11px] font-bold hover:bg-white/[0.09] hover:text-white transition-all"
         >
-          <Zap className="h-3.5 w-3.5" />
-          {lang === "pt" ? "Assistir Agora" : "Watch Now"}
+          <BarChart3 className="h-3.5 w-3.5 text-[#E50914]" />
+          {lang === "pt" ? "Estatísticas completas" : "Full statistics"}
         </Link>
-      ) : null}
+        {hasLiveStream && (
+          <Link
+            href={`/watch/${match.liveTag!.liveId}`}
+            className="flex items-center justify-center gap-1 py-1.5 px-3 rounded-lg bg-[#E50914]/15 border border-[#E50914]/35 text-[#E50914] text-[11px] font-black hover:bg-[#E50914] hover:text-white transition-all shrink-0"
+          >
+            <Zap className="h-3 w-3" />
+            {lang === "pt" ? "Assistir" : "Watch"}
+          </Link>
+        )}
+      </div>
     </div>
   );
 }

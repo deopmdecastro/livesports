@@ -1,6 +1,10 @@
 import { prisma } from './prisma';
 import { resolveTeamFlagUrl } from './flags';
 import { runRealContentSync } from './real-sync';
+import {
+  extractMatchDetailsFromEspnEvent,
+  type StoredMatchDetails,
+} from './match-stats';
 
 export type SportCategory =
   | 'football'
@@ -810,6 +814,7 @@ interface ParsedCompetitionFixture {
   venue: string | null;
   scheduledAt: string;
   status: EventStatus;
+  matchDetails: StoredMatchDetails;
 }
 
 async function fetchEspnFixturesForTarget(
@@ -903,6 +908,10 @@ async function fetchEspnFixturesForTarget(
       const groupName = grpMatch ? grpMatch[1].toUpperCase() : null;
 
       const id = `espn-${target.sport}-${ev.id}`;
+      const matchDetails = extractMatchDetailsFromEspnEvent(
+        ev,
+        target.espnSportPath,
+      );
       seen.set(id, {
         id,
         title: competitors.length >= 2 ? `${teamA} vs ${teamB}` : ev.name || teamA,
@@ -930,6 +939,7 @@ async function fetchEspnFixturesForTarget(
         venue: comp.venue?.fullName || null,
         scheduledAt: ev.date || new Date().toISOString(),
         status,
+        matchDetails,
       });
     }
   }
@@ -1023,7 +1033,7 @@ async function upsertCompetitionFixture(
         "team_a", "team_a_code", "team_a_logo",
         "team_b", "team_b_code", "team_b_logo",
         "score_a", "score_b", "match_time", "viewer_count", "venue",
-        "scheduled_at", "status"
+        "scheduled_at", "status", "match_details"
       )
       VALUES (
         $1, $2, $3, $4, $5::sport_category, $6,
@@ -1031,7 +1041,7 @@ async function upsertCompetitionFixture(
         $11, $12, $13,
         $14, $15, $16,
         $17, $18, $19, 0, $20,
-        $21::timestamptz, $22::event_status
+        $21::timestamptz, $22::event_status, $23::jsonb
       )
       ON CONFLICT ("id") DO UPDATE SET
         "title" = EXCLUDED."title",
@@ -1052,6 +1062,7 @@ async function upsertCompetitionFixture(
         "venue" = COALESCE(EXCLUDED."venue", "events"."venue"),
         "scheduled_at" = EXCLUDED."scheduled_at",
         "status" = EXCLUDED."status",
+        "match_details" = COALESCE(EXCLUDED."match_details", "events"."match_details"),
         "updated_at" = NOW()
     `,
     fx.id,
@@ -1076,6 +1087,7 @@ async function upsertCompetitionFixture(
     fx.venue,
     fx.scheduledAt,
     fx.status,
+    JSON.stringify(fx.matchDetails),
   );
 }
 

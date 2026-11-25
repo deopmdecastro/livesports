@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { CalendarClock, Eye, Play, Radio, Trophy, Users } from "lucide-react";
+import { BarChart3, CalendarClock, Eye, Play, Radio, Trophy, Users, Zap } from "lucide-react";
 import { notFound } from "next/navigation";
 import type { Event, Live, SportCategory } from "@/types";
 import { formatNumber, getSportLabel } from "@/utils";
@@ -193,10 +193,11 @@ function MatchEventCard({ event }: { event: Event }) {
   const isLive = event.status === "live";
   const isFinished = event.status === "finished";
   const hasScore = typeof event.scoreA === "number" && typeof event.scoreB === "number";
+  const scorers = event.matchDetails?.scorers || [];
+  const hasLiveStream = Boolean(event.liveTag?.liveId);
 
   return (
-    <Link
-      href={`/evento/${event.id}`}
+    <div
       className="group flex flex-col justify-between rounded-2xl border border-white/[0.07] bg-gradient-to-br from-[#0F111C] to-[#090B12] p-5 transition-all duration-300 hover:-translate-y-1 hover:border-[#E50914]/40"
     >
       <div>
@@ -209,73 +210,113 @@ function MatchEventCard({ event }: { event: Event }) {
               {event.league || getSportLabel(event.sport)}
             </span>
           </div>
-          {isLive ? (
-            <span className="badge-live"><span className="badge-live-dot" /> AO VIVO</span>
-          ) : (
-            <span className={`badge text-[10px] px-2 py-0.5 ${isFinished ? "badge-green" : "badge-blue"}`}>
-              {isFinished ? "Terminado" : event.matchTime || "Agendado"}
-            </span>
-          )}
-        </div>
-
-        <div className="flex items-center justify-between gap-3 my-4">
-          <div className="flex flex-col items-center gap-2 flex-1 min-w-0">
-            <ResilientLogo
-              src={event.teamALogo}
-              name={event.teamA || event.title}
-              code={event.teamACode}
-              kind="team"
-              size={44}
-              alt={event.teamA || ""}
-              className="h-11 w-11"
-            />
-            <span className="w-full truncate text-center text-xs font-bold text-white/90">
-              {event.teamA || event.title}
-            </span>
-          </div>
-
-          <div className="shrink-0 px-2 text-center">
-            {hasScore ? (
-              <div className="text-2xl font-black text-white tabular-nums">
-                {event.scoreA} <span className="text-white/25">–</span> {event.scoreB}
-              </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {hasLiveStream && (
+              <Link
+                href={`/watch/${event.liveTag!.liveId}`}
+                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wider border transition-all ${
+                  event.liveTag!.liveStatus === "live"
+                    ? "bg-[#E50914] text-white border-[#E50914] shadow-[0_0_10px_rgba(229,9,20,0.4)]"
+                    : "bg-emerald-500/15 text-emerald-300 border-emerald-500/35 hover:bg-emerald-500/25"
+                }`}
+              >
+                <Radio className="h-2.5 w-2.5 animate-pulse" />
+                {event.liveTag!.liveStatus === "live" ? "LIVE" : "TEM LIVE"}
+              </Link>
+            )}
+            {isLive ? (
+              <span className="badge-live"><span className="badge-live-dot" /> AO VIVO</span>
             ) : (
-              <span className="rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1 text-xs font-black text-white/55">
-                VS
+              <span className={`badge text-[10px] px-2 py-0.5 ${isFinished ? "badge-green" : "badge-blue"}`}>
+                {isFinished ? "Terminado" : event.matchTime || "Agendado"}
               </span>
             )}
           </div>
-
-          <div className="flex flex-col items-center gap-2 flex-1 min-w-0">
-            <ResilientLogo
-              src={event.teamBLogo}
-              name={event.teamB}
-              code={event.teamBCode}
-              kind="team"
-              size={44}
-              alt={event.teamB || ""}
-              className="h-11 w-11"
-            />
-            <span className="w-full truncate text-center text-xs font-bold text-white/90">
-              {event.teamB || "—"}
-            </span>
-          </div>
         </div>
+
+        <Link href={`/evento/${encodeURIComponent(event.id)}`} className="block">
+          <div className="flex items-center justify-between gap-3 my-4">
+            <div className="flex flex-col items-center gap-2 flex-1 min-w-0">
+              <ResilientLogo
+                src={event.teamALogo}
+                name={event.teamA || event.title}
+                code={event.teamACode}
+                kind="team"
+                size={44}
+                alt={event.teamA || ""}
+                className="h-11 w-11"
+              />
+              <span className="w-full truncate text-center text-xs font-bold text-white/90 group-hover:text-white">
+                {event.teamA || event.title}
+              </span>
+            </div>
+
+            <div className="shrink-0 px-2 text-center">
+              {hasScore ? (
+                <div className="text-2xl font-black text-white tabular-nums">
+                  {event.scoreA} <span className="text-white/25">–</span> {event.scoreB}
+                </div>
+              ) : (
+                <span className="rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1 text-xs font-black text-white/55">
+                  VS
+                </span>
+              )}
+            </div>
+
+            <div className="flex flex-col items-center gap-2 flex-1 min-w-0">
+              <ResilientLogo
+                src={event.teamBLogo}
+                name={event.teamB}
+                code={event.teamBCode}
+                kind="team"
+                size={44}
+                alt={event.teamB || ""}
+                className="h-11 w-11"
+              />
+              <span className="w-full truncate text-center text-xs font-bold text-white/90 group-hover:text-white">
+                {event.teamB || "—"}
+              </span>
+            </div>
+          </div>
+
+          {scorers.length > 0 && (
+            <div className="mb-3 pt-2.5 border-t border-white/[0.05] flex flex-wrap gap-x-2.5 gap-y-1 text-[10px] text-white/70">
+              {scorers.slice(0, 4).map((s, idx) => (
+                <span key={idx} className="inline-flex items-center gap-1">
+                  <span className="text-emerald-400">⚽</span>
+                  <span className="font-semibold text-white/90">{s.player}</span>
+                  <span className="text-white/40">{s.minute}</span>
+                </span>
+              ))}
+            </div>
+          )}
+        </Link>
       </div>
 
-      <div className="flex items-center justify-between border-t border-white/[0.05] pt-3 text-[11px] text-white/45">
-        <span className="flex items-center gap-1.5">
-          <CalendarClock className="h-3.5 w-3.5 text-[#E50914]/80" />
-          {formatKickoff(event.scheduledAt)}
-        </span>
-        {(event.viewerCount ?? 0) > 0 && (
-          <span className="flex items-center gap-1">
-            <Eye className="h-3.5 w-3.5 text-white/40" />
-            {formatNumber(event.viewerCount || 0)}
+      <div className="flex items-center justify-between gap-2 border-t border-white/[0.05] pt-3 text-[11px] text-white/45">
+        <Link
+          href={`/evento/${encodeURIComponent(event.id)}`}
+          className="inline-flex items-center gap-1.5 font-bold text-white/75 hover:text-white transition-colors"
+        >
+          <BarChart3 className="h-3.5 w-3.5 text-[#E50914]" />
+          Estatísticas completas
+        </Link>
+        {hasLiveStream ? (
+          <Link
+            href={`/watch/${event.liveTag!.liveId}`}
+            className="inline-flex items-center gap-1 rounded-md bg-[#E50914]/15 border border-[#E50914]/35 px-2.5 py-1 text-[10px] font-black text-[#ff6b73] hover:bg-[#E50914] hover:text-white transition-all"
+          >
+            <Zap className="h-3 w-3" />
+            Assistir Live
+          </Link>
+        ) : (
+          <span className="flex items-center gap-1.5">
+            <CalendarClock className="h-3.5 w-3.5 text-[#E50914]/80" />
+            {formatKickoff(event.scheduledAt)}
           </span>
         )}
       </div>
-    </Link>
+    </div>
   );
 }
 

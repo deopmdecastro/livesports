@@ -5,14 +5,17 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Activity,
   ArrowRight,
+  BarChart3,
   Calendar,
   CheckCircle2,
   Globe2,
   Layers,
+  Radio,
   RefreshCw,
   Search,
   TableProperties,
   Trophy,
+  Zap,
 } from "lucide-react";
 import ResilientLogo from "@/components/ui/ResilientLogo";
 import AdSlot from "@/components/ads/AdSlot";
@@ -601,54 +604,121 @@ export default function CompetitionsHubClient({
                       {detail.events.slice(0, 8).map((ev) => {
                         const hasScore =
                           typeof ev.scoreA === "number" && typeof ev.scoreB === "number";
+                        const scorers = ev.matchDetails?.scorers || [];
+                        const hasLiveStream = Boolean(ev.liveTag?.liveId);
                         return (
-                          <Link
+                          <div
                             key={ev.id}
-                            href={`/evento/${ev.id}`}
-                            className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.08] bg-[#10131F] p-3.5 transition-all hover:border-[#E50914]/45"
+                            className="rounded-xl border border-white/[0.08] bg-[#10131F] p-3.5 transition-all hover:border-[#E50914]/45 flex flex-col justify-between gap-2.5"
                           >
-                            <div className="flex items-center gap-2 min-w-0 flex-1">
-                              <ResilientLogo
-                                src={ev.teamALogo}
-                                name={ev.teamA}
-                                code={ev.teamACode}
-                                kind="team"
-                                size={28}
-                                alt={ev.teamA || ""}
-                                className="h-7 w-7 shrink-0"
-                              />
-                              <span className="truncate text-xs font-bold text-white">
-                                {ev.teamA || ev.title}
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-white/45 truncate">
+                                {ev.stage || ev.matchTime || "Jogo"}
                               </span>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {hasLiveStream && (
+                                  <Link
+                                    href={`/watch/${ev.liveTag!.liveId}`}
+                                    className={cn(
+                                      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wider border transition-all",
+                                      ev.liveTag!.liveStatus === "live"
+                                        ? "bg-[#E50914] text-white border-[#E50914] shadow-[0_0_10px_rgba(229,9,20,0.4)]"
+                                        : "bg-emerald-500/15 text-emerald-300 border-emerald-500/35 hover:bg-emerald-500/25",
+                                    )}
+                                  >
+                                    <Radio className="h-2.5 w-2.5 animate-pulse" />
+                                    {ev.liveTag!.liveStatus === "live" ? "LIVE" : "TEM LIVE"}
+                                  </Link>
+                                )}
+                                {ev.status === "live" && (
+                                  <span className="rounded-full bg-[#E50914]/15 border border-[#E50914]/35 px-2 py-0.5 text-[10px] font-black text-[#ff6b73]">
+                                    AO VIVO
+                                  </span>
+                                )}
+                              </div>
                             </div>
 
-                            <div className="shrink-0 px-2 text-center">
-                              {hasScore ? (
-                                <span className="rounded-md bg-white/[0.06] px-2 py-1 text-xs font-black text-white tabular-nums">
-                                  {ev.scoreA} - {ev.scoreB}
+                            <Link
+                              href={`/evento/${encodeURIComponent(ev.id)}`}
+                              className="flex items-center justify-between gap-3 group"
+                            >
+                              <div className="flex items-center gap-2 min-w-0 flex-1">
+                                <ResilientLogo
+                                  src={ev.teamALogo}
+                                  name={ev.teamA}
+                                  code={ev.teamACode}
+                                  kind="team"
+                                  size={28}
+                                  alt={ev.teamA || ""}
+                                  className="h-7 w-7 shrink-0"
+                                />
+                                <span className="truncate text-xs font-bold text-white group-hover:text-[#ff6b73]">
+                                  {ev.teamA || ev.title}
                                 </span>
-                              ) : (
-                                <span className="text-[11px] font-bold text-[#ff6b73]">
-                                  {ev.matchTime || "VS"}
+                              </div>
+
+                              <div className="shrink-0 px-2 text-center">
+                                {hasScore ? (
+                                  <span className="rounded-md bg-white/[0.06] px-2.5 py-1 text-xs font-black text-white tabular-nums">
+                                    {ev.scoreA} - {ev.scoreB}
+                                  </span>
+                                ) : (
+                                  <span className="text-[11px] font-bold text-[#ff6b73]">
+                                    {ev.matchTime || "VS"}
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="flex items-center justify-end gap-2 min-w-0 flex-1">
+                                <span className="truncate text-right text-xs font-bold text-white group-hover:text-[#ff6b73]">
+                                  {ev.teamB || ""}
                                 </span>
+                                <ResilientLogo
+                                  src={ev.teamBLogo}
+                                  name={ev.teamB}
+                                  code={ev.teamBCode}
+                                  kind="team"
+                                  size={28}
+                                  alt={ev.teamB || ""}
+                                  className="h-7 w-7 shrink-0"
+                                />
+                              </div>
+                            </Link>
+
+                            {scorers.length > 0 && (
+                              <Link
+                                href={`/evento/${encodeURIComponent(ev.id)}`}
+                                className="pt-2 border-t border-white/[0.05] text-[10px] text-white/65 flex flex-wrap gap-x-2.5 gap-y-0.5"
+                              >
+                                {scorers.slice(0, 4).map((s, idx) => (
+                                  <span key={idx} className="inline-flex items-center gap-1">
+                                    <span className="text-emerald-400">⚽</span>
+                                    <span className="font-semibold text-white/85">{s.player}</span>
+                                    <span className="text-white/40">{s.minute}</span>
+                                  </span>
+                                ))}
+                              </Link>
+                            )}
+
+                            <div className="pt-2 border-t border-white/[0.05] flex items-center justify-between gap-2">
+                              <Link
+                                href={`/evento/${encodeURIComponent(ev.id)}`}
+                                className="inline-flex items-center gap-1 text-[11px] font-bold text-white/75 hover:text-white"
+                              >
+                                <BarChart3 className="h-3.5 w-3.5 text-[#E50914]" />
+                                {lang === "pt" ? "Ver estatísticas completas" : "Full match stats"}
+                              </Link>
+                              {hasLiveStream && (
+                                <Link
+                                  href={`/watch/${ev.liveTag!.liveId}`}
+                                  className="inline-flex items-center gap-1 rounded-md bg-[#E50914]/15 border border-[#E50914]/35 px-2 py-0.5 text-[10px] font-black text-[#ff6b73] hover:bg-[#E50914] hover:text-white transition-all"
+                                >
+                                  <Zap className="h-3 w-3" />
+                                  Assistir
+                                </Link>
                               )}
                             </div>
-
-                            <div className="flex items-center justify-end gap-2 min-w-0 flex-1">
-                              <span className="truncate text-right text-xs font-bold text-white">
-                                {ev.teamB || ""}
-                              </span>
-                              <ResilientLogo
-                                src={ev.teamBLogo}
-                                name={ev.teamB}
-                                code={ev.teamBCode}
-                                kind="team"
-                                size={28}
-                                alt={ev.teamB || ""}
-                                className="h-7 w-7 shrink-0"
-                              />
-                            </div>
-                          </Link>
+                          </div>
                         );
                       })}
                     </div>
