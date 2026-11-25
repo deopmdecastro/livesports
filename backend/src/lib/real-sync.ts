@@ -39,9 +39,9 @@ const AD_CREATIVES = {
       <rect x="24" y="20" width="94" height="24" rx="12" fill="#E50914" opacity="0.22" stroke="#E50914" stroke-opacity="0.5"/>
       <circle cx="38" cy="32" r="4" fill="#FF4D57"/>
       <text x="48" y="36" fill="#FF858D" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="800" letter-spacing="1.2">OFERTA PRO</text>
-      <text x="24" y="68" fill="#FFFFFF" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="900">LIVESPORTS+ ULTRA 4K · SEM ANÚNCIOS</text>
-      <text x="465" y="42" fill="#E2E8F0" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600">Multi-câmara em direto · Champions League, NBA, UFC &amp; F1</text>
-      <text x="465" y="64" fill="#94A3B8" font-family="system-ui, -apple-system, sans-serif" font-size="12">Experimenta 7 dias grátis · Cancela quando quiseres</text>
+      <text x="24" y="68" fill="#FFFFFF" font-family="system-ui, -apple-system, sans-serif" font-size="19" font-weight="900">LIVESPORTS+ ULTRA 4K · SEM ANÚNCIOS</text>
+      <text x="485" y="42" fill="#E2E8F0" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600">Multi-câmara em direto · Champions, NBA, UFC &amp; F1</text>
+      <text x="485" y="64" fill="#94A3B8" font-family="system-ui, -apple-system, sans-serif" font-size="11.5">Experimenta 7 dias grátis · Cancela quando quiseres</text>
       <rect x="895" y="23" width="180" height="44" rx="22" fill="url(#redBtn)"/>
       <text x="985" y="50" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="800" letter-spacing="0.6">ATIVAR 7 DIAS →</text>
     </svg>

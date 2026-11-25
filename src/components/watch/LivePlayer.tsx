@@ -361,9 +361,10 @@ export default function LivePlayer({ live, adOverlay = null, autoPlayMuted = fal
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); setMuted(false); }}
-              className="pointer-events-auto rounded-lg border border-white/20 bg-black/80 px-4 py-2 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:bg-black/95"
+              className="pointer-events-auto absolute bottom-4 right-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/75 px-3.5 py-1.5 text-xs font-bold text-white backdrop-blur-md transition-colors hover:bg-black/95"
             >
-              🔊 Ativar som
+              <VolumeX className="h-3.5 w-3.5 text-[#E50914]" />
+              Ativar som
             </button>
           )}
         </div>

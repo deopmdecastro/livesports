@@ -334,7 +334,7 @@ export const FREE_SPORTS_TV_CHANNELS: FreeSportsTvChannel[] = [
     description: 'Sinal internacional em alta definição da FIFA+ com transmissões de seleções, futebol de formação, futsal e grandes finais mundiais.',
     sport: 'football',
     league: 'TV Desportiva Gratuita · Futebol',
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/FIFA%2B_(2025).svg/512px-FIFA%2B_(2025).svg.png',
+    logo: 'https://a.espncdn.com/i/leaguelogos/soccer/500/4.png',
     banner: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=1400&q=85',
     language: 'EN',
     quality: '1080p FHD',
