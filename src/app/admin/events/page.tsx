@@ -5,6 +5,7 @@ import { Calendar, Edit2, Eye, ImageIcon, Plus, RefreshCw, Search, Trash2, Uploa
 import { formatDateTime } from "@/utils";
 import type { Event, SportCategory } from "@/types";
 import AdminSelect from "@/components/admin/AdminSelect";
+import AdminFormWizard from "@/components/admin/AdminFormWizard";
 import AdminImageField from "@/components/admin/AdminImageField";
 import { IMAGE_SIZE_PRESETS } from "@/lib/image-upload-hints";
 import AdminActionButton from "@/components/admin/AdminActionButton";
@@ -119,6 +120,7 @@ export default function EventsPage() {
   const [form, setForm] = useState(emptyForm);
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [eventModalTab, setEventModalTab] = useState<"Geral" | "Equipas" | "Detalhes">("Geral");
+  const [saving, setSaving] = useState(false);
   const [apiKeyModalOpen, setApiKeyModalOpen] = useState(false);
 
   const filteredNormalEvents = normalEvents.filter((event) =>
@@ -180,7 +182,8 @@ export default function EventsPage() {
 
   const saveEvent = async () => {
     if (!form.title.trim()) {
-      toast.error("Informe o titulo do evento.");
+      toast.error("Informe o título do evento.");
+      setEventModalTab("Geral");
       return;
     }
 
@@ -203,6 +206,7 @@ export default function EventsPage() {
       status: form.status as Event["status"],
     };
 
+    setSaving(true);
     try {
       if (modalMode === "edit" && selected) {
         const updated = await apiRequest<Event>(`/events/${selected.id}`, {
@@ -221,7 +225,9 @@ export default function EventsPage() {
       }
       setModalMode(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel guardar o evento.");
+      toast.error(error instanceof Error ? error.message : "Não foi possível guardar o evento.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -398,47 +404,31 @@ export default function EventsPage() {
         </div>
       )}
 
-      {modalMode && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 p-0 backdrop-blur-sm sm:items-center sm:p-4">
-          <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] shadow-2xl">
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-[#1E1E2A] px-5 py-4 bg-gradient-to-r from-[#0C0C14] to-[#111118]">
-              <div className="flex items-center gap-3">
-                <div className={`flex h-10 w-10 items-center justify-center rounded-xl border ${modalMode === "create" ? "bg-red-500/10 border-red-500/20" : modalMode === "edit" ? "bg-amber-500/10 border-amber-500/20" : "bg-blue-500/10 border-blue-500/20"}`}>
-                  {modalMode === "create" ? <Plus className="h-5 w-5 text-red-400" /> : modalMode === "edit" ? <Edit2 className="h-5 w-5 text-amber-400" /> : <Eye className="h-5 w-5 text-blue-400" />}
-                </div>
-                <div>
-                  <h3 className="text-lg font-black text-white tracking-tight">
-                    {modalMode === "create" ? "Novo Evento" : modalMode === "edit" ? "Editar Evento" : "Visualizar Evento"}
-                  </h3>
-                  <p className="text-[11px] text-gray-500">
-                    {modalMode === "view" ? `ID: ${selected?.id?.slice(0, 8)}...` : "Preencha os dados do evento desportivo"}
-                  </p>
-                </div>
-              </div>
-              <button onClick={() => setModalMode(null)} className="rounded-xl p-2.5 text-gray-500 hover:bg-white/5 hover:text-white transition-all"><X className="h-4 w-4" /></button>
-            </div>
-            {/* Tabs */}
-            <div className="flex border-b border-[#1E1E2A] px-5 gap-1">
-              {([
-                { key: "Geral", icon: Calendar },
-                { key: "Equipas", icon: Trophy },
-                { key: "Detalhes", icon: Edit2 },
-              ] as const).map(({ key, icon: Icon }) => (
-                <button
-                  key={key}
-                  onClick={() => setEventModalTab(key)}
-                  className={`relative flex items-center gap-2 px-4 py-3 text-xs font-bold transition-all ${
-                    eventModalTab === key ? "text-red-400" : "text-gray-500 hover:text-gray-300"
-                  }`}
-                >
-                  <Icon className={`w-3.5 h-3.5 ${eventModalTab === key ? "text-red-400" : "text-gray-600 group-hover:text-gray-400"}`} />
-                  {key}
-                  {eventModalTab === key && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 w-10 rounded-full bg-[#E50914]" />}
-                </button>
-              ))}
-            </div>
-            <div className="p-5 space-y-5">
+      <AdminFormWizard
+        open={Boolean(modalMode)}
+        title={modalMode === "create" ? "Novo Evento" : modalMode === "edit" ? "Editar Evento" : "Visualizar Evento"}
+        subtitle={modalMode === "view" ? `ID: ${selected?.id?.slice(0, 8)}…` : "1) Dados  ·  2) Equipas  ·  3) Detalhes"}
+        icon={modalMode === "create" ? Plus : modalMode === "edit" ? Edit2 : Eye}
+        tone={modalMode === "create" ? "create" : modalMode === "edit" ? "edit" : "view"}
+        steps={[
+          { key: "Geral", label: "Dados", icon: Calendar },
+          { key: "Equipas", label: "Equipas", icon: Trophy },
+          { key: "Detalhes", label: "Detalhes", icon: Edit2 },
+        ]}
+        stepKey={eventModalTab}
+        onStepChange={(key) => setEventModalTab(key as typeof eventModalTab)}
+        onClose={() => setModalMode(null)}
+        primaryLabel={modalMode === "view" ? "Fechar" : modalMode === "edit" ? "Guardar" : "Criar Evento"}
+        onPrimary={() => {
+          if (modalMode === "view") setModalMode(null);
+          else void saveEvent();
+        }}
+        primaryLoading={saving}
+        secondaryLabel={modalMode === "view" ? "Fechar" : "Cancelar"}
+        showStepNav={modalMode !== "view"}
+      >
+            <div className="space-y-5">
+
               {/* ── TAB: GERAL ── */}
               {eventModalTab === "Geral" && (
                 <>
@@ -653,27 +643,7 @@ export default function EventsPage() {
                 </div>
               )}
             </div>
-            {/* Footer */}
-            <div className="flex items-center justify-between gap-3 border-t border-[#1E1E2A] px-5 py-4">
-              <div className="flex gap-1.5">
-                {(["Geral", "Equipas", "Detalhes"] as const).map((tab) => (
-                  <button key={tab} onClick={() => setEventModalTab(tab)} className={`h-1.5 rounded-full transition-all ${eventModalTab === tab ? "w-6 bg-red-500" : "w-1.5 bg-white/15"}`} />
-                ))}
-              </div>
-              <div className="flex gap-3">
-                <button onClick={() => setModalMode(null)} className="rounded-xl border border-[#1E1E2A] bg-[#111118] px-5 py-2.5 text-sm text-gray-300 hover:text-white hover:border-white/15 transition-all">
-                  {modalMode === "view" ? "Fechar" : "Cancelar"}
-                </button>
-                {modalMode !== "view" && (
-                  <button onClick={saveEvent} className="rounded-xl bg-[#E50914] px-6 py-2.5 text-sm font-bold text-white shadow-[0_4px_20px_rgba(229,9,20,0.25)] hover:bg-[#C50010] transition-all">
-                    {modalMode === "edit" ? "Guardar Evento" : "Criar Evento"}
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      </AdminFormWizard>
 
       {/* Sync Modal */}
       {showSyncModal && (
