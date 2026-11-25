@@ -98,14 +98,12 @@ function MatchCard({ match, lang, sport }: { match: WCMatchView; lang: string; c
 
   return (
     <div
-      className={`wc-card group relative rounded-2xl p-4 transition-all hover:border-[#E50914]/50 hover:-translate-y-0.5 flex flex-col justify-between ${
+      className={`wc-card group relative isolate overflow-hidden rounded-2xl p-4 transition-all hover:border-[#E50914]/50 hover:-translate-y-0.5 flex flex-col justify-between ${
         isLive || hasLiveStream ? "neon-border" : ""
       }`}
     >
+      <div className="pointer-events-none absolute inset-0 -z-10"><EventCover sport={sport} className="h-full" /></div>
       <div>
-        <Link href={`/evento/${encodeURIComponent(match.id)}`} aria-label={match.home_team.name + " vs " + match.away_team.name} className="block -mx-4 -mt-4 mb-3 overflow-hidden rounded-t-2xl">
-          <EventCover src={match.thumbnail} leagueLogo={match.leagueLogo} sport={sport} className="h-24" />
-        </Link>
         <div className="flex items-center justify-between gap-2 mb-3">
           <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500 truncate">
             {match.stage}

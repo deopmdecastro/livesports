@@ -180,12 +180,10 @@ function MatchEventCard({ event }: { event: Event }) {
 
   return (
     <div
-      className="group flex flex-col justify-between rounded-2xl border border-white/[0.07] bg-gradient-to-br from-[#0F111C] to-[#090B12] p-5 transition-all duration-300 hover:-translate-y-1 hover:border-[#E50914]/40"
+      className="group relative isolate overflow-hidden flex flex-col justify-between rounded-2xl border border-white/[0.07] bg-gradient-to-br from-[#0F111C] to-[#090B12] p-5 transition-all duration-300 hover:-translate-y-1 hover:border-[#E50914]/40"
     >
+      <div className="pointer-events-none absolute inset-0 -z-10"><EventCover sport={event.sport} className="h-full" /></div>
       <div>
-        <Link href={`/evento/${encodeURIComponent(event.id)}`} aria-label={event.title} className="block -mx-5 -mt-5 mb-4 overflow-hidden rounded-t-2xl">
-          <EventCover src={event.thumbnail} leagueLogo={event.leagueLogo} sport={event.sport} className="h-28" />
-        </Link>
         <div className="flex items-center justify-between gap-2 mb-4">
           <div className="flex items-center gap-2 min-w-0">
             {(event.leagueLogo || event.league) && (

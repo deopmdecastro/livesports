@@ -55,7 +55,7 @@ function LiveCard({ event, live }: { event: Event; live?: Live }) {
 
   return (
     <div
-      className="group relative flex-shrink-0 w-[min(272px,82vw)] sm:w-[292px] overflow-hidden rounded-2xl
+      className="group relative isolate flex-shrink-0 w-[min(272px,82vw)] sm:w-[292px] overflow-hidden rounded-2xl
         bg-gradient-to-br from-[#0F111C] to-[#0A0C14] border border-white/[0.06]
         hover:border-[#E50914]/35 hover:shadow-[0_12px_40px_rgba(0,0,0,0.5),0_0_28px_rgba(229,9,20,0.12)]
         transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between"
@@ -85,9 +85,7 @@ function LiveCard({ event, live }: { event: Event; live?: Live }) {
           : <span className={`badge text-[10px] px-2 py-0.5 ${isFinished ? "badge-green" : "badge-blue"}`}>{statusLabel}</span>}
       </div>
 
-      <Link href={statsHref} aria-label={event.title} className="block overflow-hidden">
-        <EventCover src={live?.banner || event.thumbnail} leagueLogo={event.leagueLogo} sport={event.sport} className="h-24" />
-      </Link>
+      <div className="pointer-events-none absolute inset-0 -z-10"><EventCover sport={event.sport} className="h-full" /></div>
 
       <div className="relative p-5 flex flex-col justify-between flex-1">
         <Link href={statsHref} className="block">
