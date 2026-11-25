@@ -29,7 +29,9 @@ export async function getCompetitionMetadata(slug: string): Promise<Metadata> {
   const title = data?.competition.sectionTitle || data?.competition.name || slug;
 
   return {
-    title: `${title} | LiveSports`,
+    ...(!data?.competition ? { robots: { index: false, follow: false } } : {}),
+    title,
+    alternates: { canonical: `/competicao/${encodeURIComponent(slug)}` },
     description:
       data?.competition.heroDescription ||
       data?.competition.description ||

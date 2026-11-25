@@ -24,17 +24,12 @@ export const metadata: Metadata = {
   publisher: "LiveSports",
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://livesports.com"),
   alternates: {
-    canonical: "/",
-    languages: {
-      "pt-BR": "/",
-      "en-US": "/en",
-    },
+
   },
   openGraph: {
     type: "website",
     locale: "pt_BR",
     alternateLocale: ["en_US"],
-    url: "/",
     title: "LiveSports – Transmissoes ao Vivo",
     description: "Assista aos melhores jogos ao vivo! Copa do Mundo 2026 e muito mais.",
     siteName: "LiveSports",
@@ -91,7 +86,7 @@ const organizationJsonLd = {
   "@type": "Organization",
   name: "LiveSports",
   url: process.env.NEXT_PUBLIC_SITE_URL || "https://livesports.com",
-  logo: `${process.env.NEXT_PUBLIC_SITE_URL || "https://livesports.com"}/logo.png`,
+  logo: `${process.env.NEXT_PUBLIC_SITE_URL || "https://livesports.com"}/favicon.svg`,
   sameAs: [],
 };
 
@@ -100,14 +95,7 @@ const websiteJsonLd = {
   "@type": "WebSite",
   name: "LiveSports",
   url: process.env.NEXT_PUBLIC_SITE_URL || "https://livesports.com",
-  potentialAction: {
-    "@type": "SearchAction",
-    target: {
-      "@type": "EntryPoint",
-      urlTemplate: `${process.env.NEXT_PUBLIC_SITE_URL || "https://livesports.com"}/search?q={search_term_string}`,
-    },
-    "query-input": "required name=search_term_string",
-  },
+
 };
 
 // ─── Root Layout ──────────────────────────────────────────────────────────────

@@ -5,7 +5,8 @@ import { fetchPublicCompetitions } from "@/lib/competition-public";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Competições, Classificações & Tabelas de Grupos | LiveSports",
+  title: "Competições, Ligas, Taças e Classificações",
+  alternates: { canonical: "/competicao" },
   description:
     "Acompanhe em tempo real todas as competições desportivas, tabelas de classificação das ligas, fases de grupos da Copa do Mundo, Champions League, Libertadores, NBA e Fórmula 1.",
 };

@@ -451,6 +451,20 @@ export const WATCHED_COMPETITIONS: CompetitionWatcherTarget[] = [
     scanDaysAhead: 4,
   },
 
+  // African competitions and major basketball competitions. Empty paths are deliberately
+  // not queried: a verified feed is required before importing results.
+  { slug: 'caf-champions-league', name: 'Liga dos Campeões da CAF', sectionTitle: 'Liga dos Campeões da CAF', sport: 'football', espnSportPath: 'soccer/caf.champions', format: 'groups', hostCountries: 'África', heroBadge: 'Liga dos Campeões da CAF', heroBadgeIcon: '🏆', thumbnail: '', themeColor: '#E50914', scanDaysAhead: 4 },
+  { slug: 'caf-confederation-cup', name: 'Taça das Confederações da CAF', sectionTitle: 'Taça das Confederações da CAF', sport: 'football', espnSportPath: 'soccer/caf.confed', format: 'groups', hostCountries: 'África', heroBadge: 'Taça das Confederações da CAF', heroBadgeIcon: '🏆', thumbnail: '', themeColor: '#E50914', scanDaysAhead: 4 },
+  { slug: 'can', name: 'Taça das Nações Africanas', sectionTitle: 'Taça das Nações Africanas', sport: 'football', espnSportPath: 'soccer/caf.nations', format: 'groups', hostCountries: 'África', heroBadge: 'Taça das Nações Africanas', heroBadgeIcon: '🏆', thumbnail: '', themeColor: '#E50914', scanDaysAhead: 4 },
+  { slug: 'south-african-premiership', name: 'Liga Sul-Africana', sectionTitle: 'Liga Sul-Africana', sport: 'football', espnSportPath: 'soccer/rsa.1', format: 'league', hostCountries: 'África do Sul', heroBadge: 'Liga Sul-Africana', heroBadgeIcon: '⚽', thumbnail: '', themeColor: '#E50914', scanDaysAhead: 4 },
+  { slug: 'girabola', name: 'Girabola', sectionTitle: 'Girabola', sport: 'football', espnSportPath: '', format: 'league', hostCountries: 'Angola', heroBadge: 'Girabola', heroBadgeIcon: '⚽', thumbnail: '', themeColor: '#E50914', scanDaysAhead: 4 },
+  { slug: 'taca-angola-futebol', name: 'Taça de Angola · Futebol', sectionTitle: 'Taça de Angola · Futebol', sport: 'football', espnSportPath: '', format: 'knockout', hostCountries: 'Angola', heroBadge: 'Taça de Angola · Futebol', heroBadgeIcon: '🏆', thumbnail: '', themeColor: '#E50914', scanDaysAhead: 4 },
+  { slug: 'unitel-basket', name: 'Unitel Basket', sectionTitle: 'Unitel Basket', sport: 'basketball', espnSportPath: '', format: 'league', hostCountries: 'Angola', heroBadge: 'Unitel Basket', heroBadgeIcon: '🏀', thumbnail: '', themeColor: '#E50914', scanDaysAhead: 4 },
+  { slug: 'taca-angola-basquetebol', name: 'Taça de Angola · Basquetebol', sectionTitle: 'Taça de Angola · Basquetebol', sport: 'basketball', espnSportPath: '', format: 'knockout', hostCountries: 'Angola', heroBadge: 'Taça de Angola · Basquetebol', heroBadgeIcon: '🏀', thumbnail: '', themeColor: '#E50914', scanDaysAhead: 4 },
+  { slug: 'basketball-africa-league', name: 'Basketball Africa League', sectionTitle: 'Basketball Africa League', sport: 'basketball', espnSportPath: '', format: 'groups', hostCountries: 'África', heroBadge: 'Basketball Africa League', heroBadgeIcon: '🏀', thumbnail: '', themeColor: '#E50914', scanDaysAhead: 4 },
+  { slug: 'euroleague', name: 'EuroLeague Basketball', sectionTitle: 'EuroLeague Basketball', sport: 'basketball', espnSportPath: 'basketball/euroleague', format: 'league', hostCountries: 'Europa', heroBadge: 'EuroLeague Basketball', heroBadgeIcon: '🏀', thumbnail: '', themeColor: '#E50914', scanDaysAhead: 4 },
+  { slug: 'wnba', name: 'WNBA', sectionTitle: 'WNBA', sport: 'basketball', espnSportPath: 'basketball/wnba', format: 'league', hostCountries: 'EUA', heroBadge: 'WNBA', heroBadgeIcon: '🏀', thumbnail: '', themeColor: '#E50914', scanDaysAhead: 4 },
+
   // ─── Multi-Sport Championships (Basketball, F1, UFC) ─────────────────────
   {
     slug: 'nba',
@@ -612,6 +626,7 @@ function cleanGroupLabel(rawName: string | undefined, index: number, totalGroups
 export async function fetchEspnStandingsGroups(
   target: CompetitionWatcherTarget,
 ): Promise<{ seasonLabel: string | null; groups: CompetitionGroupStanding[] }> {
+  if (!target.espnSportPath) return { seasonLabel: null, groups: [] };
   const url = `https://site.api.espn.com/apis/v2/sports/${target.espnSportPath}/standings`;
   const payload = await fetchJsonSafe(url);
   if (!payload) return { seasonLabel: null, groups: [] };
@@ -820,6 +835,7 @@ interface ParsedCompetitionFixture {
 async function fetchEspnFixturesForTarget(
   target: CompetitionWatcherTarget,
 ): Promise<ParsedCompetitionFixture[]> {
+  if (!target.espnSportPath) return [];
   const urls = new Set<string>();
   // Default scoreboard (always returns active round/matchday even if weeks away, e.g. World Cup / UCL)
   urls.add(`https://site.api.espn.com/apis/site/v2/sports/${target.espnSportPath}/scoreboard`);
@@ -1000,15 +1016,15 @@ async function upsertWatchedCompetition(
     `comp-${target.slug}`,
     target.name,
     target.slug,
-    seasonLabel || target.theSportsDbSeason || '2026',
+    seasonLabel || target.theSportsDbSeason || null,
     target.sport,
-    `Classificação oficial, grupos, resultados ao vivo e calendário de ${target.name} (${target.hostCountries}).`,
+    `Classificações, resultados e calendário de ${target.name} (${target.hostCountries}), quando disponíveis.`,
     target.thumbnail,
     effectiveFormat,
     target.heroBadge,
     target.heroBadgeIcon,
     target.name,
-    seasonLabel || target.theSportsDbSeason || '2026',
+    seasonLabel || target.theSportsDbSeason || null,
     target.hostCountries,
     target.sectionTitle,
     totalTeams,

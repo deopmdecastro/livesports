@@ -613,14 +613,30 @@ export default function WorldCupSection({
         ) : null}
 
         {!loading && activeTab === "matches" && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {matches.length > 0 ? (
-              matches.map((match) => (
-                <MatchCard key={match.id} match={match} lang={lang} competitionSlug={selectedSlug} />
+          <div>
+            {format === "knockout" && <p className="mb-4 text-sm text-gray-400">Jogos das eliminatórias por fase, conforme publicados pela fonte. O percurso entre fases não é presumido.</p>}
+            {matches.length === 0 ? (
+              <div className="py-12 text-center text-sm text-gray-500">
+                {['girabola', 'taca-angola-futebol', 'unitel-basket', 'taca-angola-basquetebol', 'basketball-africa-league'].includes(selectedSlug)
+                  ? 'Ainda não há dados sincronizados para esta competição. É necessária uma fonte de dados compatível.'
+                  : 'Jogos indisponíveis de momento. Consulte novamente quando houver dados disponíveis.'}
+              </div>
+            ) : format === "knockout" ? (
+              Object.entries(matches.reduce<Record<string, WCMatchView[]>>((stages, match) => {
+                const stage = match.stage || (lang === "pt" ? "Fase não informada" : "Round unavailable");
+                (stages[stage] ||= []).push(match);
+                return stages;
+              }, {})).map(([stage, games]) => (
+                <section key={stage} className="mb-7">
+                  <h3 className="mb-3 text-sm font-black uppercase tracking-wider text-white">{stage}</h3>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {games.map((match) => <MatchCard key={match.id} match={match} lang={lang} competitionSlug={selectedSlug} />)}
+                  </div>
+                </section>
               ))
             ) : (
-              <div className="col-span-full py-12 text-center text-sm text-gray-500">
-                Nenhum jogo cadastrado para esta competição.
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {matches.map((match) => <MatchCard key={match.id} match={match} lang={lang} competitionSlug={selectedSlug} />)}
               </div>
             )}
           </div>

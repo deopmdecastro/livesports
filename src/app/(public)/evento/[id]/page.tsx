@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import {
   ArrowLeft,
   Award,
@@ -23,6 +24,14 @@ export const dynamic = "force-dynamic";
 
 interface PageProps {
   params: Promise<{ id: string }>;
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { id } = await params;
+  const event = await serverApiRequest<Event>(`/events/${encodeURIComponent(id)}`);
+  if (!event) return { title: "Jogo não encontrado", robots: { index: false, follow: false } };
+  const title = `${event.teamA && event.teamB ? `${event.teamA} vs ${event.teamB}` : event.title} — resultado e estatísticas`;
+  return { title, description: `Acompanhe o resultado, marcadores e estatísticas de ${event.title}${event.league ? ` na ${event.league}` : ""}.`, alternates: { canonical: `/evento/${encodeURIComponent(id)}` } };
 }
 
 type ApiStatistic = {

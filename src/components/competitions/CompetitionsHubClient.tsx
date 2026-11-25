@@ -57,7 +57,7 @@ const FORMAT_FILTERS = [
 const SPORT_FILTERS: Array<{ id: "all" | SportCategory; labelPt: string; labelEn: string }> = [
   { id: "all", labelPt: "Todos os Desportos", labelEn: "All Sports" },
   { id: "football", labelPt: "Futebol", labelEn: "Football" },
-  { id: "basketball", labelPt: "Basquetebol (NBA)", labelEn: "Basketball (NBA)" },
+  { id: "basketball", labelPt: "Basquetebol", labelEn: "Basketball" },
   { id: "f1", labelPt: "Fórmula 1", labelEn: "Formula 1" },
   { id: "ufc", labelPt: "UFC & Combate", labelEn: "UFC & Combat" },
 ];
@@ -187,7 +187,7 @@ export default function CompetitionsHubClient({
             </h1>
             <p className="mt-2 max-w-3xl text-sm text-white/55">
               {lang === "pt"
-                ? "Sincronização contínua multi-fonte (ESPN v2 Standings, TheSportsDB e Scoreboards) com tabelas de grupos da Copa do Mundo, Libertadores, Euro, Liga Portugal, Premier League, Champions, NBA e Fórmula 1."
+                ? "Explore futebol, basquetebol e outras modalidades: ligas, taças, classificações e jogos, incluindo competições africanas. Dados apresentados quando disponíveis nas fontes."
                 : "Continuously synced standings, group stages, conferences, and fixtures across global sports."}
             </p>
           </div>
