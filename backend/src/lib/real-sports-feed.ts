@@ -103,6 +103,7 @@ export interface FreeSportsTvChannel {
   sport: 'football' | 'basketball' | 'tennis' | 'ufc' | 'f1' | 'volleyball' | 'baseball' | 'other';
   league: string;
   logo: string;
+  logoBackups?: string[];
   banner: string;
   language: string;
   quality: string;
@@ -298,7 +299,11 @@ export const FREE_SPORTS_TV_CHANNELS: FreeSportsTvChannel[] = [
     description: 'Canal oficial gratuito FIFA+ em Português com jogos históricos do Mundial, documentários originais, torneios FIFA ao vivo e resumos alargados.',
     sport: 'football',
     league: 'TV Desportiva Gratuita · Futebol',
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/FIFA%2B_(2025).svg/512px-FIFA%2B_(2025).svg.png',
+    logo: 'https://r2.thesportsdb.com/images/media/league/badge/8dqv9l1709198064.png',
+    logoBackups: [
+      'https://a.espncdn.com/i/leaguelogos/soccer/500/4.png',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/FIFA%2B_(2025).svg/512px-FIFA%2B_(2025).svg.png',
+    ],
     banner: 'https://images.unsplash.com/photo-1522778119026-d647f0596c20?w=1400&q=85',
     language: 'PT',
     quality: '1080p FHD',
@@ -317,6 +322,9 @@ export const FREE_SPORTS_TV_CHANNELS: FreeSportsTvChannel[] = [
     sport: 'football',
     league: 'TV Desportiva Gratuita · Futebol',
     logo: 'https://i.imgur.com/V562tpO.png',
+    logoBackups: [
+      'https://a.espncdn.com/i/leaguelogos/soccer/500/15.png',
+    ],
     banner: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=1400&q=85',
     language: 'ES',
     quality: '1080p FHD',
@@ -334,7 +342,10 @@ export const FREE_SPORTS_TV_CHANNELS: FreeSportsTvChannel[] = [
     description: 'Sinal internacional em alta definição da FIFA+ com transmissões de seleções, futebol de formação, futsal e grandes finais mundiais.',
     sport: 'football',
     league: 'TV Desportiva Gratuita · Futebol',
-    logo: 'https://a.espncdn.com/i/leaguelogos/soccer/500/4.png',
+    logo: 'https://r2.thesportsdb.com/images/media/league/badge/8dqv9l1709198064.png',
+    logoBackups: [
+      'https://a.espncdn.com/i/leaguelogos/soccer/500/4.png',
+    ],
     banner: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=1400&q=85',
     language: 'EN',
     quality: '1080p FHD',
@@ -370,7 +381,11 @@ export const FREE_SPORTS_TV_CHANNELS: FreeSportsTvChannel[] = [
     description: 'Bastidores em direto de Milão, conferências de imprensa, treinos, resumos da Serie A e UEFA Champions League no canal oficial do Inter.',
     sport: 'football',
     league: 'Canal de Clube · Serie A',
-    logo: 'https://i.imgur.com/FUTqh2L.png',
+    logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/110.png',
+    logoBackups: [
+      'https://i.imgur.com/FUTqh2L.png',
+      'https://crests.football-data.org/108.png',
+    ],
     banner: 'https://images.unsplash.com/photo-1518091043644-c1d4457512c6?w=1400&q=85',
     language: 'IT',
     quality: '1080p FHD',
@@ -532,7 +547,10 @@ export const FREE_SPORTS_TV_CHANNELS: FreeSportsTvChannel[] = [
     description: 'Canal oficial GLORY com eventos principais, nocautes históricos, pesagens e lutas pelo título mundial de pesos-pesados.',
     sport: 'ufc',
     league: 'TV Desportiva Gratuita · Kickboxing',
-    logo: 'https://i.imgur.com/tS7Ub7i.png',
+    logo: 'https://a.espncdn.com/i/teamlogos/leagues/500/ufc.png',
+    logoBackups: [
+      'https://i.imgur.com/tS7Ub7i.png',
+    ],
     banner: 'https://images.unsplash.com/photo-1555597673-b21d5c935865?w=1400&q=85',
     language: 'EN',
     quality: '1080p FHD',
@@ -586,7 +604,10 @@ export const FREE_SPORTS_TV_CHANNELS: FreeSportsTvChannel[] = [
     description: 'Jogos completos, resumos e análises da Atlantic Coast Conference — berço das maiores estrelas da NBA (Duke, UNC, Miami).',
     sport: 'basketball',
     league: 'TV Desportiva Gratuita · Basquetebol',
-    logo: 'https://i.imgur.com/V6Kaqha.png',
+    logo: 'https://a.espncdn.com/i/teamlogos/leagues/500/nba.png',
+    logoBackups: [
+      'https://i.imgur.com/V6Kaqha.png',
+    ],
     banner: 'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=1400&q=85',
     language: 'EN',
     quality: '1080p FHD',
@@ -640,7 +661,10 @@ export const FREE_SPORTS_TV_CHANNELS: FreeSportsTvChannel[] = [
     description: 'O lendário canal gratuito da ESPN com competições espetaculares, torneios mundiais, campeonatos universitários e entretenimento desportivo.',
     sport: 'other',
     league: 'TV Desportiva Gratuita · Multidesporto',
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/ESPN_wordmark.svg/512px-ESPN_wordmark.svg.png',
+    logo: 'https://a.espncdn.com/i/teamlogos/leagues/500/nba.png',
+    logoBackups: [
+      'https://i.imgur.com/00tsvjE.png',
+    ],
     banner: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=1400&q=85',
     language: 'EN',
     quality: '1080p FHD',

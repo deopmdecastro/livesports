@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import LivePlayer from "@/components/watch/LivePlayer";
 import AdSlot from "@/components/ads/AdSlot";
+import ResilientLogo from "@/components/ui/ResilientLogo";
 import { publicApiRequest, type ApiListResponse } from "@/lib/api";
 import { useLang } from "@/lib/lang";
 import type { Live, SportCategory } from "@/types";
@@ -143,16 +144,16 @@ export default function FreeChannelsGuideClient() {
               {/* Active Channel Details Bar */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-white/[0.08] bg-[#0E101A] p-5">
                 <div className="flex items-start gap-3.5 min-w-0">
-                  {activeChannel.leagueLogo && (
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-white/15 bg-white p-1.5">
-                      <img
-                        src={activeChannel.leagueLogo}
-                        alt={activeChannel.title}
-                        referrerPolicy="no-referrer"
-                        className="h-full w-full object-contain"
-                      />
-                    </div>
-                  )}
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-white/15 bg-white p-1.5">
+                    <ResilientLogo
+                      src={activeChannel.leagueLogo || activeChannel.teamALogo}
+                      backupUrls={[activeChannel.teamALogo, activeChannel.leagueLogo]}
+                      name={activeChannel.teamA && !activeChannel.teamB ? activeChannel.teamA : activeChannel.title}
+                      kind={activeChannel.id.startsWith("free-tv-") ? "channel" : "league"}
+                      alt={activeChannel.title}
+                      className="h-full w-full"
+                    />
+                  </div>
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-1">
                       <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-400/30 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-300">
@@ -228,16 +229,14 @@ export default function FreeChannelsGuideClient() {
                       </span>
 
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-white p-1">
-                        {ch.leagueLogo || ch.teamALogo ? (
-                          <img
-                            src={ch.leagueLogo || ch.teamALogo}
-                            alt={ch.title}
-                            referrerPolicy="no-referrer"
-                            className="h-full w-full object-contain"
-                          />
-                        ) : (
-                          <Tv2 className="h-5 w-5 text-black" />
-                        )}
+                        <ResilientLogo
+                          src={ch.leagueLogo || ch.teamALogo}
+                          backupUrls={[ch.teamALogo, ch.leagueLogo]}
+                          name={ch.teamA && !ch.teamB ? ch.teamA : ch.title}
+                          kind={ch.id.startsWith("free-tv-") ? "channel" : "league"}
+                          alt={ch.title}
+                          className="h-full w-full"
+                        />
                       </div>
 
                       <div className="min-w-0 flex-1">

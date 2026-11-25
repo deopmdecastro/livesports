@@ -18,6 +18,7 @@ import { WorldCupCtaBanner } from "@/components/landing/WorldCupHero";
 import CompetitionCarousel from "@/components/landing/CompetitionCarousel";
 import { competitionThemeStyle, getCompetitionTheme } from "@/lib/competition-theme";
 import AdSlot from "@/components/ads/AdSlot";
+import ResilientLogo from "@/components/ui/ResilientLogo";
 
 // Always use the relative /api path here — this runs in the browser, and
 // Next.js's rewrite (next.config.ts) proxies it server-side to the backend.
@@ -70,11 +71,19 @@ function MatchCard({ match, lang, competitionSlug }: { match: WCMatchView; lang:
   const isLive = match.status === "in_play";
   const statusLabels = lang === "pt" ? STATUS_LABEL_PT : STATUS_LABEL_EN;
   const renderFlag = (flag?: string, code?: string, name?: string) => {
-    const url =
-      resolveCountryFlagUrl({ code, name, logo: flag, size: 64 }) ||
-      (flag && /^(https?:|data:|\/)/.test(flag) ? flag : null);
-    if (url) {
-      return <img src={url} alt="" className="h-8 w-8 rounded-full object-cover" />;
+    const isUrl = Boolean(flag && /^(https?:|data:|\/)/.test(flag));
+    if (isUrl || code || name) {
+      return (
+        <ResilientLogo
+          src={isUrl ? flag : undefined}
+          code={code}
+          name={name}
+          kind="country"
+          size={64}
+          alt={name || ""}
+          className="h-8 w-8 rounded-full object-cover"
+        />
+      );
     }
     if (flag) return <span className="text-3xl">{flag}</span>;
     return null;
@@ -172,14 +181,19 @@ function LeagueTable({ teams, lang, accent }: { teams: WCTeam[]; lang: string; a
                 <td className="px-3 py-2 text-center font-bold text-gray-500">{i + 1}</td>
                 <td className="px-3 py-2 flex items-center gap-2">
                   {(() => {
-                    const flagUrl = resolveCountryFlagUrl({
-                      code: team.code,
-                      name: team.name,
-                      logo: team.flag,
-                      size: 32,
-                    });
-                    if (flagUrl) {
-                      return <img src={flagUrl} alt="" className="h-5 w-5 rounded-full object-cover" />;
+                    const isUrl = Boolean(team.flag && /^(https?:|data:|\/)/.test(team.flag));
+                    if (isUrl || team.code || team.name) {
+                      return (
+                        <ResilientLogo
+                          src={isUrl ? team.flag : undefined}
+                          code={team.code}
+                          name={team.name}
+                          kind="country"
+                          size={32}
+                          alt={team.name}
+                          className="h-5 w-5 rounded-full object-cover"
+                        />
+                      );
                     }
                     if (team.flag) return <span>{team.flag}</span>;
                     return null;
@@ -232,14 +246,19 @@ function GroupTable({ group, teams, accent }: { group: string; teams: WCTeam[]; 
             <tr key={team.id} className={`border-t border-[#1E1E2A]/60 ${i < 2 ? "text-white" : "text-gray-500"}`}>
               <td className="px-3 py-2 flex items-center gap-2">
                 {(() => {
-                  const flagUrl = resolveCountryFlagUrl({
-                    code: team.code,
-                    name: team.name,
-                    logo: team.flag,
-                    size: 32,
-                  });
-                  if (flagUrl) {
-                    return <img src={flagUrl} alt="" className="h-5 w-7 rounded-sm object-cover" />;
+                  const isUrl = Boolean(team.flag && /^(https?:|data:|\/)/.test(team.flag));
+                  if (isUrl || team.code || team.name) {
+                    return (
+                      <ResilientLogo
+                        src={isUrl ? team.flag : undefined}
+                        code={team.code}
+                        name={team.name}
+                        kind="country"
+                        size={32}
+                        alt={team.name}
+                        className="h-5 w-7 rounded-sm object-cover"
+                      />
+                    );
                   }
                   if (team.flag) return <span>{team.flag}</span>;
                   return null;

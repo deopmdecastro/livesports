@@ -1,6 +1,8 @@
 "use client";
 
+import ResilientLogo from "@/components/ui/ResilientLogo";
 import { resolveCountryFlagUrl } from "@/lib/flags";
+import { resolveMultiSourceLogos } from "@/lib/logo-fallback";
 
 function isDisplayableLogo(url?: string) {
   if (!url) return false;
@@ -21,13 +23,23 @@ export function resolveTeamMarkUrl(options: {
     size: options.size ?? 32,
   });
   if (flagUrl) return flagUrl;
+
+  const chain = resolveMultiSourceLogos({
+    primaryUrl: options.logo,
+    name: options.name,
+    code: options.code,
+    kind: "team",
+    size: options.size ?? 32,
+  });
+  const firstRemote = chain.find((u) => !u.startsWith("data:image/svg+xml"));
+  if (firstRemote) return firstRemote;
+
   if (isDisplayableLogo(options.logo || undefined)) return options.logo!;
   return null;
 }
 
 export function isLeagueLogoDisplayable(url?: string | null) {
   if (!isDisplayableLogo(url || undefined)) return false;
-  if (url?.includes("crests.football-data.org")) return false;
   return true;
 }
 
@@ -46,21 +58,17 @@ export default function AdminTeamMark({
   size = 32,
   className = "h-5 w-5 rounded-full object-cover border border-white/10",
 }: AdminTeamMarkProps) {
-  const src = resolveTeamMarkUrl({ logo, name, code, size });
+  if (!logo && !name && !code) return null;
 
-  if (src) {
-    return <img src={src} alt={name || ""} className={className} />;
-  }
-
-  if (name) {
-    return (
-      <span
-        className={`inline-flex shrink-0 items-center justify-center rounded-full bg-[#2A2A2A] text-[9px] font-black uppercase text-gray-300 ${className}`}
-      >
-        {name.slice(0, 2)}
-      </span>
-    );
-  }
-
-  return null;
+  return (
+    <ResilientLogo
+      src={logo}
+      name={name}
+      code={code}
+      kind="team"
+      size={size}
+      alt={name || ""}
+      className={className}
+    />
+  );
 }

@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import type { Live, LiveComment, LiveEngagement, Ad } from "@/types";
 import { cn, formatNumber } from "@/utils";
-import { resolveCountryFlagUrl } from "@/lib/flags";
+import ResilientLogo from "@/components/ui/ResilientLogo";
 import LivePlayer from "@/components/watch/LivePlayer";
 import AdSlot from "@/components/ads/AdSlot";
 import { apiRequest, publicApiRequest } from "@/lib/api";
@@ -67,13 +67,9 @@ function pickActiveAd(ads: Ad[], position: Ad["position"]) {
 }
 
 function TeamCrestSmall({ logo, name, code }: { logo?: string; name?: string; code?: string }) {
-  const flagUrl = resolveCountryFlagUrl({ code, name, logo, size: 24 });
-  const src = flagUrl || (isImageValue(logo) ? logo : null);
-  if (src)
-    return <img src={src} alt="" className="h-6 w-6 rounded-full border border-white/15 object-cover bg-black/30 p-0.5" />;
   return (
-    <div className="h-6 w-6 flex items-center justify-center rounded-full bg-[#1A1A28] border border-white/10 text-[10px] font-black text-white">
-      {(name || "?").slice(0, 2).toUpperCase()}
+    <div className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-full border border-white/15 bg-black/30 p-0.5">
+      <ResilientLogo src={logo} name={name} code={code} kind="team" size={24} alt={name || ""} className="h-full w-full" />
     </div>
   );
 }
@@ -853,11 +849,14 @@ export default function WatchExperience({ live, liveId }: WatchExperienceProps) 
             {/* League */}
             {activeLive.league && (
               <div className="hidden md:inline-flex items-center gap-1.5 h-8 px-3 rounded-xl bg-[#111118] border border-[#1E1E2A]">
-                {isImageValue(activeLive.leagueLogo) ? (
-                  <img src={activeLive.leagueLogo} alt="" className="h-4 w-4 object-contain" />
-                ) : (
-                  <Trophy className="h-3.5 w-3.5 text-gray-600" />
-                )}
+                <ResilientLogo
+                  src={activeLive.leagueLogo}
+                  name={activeLive.league}
+                  kind={activeLive.id.startsWith("free-tv-") ? "channel" : "league"}
+                  size={20}
+                  alt=""
+                  className="h-4 w-4"
+                />
                 <span className="text-xs font-medium text-gray-400">{activeLive.league}</span>
               </div>
             )}

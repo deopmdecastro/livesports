@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Search, Shield } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
+import ResilientLogo from "@/components/ui/ResilientLogo";
 import { searchSportsTeams, type SportsTeamSearchResult } from "@/lib/thesportsdb";
 
 interface TeamSearchProps {
@@ -116,13 +117,15 @@ export function TeamSearch({
               onClick={() => handleSelect(team)}
               className="flex w-full items-center gap-3 border-b border-[#2A2A2A]/80 px-3 py-2.5 text-left last:border-0 hover:bg-white/[0.04]"
             >
-              {team.badge ? (
-                <img src={team.badge} alt="" className="h-8 w-8 object-contain" />
-              ) : (
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#2A2A2A]">
-                  <Shield className="h-4 w-4 text-gray-500" />
-                </div>
-              )}
+              <ResilientLogo
+                src={team.badge}
+                name={team.name}
+                code={team.shortName}
+                kind="team"
+                size={32}
+                alt={team.name}
+                className="h-8 w-8 shrink-0"
+              />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold text-white">{team.name}</p>
                 <p className="truncate text-[11px] text-gray-500">

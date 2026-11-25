@@ -5,6 +5,7 @@ import { prisma } from '../lib/prisma';
 import { DEV_CALENDAR_EVENTS, fetchEventsByDay, shouldUseDevCalendar } from '../lib/thesportsdb';
 import { runRealContentSync } from '../lib/real-sync';
 import { FREE_SPORTS_TV_CHANNELS } from '../lib/real-sports-feed';
+import { resolveMultiSourceLogos, type LogoEntityKind } from '../lib/logo-resolver';
 
 const router = Router();
 
@@ -727,6 +728,34 @@ router.post('/rapidapi/all-live-stream', authenticateToken, requireAdmin, async 
         items: mapped,
         notice: 'Streams importados e sincronizados via RapidAPI.',
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Public Multi-Source Logo Resolver (ESPN + TheSportsDB + Football-Data + Curated Backups)
+router.get('/logos/resolve', async (req, res, next) => {
+  try {
+    const query = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+    const rawKind = typeof req.query.kind === 'string' ? req.query.kind.trim().toLowerCase() : 'team';
+    const allowedKinds: LogoEntityKind[] = ['team', 'league', 'channel', 'country', 'sport'];
+    const kind: LogoEntityKind = allowedKinds.includes(rawKind as LogoEntityKind)
+      ? (rawKind as LogoEntityKind)
+      : 'team';
+
+    if (!query || query.length < 2) {
+      res.json({
+        success: true,
+        data: { query, kind, sources: [] },
+      });
+      return;
+    }
+
+    const result = await resolveMultiSourceLogos(query, kind);
+    res.json({
+      success: true,
+      data: result,
     });
   } catch (error) {
     next(error);
