@@ -3,6 +3,7 @@ import axios from 'axios';
 import { authenticateToken, requireAdmin } from '../middleware/auth.middleware';
 import { prisma } from '../lib/prisma';
 import { DEV_CALENDAR_EVENTS, fetchEventsByDay, shouldUseDevCalendar } from '../lib/thesportsdb';
+import { runRealContentSync } from '../lib/real-sync';
 
 const router = Router();
 
@@ -725,6 +726,19 @@ router.post('/rapidapi/all-live-stream', authenticateToken, requireAdmin, async 
         items: mapped,
         notice: 'Streams importados e sincronizados via RapidAPI.',
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Public / Admin real-time sync endpoint (ESPN scoreboards, TheSportsDB, RTP/BBC news & live HLS streams)
+router.post('/real-feed/sync', async (_req, res, next) => {
+  try {
+    const result = await runRealContentSync(true);
+    res.json({
+      success: true,
+      data: result,
     });
   } catch (error) {
     next(error);

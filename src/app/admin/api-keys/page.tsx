@@ -1027,8 +1027,8 @@ export default function ApiKeysPage() {
               <div className="flex items-center gap-2 rounded-xl bg-red-500/5 border border-red-500/20 px-3 py-2.5">
                 <Info className="h-3.5 w-3.5 text-red-400 flex-shrink-0" />
                 <p className="text-xs text-red-300">
-                  Esta chave é usada em todo o sistema para importar dados via {envModalTarget.provider}.
-                  {envModalTarget.configured && " Insira um novo valor para a substituir."}
+                  Esta chave é usada em todo o sistema para importar dados via {envModalTarget?.provider}.
+                  {envModalTarget?.configured && " Insira um novo valor para a substituir."}
                 </p>
               </div>
 
@@ -1041,7 +1041,7 @@ export default function ApiKeysPage() {
                     onChange={(e) => setEnvKeyValue(e.target.value)}
                     autoFocus
                     className="input-dark w-full px-3 py-2 pr-10 text-sm font-mono"
-                    placeholder={envModalTarget.configured ? "Insira o novo valor" : "Insira a chave da API"}
+                    placeholder={envModalTarget?.configured ? "Insira o novo valor" : "Insira a chave da API"}
                   />
                   <button onClick={() => setEnvShowValue(!envShowValue)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white">
                     {envShowValue ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -1049,7 +1049,7 @@ export default function ApiKeysPage() {
                 </div>
               </div>
 
-              <p className="text-[10px] text-gray-600 font-mono">{envModalTarget.baseUrl}</p>
+              <p className="text-[10px] text-gray-600 font-mono">{envModalTarget?.baseUrl}</p>
             </div>
       </AdminFormWizard>
 

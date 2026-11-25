@@ -27,6 +27,8 @@ import {
 } from "@/lib/blog";
 import type { Event, Live, NewsArticle, SportCategory } from "@/types";
 import { formatDateTime, formatNumber, formatRelativeTime, getSportLabel } from "@/utils";
+import AdSlot from "@/components/ads/AdSlot";
+import PromoBannerStrip from "@/components/ads/PromoBannerStrip";
 
 const sportFilters: Array<{ value: "all" | SportCategory; label: string }> = [
   { value: "all", label: "Todas" },
@@ -81,8 +83,9 @@ function NewsCard({ group }: { group: NewsArticleGroup }) {
     <article className="overflow-hidden rounded-2xl border border-white/10 bg-[#111118] shadow-[0_12px_40px_rgba(0,0,0,0.22)] transition-all hover:-translate-y-0.5 hover:border-[#E50914]/40">
       <div className="relative aspect-[16/9] overflow-hidden bg-[#1A1A1A]">
         <img
-          src={article.thumbnail || `https://picsum.photos/seed/news-${article.id}/900/500`}
+          src={article.thumbnail || "https://images.unsplash.com/photo-1522778119026-d647f0596c20?w=900&q=80"}
           alt={article.title}
+          referrerPolicy="no-referrer"
           className="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
@@ -395,8 +398,9 @@ export default function BlogClient() {
             <div className="grid gap-0 lg:grid-cols-[1.2fr_minmax(0,1fr)]">
               <div className="relative min-h-[280px] overflow-hidden bg-[#1A1A1A]">
                 <img
-                  src={heroArticle.thumbnail || `https://picsum.photos/seed/hero-${heroArticle.id}/1200/700`}
+                  src={heroArticle.thumbnail || "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=1200&q=80"}
                   alt={heroArticle.title}
+                  referrerPolicy="no-referrer"
                   className="h-full w-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/30 to-transparent" />
@@ -448,6 +452,9 @@ export default function BlogClient() {
           </div>
 
           <aside className="space-y-6">
+            <AdSlot position="sidebar" variant="box" hideWhenEmpty />
+            <PromoBannerStrip position="sidebar" />
+
             <div className="rounded-[28px] border border-white/10 bg-[#111118] p-5">
               <div className="mb-4 flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-[#E50914]">
                 <Radio className="h-4 w-4" />

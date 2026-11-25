@@ -38,8 +38,8 @@ import settingsRoutes from './routes/settings.routes';
 import rolesRoutes from './routes/roles.routes';
 import { setIo } from './lib/socket';
 import { addViewer, removeViewer } from './lib/realtime';
-import { ensureRuntimeSchema } from './lib/prisma';
-import { prisma } from './lib/prisma';
+import { ensureRuntimeSchema, prisma } from './lib/prisma';
+import { runRealContentSync } from './lib/real-sync';
 import { structuredLogger, slowRequestWarner } from './middleware/logger.middleware';
 import { writeLog } from './routes/logs.routes';
 
@@ -74,6 +74,7 @@ const rawOrigins = [
 const allowedOrigins = rawOrigins.split(',').map((o) => o.trim()).filter(Boolean);
 const isDev = (process.env.NODE_ENV || 'development') !== 'production';
 const localhostOriginPattern = /^https?:\/\/(?:localhost|127\.0\.0\.1)(:\d+)?$/;
+const previewOriginPattern = /^https?:\/\/[a-z0-9-]+\.(?:e2b\.app|vercel\.app|replit\.dev|repl\.co)$/i;
 
 const getRateLimitKey = (req: express.Request) => {
   const forwarded = req.headers['x-forwarded-for'] as string | undefined;
@@ -91,7 +92,7 @@ app.use(
       // Allow requests with no origin (server-to-server, curl, mobile apps)
       if (!origin) return callback(null, true);
       // Allow local browser origins in both development and production containers.
-      if (localhostOriginPattern.test(origin)) {
+      if (localhostOriginPattern.test(origin) || previewOriginPattern.test(origin) || isDev) {
         return callback(null, true);
       }
       if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
@@ -477,7 +478,12 @@ const PORT = process.env.PORT || 3001;
 // endpoint reports DB status. If the DB is unavailable, routes will return
 // 503 (not 500) so the frontend can handle it gracefully.
 ensureRuntimeSchema()
-  .then(() => console.log('✅ Database schema verified'))
+  .then(async () => {
+    console.log('✅ Database schema verified');
+    await runRealContentSync(true).catch((syncErr: any) => {
+      console.warn('[RealContentSync] Initial sync warning:', syncErr?.message || String(syncErr));
+    });
+  })
   .catch((error: any) => {
     const msg = error?.message || String(error);
     const code = error?.code;

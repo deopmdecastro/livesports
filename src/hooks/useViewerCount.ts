@@ -3,10 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
 
-const SOCKET_URL =
-  typeof window !== "undefined"
-    ? (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001")
-    : "";
+function resolveSocketOrigin(): string {
+  if (typeof window === "undefined") return "";
+  const configured = process.env.NEXT_PUBLIC_API_URL;
+  if (!configured || configured.includes("localhost")) {
+    return window.location.origin;
+  }
+  return configured;
+}
 
 /**
  * Connects to the Socket.IO server and tracks the live viewer count
@@ -26,10 +30,12 @@ export function useViewerCount(liveId: string, initial: number = 0) {
   }, [initial, connected]);
 
   useEffect(() => {
-    if (!liveId || !SOCKET_URL) return;
+    const socketOrigin = resolveSocketOrigin();
+    if (!liveId || !socketOrigin) return;
 
-    const socket: Socket = io(SOCKET_URL, {
-      transports: ["websocket", "polling"],
+    const socket: Socket = io(socketOrigin, {
+      path: "/socket.io",
+      transports: ["polling", "websocket"],
       reconnectionAttempts: 8,
       reconnectionDelay: 1500,
       timeout: 10000,

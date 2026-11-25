@@ -39,19 +39,20 @@ function useDebounce<T>(value: T, delay: number): T {
   return debounced;
 }
 
-const NAV_LINKS = [
+const NAV_LINKS: Array<{ href: string; label: string; hot?: boolean }> = [
   { href: "/", label: "Início", hot: false },
+  { href: "/ao-vivo", label: "Em Direto", hot: true },
   { href: "/calendario", label: "Calendário" },
-  { href: "/competicao", label: "Competições", hot: true },
+  { href: "/blog", label: "Notícias" },
+  { href: "/competicao", label: "Competições" },
   { href: "/futebol", label: "Futebol" },
-  { href: "/basquete", label: "Basquete" },
 ];
 
-const MORE_LINKS = [
-  { href: "/tenis", label: "Tênis" },
+const MORE_LINKS: Array<{ href: string; label: string; hot?: boolean }> = [
+  { href: "/basquete", label: "Basquete" },
+  { href: "/tenis", label: "Ténis" },
   { href: "/ufc", label: "UFC" },
-  { href: "/f1", label: "F1" },
-  { href: "/blog", label: "Blog" },
+  { href: "/f1", label: "Fórmula 1" },
 ];
 
 export default function Navbar() {

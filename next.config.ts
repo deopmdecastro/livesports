@@ -14,6 +14,12 @@ const ALLOWED_IMAGE_HOSTS = [
   'media.api-sports.io',
   'crests.football-data.org',
   'flagsapi.com',
+  'flagcdn.com',
+  'a.espncdn.com',
+  'r2.thesportsdb.com',
+  'www.thesportsdb.com',
+  'cdn-images.rtp.pt',
+  'ichef.bbci.co.uk',
   'logos-world.net',
   'peach.blender.org',
   'commondatastorage.googleapis.com',
@@ -44,6 +50,10 @@ const nextConfig: NextConfig = {
       {
         source: '/api/:path*',
         destination: `${backendUrl}/api/:path*`,
+      },
+      {
+        source: '/socket.io/:path*',
+        destination: `${backendUrl}/socket.io/:path*`,
       },
     ];
   },

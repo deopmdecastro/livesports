@@ -31,6 +31,10 @@ function normalize(v?: string) {
 }
 
 function matchLive(event: Event, lives: Live[]) {
+  if (event.id.startsWith("live-room-")) {
+    const rawId = event.id.replace("live-room-", "");
+    return lives.find((l) => l.id === rawId);
+  }
   const et = normalize(event.title);
   const ett = [normalize(event.teamA), normalize(event.teamB)].filter(Boolean).join("-");
   return lives.find((l) => {
@@ -151,7 +155,43 @@ export default function LiveNowSection() {
     load();
   }, []);
 
-  const liveEvents = useMemo(() => events.filter((e) => e.status === "live"), [events]);
+  const liveStreamsAsEvents: Event[] = useMemo(() => {
+    return lives
+      .filter((l) => l.status === "live")
+      .map((l) => ({
+        id: `live-room-${l.id}`,
+        title: l.title,
+        sport: l.sport,
+        league: l.league,
+        leagueLogo: l.leagueLogo,
+        teamA: l.teamA,
+        teamALogo: l.teamALogo,
+        teamB: l.teamB,
+        teamBLogo: l.teamBLogo,
+        scoreA: l.scoreA,
+        scoreB: l.scoreB,
+        matchTime: l.matchTime || "AO VIVO",
+        scheduledAt: l.scheduledAt || l.startedAt || new Date().toISOString(),
+        status: "live" as const,
+        thumbnail: l.thumbnail || l.banner,
+        featured: l.featured,
+        viewerCount: l.viewerCount,
+        createdAt: l.createdAt || new Date().toISOString(),
+      }));
+  }, [lives]);
+
+  const liveEvents = useMemo(() => {
+    const fromEvents = events.filter((e) => e.status === "live");
+    const combined = [...liveStreamsAsEvents];
+    for (const ev of fromEvents) {
+      const exists = combined.some(
+        (c) => normalize(c.title) === normalize(ev.title) || (c.teamA && ev.teamA && normalize(c.teamA) === normalize(ev.teamA)),
+      );
+      if (!exists) combined.push(ev);
+    }
+    return combined;
+  }, [events, liveStreamsAsEvents]);
+
   const upcomingEvents = useMemo(
     () => events
       .filter((e) => e.status !== "finished" && e.status !== "cancelled")
@@ -160,7 +200,7 @@ export default function LiveNowSection() {
     [events]
   );
 
-  const displayEvents = liveEvents.length >= 2 ? liveEvents : upcomingEvents;
+  const displayEvents = liveEvents.length >= 2 ? liveEvents : [...liveEvents, ...upcomingEvents].slice(0, 12);
 
   if (loading) {
     return (

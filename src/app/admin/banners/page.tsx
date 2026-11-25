@@ -130,8 +130,8 @@ export default function BannersPage() {
   const fetchBanners = useCallback(async () => {
     try {
       setLoading(true);
-      const json = await apiRequest<{ items: BannerItem[] }>("/banners");
-      const items = json.items || [];
+      const data = await apiRequest<BannerItem[] | { items: BannerItem[] }>("/banners");
+      const items = Array.isArray(data) ? data : data.items || [];
       const heroItems = items.filter((b: BannerItem) => b.position === "hero");
       const otherItems = items.filter((b: BannerItem) => b.position !== "hero");
       setHeroSlides(heroItems.sort((a, b) => a.sortOrder - b.sortOrder));
@@ -192,36 +192,24 @@ export default function BannersPage() {
       };
 
       if (heroModal === "edit" && selectedHero) {
-        const res = await fetch(`/banners/${selectedHero.id}`, {
+        await apiRequest(`/banners/${selectedHero.id}`, {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
-        const json = await res.json();
-        if (json.success) {
-          toast.success("Slide do Hero atualizado!");
-          fetchBanners();
-        } else {
-          toast.error(json.error || "Erro ao atualizar");
-        }
+        toast.success("Slide do Hero atualizado!");
+        fetchBanners();
       } else {
-        const res = await fetch(`/banners`, {
+        await apiRequest(`/banners`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
-        const json = await res.json();
-        if (json.success) {
-          toast.success("Slide do Hero criado!");
-          fetchBanners();
-        } else {
-          toast.error(json.error || "Erro ao criar");
-        }
+        toast.success("Slide do Hero criado!");
+        fetchBanners();
       }
       setHeroModal(null);
     } catch (err) {
       console.error(err);
-      toast.error("Erro ao guardar");
+      toast.error(err instanceof Error ? err.message : "Erro ao guardar");
     } finally {
       setSaving(false);
     }
@@ -244,14 +232,11 @@ export default function BannersPage() {
   const deleteHeroSlide = async (id: string) => {
     if (!confirm("Remover este slide?")) return;
     try {
-      const res = await fetch(`/banners/${id}`, { method: "DELETE" });
-      const json = await res.json();
-      if (json.success) {
-        setHeroSlides((prev) => prev.filter((s) => s.id !== id));
-        toast.success("Slide removido!");
-      }
+      await apiRequest(`/banners/${id}`, { method: "DELETE" });
+      setHeroSlides((prev) => prev.filter((s) => s.id !== id));
+      toast.success("Slide removido!");
     } catch (err) {
-      toast.error("Erro ao remover");
+      toast.error(err instanceof Error ? err.message : "Erro ao remover");
     }
   };
 
@@ -293,35 +278,23 @@ export default function BannersPage() {
       };
 
       if (bannerModal === "edit" && selectedBanner) {
-        const res = await fetch(`/banners/${selectedBanner.id}`, {
+        await apiRequest(`/banners/${selectedBanner.id}`, {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
-        const json = await res.json();
-        if (json.success) {
-          toast.success("Banner atualizado!");
-          fetchBanners();
-        } else {
-          toast.error(json.error || "Erro ao atualizar");
-        }
+        toast.success("Banner atualizado!");
+        fetchBanners();
       } else {
-        const res = await fetch(`/banners`, {
+        await apiRequest(`/banners`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
-        const json = await res.json();
-        if (json.success) {
-          toast.success("Banner criado!");
-          fetchBanners();
-        } else {
-          toast.error(json.error || "Erro ao criar");
-        }
+        toast.success("Banner criado!");
+        fetchBanners();
       }
       setBannerModal(null);
     } catch (err) {
-      toast.error("Erro ao guardar");
+      toast.error(err instanceof Error ? err.message : "Erro ao guardar");
     } finally {
       setSaving(false);
     }
@@ -344,14 +317,11 @@ export default function BannersPage() {
   const deleteBanner = async (id: string) => {
     if (!confirm("Remover este banner?")) return;
     try {
-      const res = await fetch(`/banners/${id}`, { method: "DELETE" });
-      const json = await res.json();
-      if (json.success) {
-        setBanners((prev) => prev.filter((b) => b.id !== id));
-        toast.success("Banner removido!");
-      }
+      await apiRequest(`/banners/${id}`, { method: "DELETE" });
+      setBanners((prev) => prev.filter((b) => b.id !== id));
+      toast.success("Banner removido!");
     } catch (err) {
-      toast.error("Erro ao remover");
+      toast.error(err instanceof Error ? err.message : "Erro ao remover");
     }
   };
 

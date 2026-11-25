@@ -47,7 +47,7 @@ router.get('/', async (req, res, next) => {
         return;
       }
       params.push(position);
-      where.push(`position = $${params.length}`);
+      where.push(`position = $${params.length}::banner_position`);
     }
 
     if (active !== undefined && active !== 'all') {
@@ -106,7 +106,7 @@ router.post('/', authenticateToken, requireAdmin, async (req: AuthRequest, res, 
         INSERT INTO "banners" (
           id, title, subtitle, badge, image_url, link_url, cta_text, position, active, sort_order, start_date, end_date
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::date, $12::date)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8::banner_position, $9, $10, $11::date, $12::date)
         RETURNING *
       `,
       randomUUID(),
@@ -152,7 +152,7 @@ router.put('/:id', authenticateToken, requireAdmin, async (req: AuthRequest, res
       `
         UPDATE "banners"
         SET title = $2, subtitle = $3, badge = $4, image_url = $5, link_url = $6,
-          cta_text = $7, position = $8, active = $9, sort_order = $10,
+          cta_text = $7, position = $8::banner_position, active = $9, sort_order = $10,
           start_date = $11::date, end_date = $12::date, updated_at = NOW()
         WHERE id = $1
         RETURNING *

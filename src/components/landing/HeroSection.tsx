@@ -23,6 +23,7 @@ import {
   Film,
 } from "lucide-react";
 import type { Ad, Live } from "@/types";
+import type { PromotionalBanner } from "@/components/ads/PromoBannerStrip";
 import { publicApiRequest, type ApiListResponse } from "@/lib/api";
 import { resolveCountryFlagUrl } from "@/lib/flags";
 import { useLang } from "@/lib/lang";
@@ -197,6 +198,7 @@ export default function HeroSection() {
   const [paused, setPaused] = useState(false);
   const [allLives, setAllLives] = useState<Live[]>([]);
   const [ads, setAds] = useState<Ad[]>([]);
+  const [heroBanners, setHeroBanners] = useState<PromotionalBanner[]>([]);
   const [countdown, setCountdown] = useState({ d: 0, h: 0, m: 0, s: 0 });
   const autoPlayRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -204,12 +206,14 @@ export default function HeroSection() {
   useEffect(() => {
     const load = async () => {
       try {
-        const [livesRes, adsRes] = await Promise.all([
+        const [livesRes, adsRes, bannersRes] = await Promise.all([
           publicApiRequest<ApiListResponse<Live>>("/lives?limit=50"),
           publicApiRequest<Ad[]>("/ads?status=active"),
+          publicApiRequest<PromotionalBanner[]>("/banners?position=hero&active=true").catch(() => []),
         ]);
         setAllLives(livesRes.items || []);
         setAds(Array.isArray(adsRes) ? adsRes : []);
+        setHeroBanners(Array.isArray(bannersRes) ? bannersRes : []);
       } catch {
         /* silent */
       }
@@ -221,12 +225,14 @@ export default function HeroSection() {
   const slides = useMemo(() => {
     const items: Array<{
       id: string;
-      kind: "live" | "ad";
+      kind: "live" | "ad" | "banner";
       isLive: boolean;
       image: string;
       title: string;
       subtitle: string;
       highlight: string;
+      ctaText?: string;
+      linkUrl?: string;
       live?: Live;
       ad?: Ad;
     }> = [];
@@ -247,12 +253,27 @@ export default function HeroSection() {
         highlight: live.status === "live" ? "Ao vivo" : live.status === "scheduled" ? "Agendado" : "Destaque",
         live,
       });
-      if (items.length >= 5) break;
+      if (items.length >= 4) break;
+    }
+
+    for (const banner of heroBanners) {
+      if (items.length >= 6) break;
+      items.push({
+        id: `banner-${banner.id}`,
+        kind: "banner",
+        isLive: false,
+        image: banner.imageUrl || FALLBACK_IMAGES[items.length % FALLBACK_IMAGES.length],
+        title: banner.title,
+        subtitle: banner.subtitle || "Cobertura oficial em direto e alta definição",
+        highlight: banner.badge || "Destaque Oficial",
+        ctaText: banner.ctaText || "Explorar",
+        linkUrl: banner.linkUrl || "/ao-vivo",
+      });
     }
 
     const heroAds = ads.filter((ad) => ad.position === "header" || ad.position === "live_preroll");
     for (const ad of heroAds) {
-      if (items.length >= 6) break;
+      if (items.length >= 7) break;
       items.push({
         id: `ad-${ad.id}`,
         kind: "ad",
@@ -260,7 +281,7 @@ export default function HeroSection() {
         image: ad.imageUrl || FALLBACK_IMAGES[items.length % FALLBACK_IMAGES.length],
         title: ad.title,
         subtitle: ad.campaign || "Patrocinado",
-        highlight: "Premium",
+        highlight: "Patrocinador",
         ad,
       });
     }
@@ -278,7 +299,7 @@ export default function HeroSection() {
     }
 
     return items;
-  }, [ads, allLives]);
+  }, [ads, allLives, heroBanners]);
 
   useEffect(() => {
     if (slides.length <= 1 || paused) return;
@@ -438,12 +459,17 @@ export default function HeroSection() {
                   {slide.kind === "live" ? (
                     <Link href={`/watch/${slide.live!.id}`} className="btn btn-primary btn-lg w-full justify-center rounded-full px-7 shadow-[0_0_36px_rgba(229,9,20,0.24)] sm:w-auto">
                       <Play className="h-5 w-5 fill-current" />
-                      {slide.isLive ? "Ver detalhes" : t.hero_watch}
+                      {slide.isLive ? "Assistir Agora" : t.hero_watch}
+                    </Link>
+                  ) : slide.kind === "banner" && slide.linkUrl ? (
+                    <Link href={slide.linkUrl} className="btn btn-primary btn-lg w-full justify-center rounded-full px-7 shadow-[0_0_36px_rgba(229,9,20,0.24)] sm:w-auto">
+                      <Play className="h-5 w-5 fill-current" />
+                      {slide.ctaText || "Explorar"}
                     </Link>
                   ) : slide.ad?.clickUrl ? (
-                    <a href={slide.ad.clickUrl} target="_blank" rel="noreferrer" className="btn btn-primary btn-lg w-full justify-center rounded-full px-7 sm:w-auto">
+                    <a href={slide.ad.clickUrl} target={slide.ad.clickUrl.startsWith("http") ? "_blank" : undefined} rel="noreferrer" className="btn btn-primary btn-lg w-full justify-center rounded-full px-7 sm:w-auto">
                       <Play className="h-5 w-5 fill-current" />
-                      Explorar
+                      Explorar Oferta
                     </a>
                   ) : (
                     <Link href="/calendario" className="btn btn-primary btn-lg w-full justify-center rounded-full px-7 sm:w-auto">

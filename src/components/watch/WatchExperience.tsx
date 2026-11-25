@@ -529,7 +529,11 @@ export default function WatchExperience({ live, liveId }: WatchExperienceProps) 
     }
   };
 
-  const handlePlayerTap = (e: { currentTarget: EventTarget & HTMLElement; target: EventTarget; clientX?: number; clientY?: number; changedTouches?: TouchList }) => {
+  const handlePlayerTap = (
+    e:
+      | React.MouseEvent<HTMLDivElement>
+      | React.TouchEvent<HTMLDivElement>,
+  ) => {
     // Ignore taps on controls / overlays with data-no-tap
     const target = e.target as HTMLElement;
     if (target.closest("[data-no-tap]")) return;
@@ -541,10 +545,10 @@ export default function WatchExperience({ live, liveId }: WatchExperienceProps) 
     let x = 50;
     let y = 42;
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    if ("clientX" in e && typeof e.clientX === "number") {
+    if ("clientX" in e && typeof e.clientX === "number" && typeof e.clientY === "number") {
       x = ((e.clientX - rect.left) / rect.width) * 100;
       y = ((e.clientY - rect.top) / rect.height) * 100;
-    } else if ("changedTouches" in e && e.changedTouches[0]) {
+    } else if ("changedTouches" in e && e.changedTouches && e.changedTouches[0]) {
       x = ((e.changedTouches[0].clientX - rect.left) / rect.width) * 100;
       y = ((e.changedTouches[0].clientY - rect.top) / rect.height) * 100;
     }

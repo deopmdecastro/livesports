@@ -479,20 +479,20 @@ export default function AdminCreatorsPage() {
                 <p className="text-[10px] text-gray-500 mb-1.5 uppercase tracking-wider font-bold">Utilizador</p>
                 <div className="flex items-center gap-2.5">
                   <div className="h-8 w-8 rounded-full bg-gradient-to-br from-[#E50914]/30 to-[#B00000]/30 flex items-center justify-center text-xs font-black text-[#E50914]">
-                    {(selected.user_name || "?").charAt(0).toUpperCase()}
+                    {(selected?.user_name || "?").charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-white">{selected.user_name}</p>
-                    <p className="text-[10px] text-gray-500">{selected.user_email}</p>
+                    <p className="text-sm font-semibold text-white">{selected?.user_name}</p>
+                    <p className="text-[10px] text-gray-500">{selected?.user_email}</p>
                   </div>
                 </div>
               </div>
               <div className="rounded-lg bg-[#1A1A2A] p-3 border border-white/5">
                 <p className="text-[10px] text-gray-500 mb-1.5 uppercase tracking-wider font-bold">Canal Proposto</p>
-                <p className="text-sm font-semibold text-white">{selected.channel_name}</p>
-                {selected.description && <p className="text-xs text-gray-400 mt-1.5 leading-relaxed">{selected.description}</p>}
-                {selected.sport && (
-                  <span className="mt-2 inline-block text-[10px] text-gray-500 bg-white/5 px-2 py-0.5 rounded-full capitalize">{selected.sport}</span>
+                <p className="text-sm font-semibold text-white">{selected?.channel_name}</p>
+                {selected?.description && <p className="text-xs text-gray-400 mt-1.5 leading-relaxed">{selected?.description}</p>}
+                {selected?.sport && (
+                  <span className="mt-2 inline-block text-[10px] text-gray-500 bg-white/5 px-2 py-0.5 rounded-full capitalize">{selected?.sport}</span>
                 )}
               </div>
               <div>
@@ -781,8 +781,8 @@ export default function AdminCreatorsPage() {
                   <div className="flex items-center gap-3 p-3 -mt-6 relative">
                     {editForm.avatar && <img src={editForm.avatar} alt="avatar" className="h-12 w-12 rounded-full border-2 border-[#0E0E16] object-cover" />}
                     <div>
-                      <p className="text-sm font-bold text-white">{editForm.name || editingChannel.name}</p>
-                      <p className="text-[10px] text-gray-500">/{editForm.slug || editingChannel.slug}</p>
+                      <p className="text-sm font-bold text-white">{editForm.name || editingChannel?.name}</p>
+                      <p className="text-[10px] text-gray-500">/{editForm.slug || editingChannel?.slug}</p>
                     </div>
                   </div>
                 </div>

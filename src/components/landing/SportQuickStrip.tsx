@@ -41,17 +41,24 @@ export default function SportQuickStrip() {
     const load = async () => {
       try {
         const [livesRes, eventsRes] = await Promise.all([
-          publicApiRequest<ApiListResponse<{ id: string }>>("/lives?status=live&limit=100", { cacheTtl: 60_000 }),
+          publicApiRequest<ApiListResponse<{ id: string; sport?: string; status?: string }>>("/lives?limit=100", { cacheTtl: 60_000 }),
           publicApiRequest<Event[]>("/events?limit=200", { cacheTtl: 60_000 }),
         ]);
 
         if (!active) return;
-        setLiveCount(livesRes.pagination?.total ?? livesRes.items?.length ?? 0);
+        const allLives = livesRes.items || [];
+        const activeLives = allLives.filter((l) => l.status === "live");
+        const liveEventsCount = (Array.isArray(eventsRes) ? eventsRes : []).filter((e) => e.status === "live").length;
+        setLiveCount(Math.max(activeLives.length, liveEventsCount));
 
         const counts: Record<string, number> = {};
         for (const event of Array.isArray(eventsRes) ? eventsRes : []) {
           if (event.status === "cancelled") continue;
           counts[event.sport || "other"] = (counts[event.sport || "other"] || 0) + 1;
+        }
+        for (const live of allLives) {
+          if (live.status === "ended") continue;
+          counts[live.sport || "other"] = (counts[live.sport || "other"] || 0) + 1;
         }
 
         setSportCounts(counts);
@@ -76,7 +83,7 @@ export default function SportQuickStrip() {
       <div className="mx-auto max-w-[1400px]">
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
           <Link
-            href="/calendario?status=live"
+            href="/ao-vivo"
             className="group flex min-h-[96px] sm:min-h-[112px] flex-col justify-between rounded-[24px] border border-[#E50914]/35 bg-[linear-gradient(180deg,rgba(229,9,20,0.16),rgba(10,12,18,0.92))] p-4 shadow-[0_18px_50px_rgba(229,9,20,0.12)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-[#E50914]/60"
           >
             <div className="flex items-center gap-3">

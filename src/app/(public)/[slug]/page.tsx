@@ -1,13 +1,16 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { CalendarClock, Play, Users } from "lucide-react";
+import { CalendarClock, Eye, Play, Radio, Trophy, Users } from "lucide-react";
 import { notFound } from "next/navigation";
-import type { Live, SportCategory } from "@/types";
+import type { Event, Live, SportCategory } from "@/types";
 import { formatNumber, getSportLabel } from "@/utils";
 import { serverApiRequest } from "@/lib/server-api";
 import type { ApiListResponse } from "@/lib/api";
 import StaticPageClient from "@/components/static/StaticPageClient";
 import { getStaticPageContent, type StaticPageSlug } from "@/lib/static-pages-content";
+import AdSlot from "@/components/ads/AdSlot";
+
+export const dynamic = "force-dynamic";
 
 const slugToSport: Record<string, SportCategory | "all-live" | "empty" | "blank"> = {
   "ao-vivo": "all-live",
@@ -38,25 +41,25 @@ const slugToSport: Record<string, SportCategory | "all-live" | "empty" | "blank"
 };
 
 const slugLabels: Record<string, string> = {
-  "ao-vivo": "Ao Vivo",
+  "ao-vivo": "Transmissões em Direto",
   futebol: "Futebol",
-  basquete: "Basquete",
-  tenis: "Tenis",
-  volei: "Volei",
-  ufc: "UFC",
-  f1: "Formula 1",
+  basquete: "Basquetebol",
+  tenis: "Ténis",
+  volei: "Voleibol",
+  ufc: "UFC & Artes Marciais",
+  f1: "Fórmula 1",
   beisebol: "Beisebol",
-  outros: "Outros",
-  natacao: "Natacao",
+  outros: "Outros Desportos",
+  natacao: "Natação",
   ciclismo: "Ciclismo",
   atletismo: "Atletismo",
   golfe: "Golfe",
-  about: "Sobre Nos",
+  about: "Sobre Nós",
   careers: "Carreiras",
   press: "Imprensa",
   partners: "Parceiros",
   help: "Central de Ajuda",
-  contact: "Contato",
+  contact: "Contacto",
   plans: "Planos",
   faq: "FAQ",
   terms: "Termos de Uso",
@@ -65,55 +68,207 @@ const slugLabels: Record<string, string> = {
   dmca: "DMCA",
 };
 
-function formatKickoff(value: string) {
-  return new Intl.DateTimeFormat("pt-BR", {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "UTC",
-  }).format(new Date(value));
+const SPORT_FALLBACK_THUMBS: Record<string, string> = {
+  football: "https://images.unsplash.com/photo-1522778119026-d647f0596c20?w=900&q=80",
+  basketball: "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=900&q=80",
+  tennis: "https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?w=900&q=80",
+  ufc: "https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?w=900&q=80",
+  f1: "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=900&q=80",
+  default: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=900&q=80",
+};
+
+function formatKickoff(value?: string) {
+  if (!value) return "Em breve";
+  try {
+    return new Intl.DateTimeFormat("pt-PT", {
+      day: "2-digit",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(new Date(value));
+  } catch {
+    return "Agendado";
+  }
 }
 
 function StreamCard({ live }: { live: Live }) {
   const isLive = live.status === "live";
+  const thumb =
+    live.thumbnail ||
+    live.banner ||
+    SPORT_FALLBACK_THUMBS[live.sport] ||
+    SPORT_FALLBACK_THUMBS.default;
+  const hasScore = typeof live.scoreA === "number" && typeof live.scoreB === "number";
 
   return (
     <Link
       href={`/watch/${live.id}`}
-      className="group overflow-hidden rounded-xl border border-[#2A2A2A] bg-[#1A1A1A] transition-all hover:border-[#E50914]/50"
+      className="group flex flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-b from-[#11131F] to-[#0A0C14] transition-all duration-300 hover:-translate-y-1 hover:border-[#E50914]/50 hover:shadow-[0_18px_50px_rgba(229,9,20,0.16)]"
     >
-      <div className="relative aspect-video overflow-hidden bg-[#2A2A2A]">
+      <div className="relative aspect-video overflow-hidden bg-[#161926]">
         <img
-          src={live.thumbnail || `https://picsum.photos/seed/${live.id}/640/360`}
+          src={thumb}
           alt={live.title}
+          loading="lazy"
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-        <div className="absolute left-3 top-3 rounded bg-[#E50914] px-2 py-1 text-xs font-bold text-white">
-          {isLive ? "AO VIVO" : "PROGRAMADO"}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#080910] via-[#080910]/35 to-transparent" />
+
+        <div className="absolute left-3 top-3 flex items-center gap-2">
+          {isLive ? (
+            <span className="badge-live">
+              <span className="badge-live-dot" /> AO VIVO
+            </span>
+          ) : (
+            <span className="rounded-full border border-white/15 bg-black/60 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white/85 backdrop-blur-md">
+              PROGRAMADO
+            </span>
+          )}
+          {live.matchTime && (
+            <span className="rounded-full bg-black/65 px-2.5 py-1 text-[10px] font-bold text-emerald-400 backdrop-blur-md">
+              {live.matchTime}
+            </span>
+          )}
         </div>
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#E50914]">
+
+        {/* Team Crests Overlay if present */}
+        {(live.teamALogo || live.teamBLogo) && (
+          <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between rounded-xl border border-white/10 bg-black/65 px-3 py-2 backdrop-blur-md">
+            <div className="flex items-center gap-2 min-w-0">
+              {live.teamALogo && (
+                <img src={live.teamALogo} alt={live.teamA || ""} className="h-6 w-6 object-contain shrink-0" />
+              )}
+              <span className="truncate text-xs font-bold text-white">{live.teamA}</span>
+            </div>
+            <span className="px-2 text-sm font-black text-white tabular-nums">
+              {hasScore ? `${live.scoreA} - ${live.scoreB}` : "VS"}
+            </span>
+            <div className="flex items-center gap-2 min-w-0 justify-end">
+              <span className="truncate text-xs font-bold text-white">{live.teamB}</span>
+              {live.teamBLogo && (
+                <img src={live.teamBLogo} alt={live.teamB || ""} className="h-6 w-6 object-contain shrink-0" />
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+          <div className="flex h-13 w-13 items-center justify-center rounded-full bg-[#E50914] p-3.5 shadow-[0_0_30px_rgba(229,9,20,0.65)]">
             <Play className="ml-0.5 h-5 w-5 fill-current text-white" />
           </div>
         </div>
       </div>
-      <div className="p-4">
-        <p className="mb-1 text-xs font-semibold text-[#E50914]">{live.league}</p>
-        <h2 className="mb-3 text-base font-bold text-white">{live.title}</h2>
-        <div className="flex items-center justify-between gap-3 text-xs text-gray-400">
-          <span className="font-medium text-gray-300">{getSportLabel(live.sport)}</span>
+
+      <div className="flex flex-1 flex-col justify-between p-4">
+        <div>
+          <p className="mb-1 text-[11px] font-bold uppercase tracking-wider text-[#ff5e67] truncate">
+            {live.league || getSportLabel(live.sport)}
+          </p>
+          <h2 className="mb-3 line-clamp-2 text-base font-bold text-white group-hover:text-white/95">
+            {live.title}
+          </h2>
+        </div>
+
+        <div className="flex items-center justify-between gap-3 border-t border-white/[0.06] pt-3 text-xs text-white/50">
+          <span className="font-semibold text-white/75">{getSportLabel(live.sport)}</span>
           {isLive ? (
-            <span className="flex items-center gap-1">
+            <span className="flex items-center gap-1.5 text-emerald-400 font-semibold">
               <Users className="h-3.5 w-3.5" />
-              {formatNumber(live.viewerCount)}
+              {formatNumber(live.viewerCount || 0)} a assistir
             </span>
           ) : (
-            <span className="flex items-center gap-1">
-              <CalendarClock className="h-3.5 w-3.5" />
+            <span className="flex items-center gap-1.5">
+              <CalendarClock className="h-3.5 w-3.5 text-[#E50914]" />
               {formatKickoff(live.scheduledAt)}
             </span>
           )}
         </div>
+      </div>
+    </Link>
+  );
+}
+
+function MatchEventCard({ event }: { event: Event }) {
+  const isLive = event.status === "live";
+  const isFinished = event.status === "finished";
+  const hasScore = typeof event.scoreA === "number" && typeof event.scoreB === "number";
+
+  return (
+    <Link
+      href={`/evento/${event.id}`}
+      className="group flex flex-col justify-between rounded-2xl border border-white/[0.07] bg-gradient-to-br from-[#0F111C] to-[#090B12] p-5 transition-all duration-300 hover:-translate-y-1 hover:border-[#E50914]/40"
+    >
+      <div>
+        <div className="flex items-center justify-between gap-2 mb-4">
+          <div className="flex items-center gap-2 min-w-0">
+            {event.leagueLogo && (
+              <img src={event.leagueLogo} alt="" className="h-4 w-4 object-contain opacity-80" />
+            )}
+            <span className="truncate text-[11px] font-bold uppercase tracking-wider text-white/45">
+              {event.league || getSportLabel(event.sport)}
+            </span>
+          </div>
+          {isLive ? (
+            <span className="badge-live"><span className="badge-live-dot" /> AO VIVO</span>
+          ) : (
+            <span className={`badge text-[10px] px-2 py-0.5 ${isFinished ? "badge-green" : "badge-blue"}`}>
+              {isFinished ? "Terminado" : event.matchTime || "Agendado"}
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between gap-3 my-4">
+          <div className="flex flex-col items-center gap-2 flex-1 min-w-0">
+            {event.teamALogo ? (
+              <img src={event.teamALogo} alt={event.teamA || ""} className="h-11 w-11 object-contain" />
+            ) : (
+              <div className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-xs font-black text-white">
+                {(event.teamA || "?").slice(0, 2).toUpperCase()}
+              </div>
+            )}
+            <span className="w-full truncate text-center text-xs font-bold text-white/90">
+              {event.teamA || event.title}
+            </span>
+          </div>
+
+          <div className="shrink-0 px-2 text-center">
+            {hasScore ? (
+              <div className="text-2xl font-black text-white tabular-nums">
+                {event.scoreA} <span className="text-white/25">–</span> {event.scoreB}
+              </div>
+            ) : (
+              <span className="rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1 text-xs font-black text-white/55">
+                VS
+              </span>
+            )}
+          </div>
+
+          <div className="flex flex-col items-center gap-2 flex-1 min-w-0">
+            {event.teamBLogo ? (
+              <img src={event.teamBLogo} alt={event.teamB || ""} className="h-11 w-11 object-contain" />
+            ) : (
+              <div className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-xs font-black text-white">
+                {(event.teamB || "?").slice(0, 2).toUpperCase()}
+              </div>
+            )}
+            <span className="w-full truncate text-center text-xs font-bold text-white/90">
+              {event.teamB || "—"}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between border-t border-white/[0.05] pt-3 text-[11px] text-white/45">
+        <span className="flex items-center gap-1.5">
+          <CalendarClock className="h-3.5 w-3.5 text-[#E50914]/80" />
+          {formatKickoff(event.scheduledAt)}
+        </span>
+        {(event.viewerCount ?? 0) > 0 && (
+          <span className="flex items-center gap-1">
+            <Eye className="h-3.5 w-3.5 text-white/40" />
+            {formatNumber(event.viewerCount || 0)}
+          </span>
+        )}
       </div>
     </Link>
   );
@@ -133,9 +288,6 @@ export async function generateMetadata({
   if (!category) return {};
 
   if (category === "blank") {
-    // Server-rendered metadata can't read the client-side language preference
-    // (localStorage), so it defaults to Portuguese — matching the default
-    // language used elsewhere (LangProvider defaults to "pt").
     const content = getStaticPageContent(slug as StaticPageSlug, "pt");
     return {
       title: `${content.title} | LiveSports`,
@@ -145,9 +297,9 @@ export async function generateMetadata({
 
   const label = slugLabels[slug];
   return {
-    title: label ? `${label} ao Vivo | LiveSports` : undefined,
+    title: label ? `${label} em Direto | LiveSports` : undefined,
     description: label
-      ? `Acompanhe transmissoes ao vivo e jogos agendados de ${label} na LiveSports.`
+      ? `Acompanhe transmissões ao vivo, resultados e jogos agendados de ${label} na LiveSports.`
       : undefined,
   };
 }
@@ -165,51 +317,111 @@ export default async function PublicSlugPage({
     return <StaticPageClient slug={slug as StaticPageSlug} />;
   }
 
-  const liveData =
+  const [liveData, eventsData] =
     category === "empty"
-      ? null
-      : await serverApiRequest<ApiListResponse<Live>>(
-          category === "all-live" ? "/lives?status=live&limit=100" : `/lives?sport=${category}&limit=100`
-        );
-  const lives = liveData?.items || [];
+      ? [null, null]
+      : await Promise.all([
+          serverApiRequest<ApiListResponse<Live>>(
+            category === "all-live" ? "/lives?status=live&limit=100" : `/lives?sport=${category}&limit=100`,
+          ),
+          serverApiRequest<Event[]>(
+            category === "all-live" ? "/events?status=live&limit=100" : `/events?sport=${category}&limit=100`,
+          ),
+        ]);
 
+  const lives = liveData?.items || [];
+  const events = Array.isArray(eventsData) ? eventsData : [];
   const title = slugLabels[slug];
 
   return (
-    <section className="min-h-[70vh] px-4 py-10 lg:px-6">
-      <div className="mx-auto max-w-[1400px]">
-        <div className="mb-8">
-          <p className="mb-2 text-sm font-semibold uppercase text-[#E50914]">
-            Live Sports
-          </p>
-          <h1 className="font-heading text-3xl font-black text-white lg:text-5xl">
-            {title}
-          </h1>
-          <p className="mt-3 max-w-2xl text-sm text-gray-400 lg:text-base">
-            Transmissoes ao vivo e jogos programados para esta categoria.
-          </p>
+    <section className="min-h-[75vh] px-4 py-10 lg:px-8">
+      <div className="mx-auto max-w-[1400px] space-y-10">
+        {/* Hero Header */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-white/[0.06] pb-7">
+          <div>
+            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-[#E50914]/30 bg-[#E50914]/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-[#ff666e]">
+              <Radio className="h-3.5 w-3.5" />
+              LiveSports · Oficial
+            </div>
+            <h1
+              className="text-4xl font-black text-white lg:text-5xl"
+              style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
+            >
+              {title}
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm text-white/55 lg:text-base">
+              Transmissões em direto com múltiplos servidores HLS, marcadores em tempo real e calendário atualizado de jogos.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/calendario"
+              className="rounded-full border border-white/12 bg-white/[0.04] px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-white/85 hover:border-white/25 hover:bg-white/[0.08]"
+            >
+              Calendário Completo
+            </Link>
+          </div>
         </div>
 
-        {lives.length > 0 ? (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {lives.map((live) => (
-              <StreamCard key={live.id} live={live} />
-            ))}
+        {/* Streams Section */}
+        {lives.length > 0 && (
+          <div className="space-y-5">
+            <div className="flex items-center gap-2.5">
+              <span className="badge-live"><span className="badge-live-dot" /> CANAIS & STREAMS</span>
+              <h2 className="text-xl font-black text-white" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+                Canais de Transmissão ({lives.length})
+              </h2>
+            </div>
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {lives.map((live) => (
+                <StreamCard key={live.id} live={live} />
+              ))}
+            </div>
           </div>
-        ) : (
-          <div className="rounded-xl border border-[#2A2A2A] bg-[#1A1A1A] p-8 text-center">
-            <h2 className="mb-2 text-xl font-bold text-white">
-              Nenhuma transmissao disponivel
+        )}
+
+        {/* Sponsor Slot */}
+        <AdSlot position="in_content" hideWhenEmpty />
+
+        {/* Real Fixtures & Scoreboard Events */}
+        {events.length > 0 && (
+          <div className="space-y-5">
+            <div className="flex items-center gap-2.5">
+              <Trophy className="h-5 w-5 text-[#E50914]" />
+              <h2 className="text-xl font-black text-white" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+                Jogos Oficiais & Resultados ({events.length})
+              </h2>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {events.map((ev) => (
+                <MatchEventCard key={ev.id} event={ev} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {lives.length === 0 && events.length === 0 && (
+          <div className="rounded-2xl border border-white/[0.08] bg-[#10121C] p-10 text-center">
+            <h2 className="text-lg font-bold text-white">
+              Sem transmissões ou partidas agendadas neste momento
             </h2>
-            <p className="mb-6 text-sm text-gray-400">
-              Ainda nao ha jogos cadastrados para esta categoria.
+            <p className="mt-2 text-sm text-white/50">
+              Explore o calendário completo ou acompanhe os canais principais em direto.
             </p>
-            <Link
-              href="/"
-              className="inline-flex items-center gap-2 rounded-lg bg-[#E50914] px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-[#B00000]"
-            >
-              Voltar ao inicio
-            </Link>
+            <div className="mt-6 flex justify-center gap-3">
+              <Link
+                href="/ao-vivo"
+                className="rounded-full bg-[#E50914] px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white"
+              >
+                Ver Canais em Direto
+              </Link>
+              <Link
+                href="/calendario"
+                className="rounded-full border border-white/15 px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white/80"
+              >
+                Abrir Calendário
+              </Link>
+            </div>
           </div>
         )}
       </div>
