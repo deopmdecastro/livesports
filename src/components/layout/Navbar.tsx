@@ -319,7 +319,7 @@ export default function Navbar() {
                 {lang === "pt" ? "EN" : "PT"}
               </button>
 
-              <NotificationBell />
+              <NotificationBell userId={user?.id} />
 
               {user ? (
                 <div ref={userMenuRef} className="relative">

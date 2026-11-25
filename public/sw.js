@@ -18,3 +18,24 @@ self.addEventListener('fetch', event => {
     event.respondWith(fetch(request).catch(() => caches.match(request)));
   }
 });
+
+self.addEventListener('push', event => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch { data = {}; }
+  const link = typeof data.link === 'string' && data.link.startsWith('/') && !data.link.startsWith('//') && !data.link.includes('\\') ? data.link : '/';
+  event.waitUntil(self.registration.showNotification(typeof data.title === 'string' ? data.title.slice(0,150) : 'LiveSports', {
+    body: typeof data.body === 'string' ? data.body.slice(0,500) : '', icon: '/icons/icon-192.png', badge: '/icons/icon-192.png',
+    data: { link }, ...(data.id ? {tag: String(data.id)} : {})
+  }));
+});
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const path = event.notification.data?.link || '/';
+  const target = new URL(path, self.location.origin);
+  if (target.origin !== self.location.origin) return;
+  event.waitUntil(clients.matchAll({type:'window',includeUncontrolled:true}).then(async windows => {
+    const existing=windows.find(client => new URL(client.url).origin === self.location.origin);
+    if(existing){ await existing.focus(); return existing.navigate(target.href); }
+    return clients.openWindow(target.href);
+  }));
+});

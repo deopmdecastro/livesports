@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { User, BookOpen, HeadphonesIcon, Heart, Settings, LogOut, ChevronLeft, Tv2 } from "lucide-react";
+import { User, BookOpen, HeadphonesIcon, Heart, Settings, Bell, LogOut, ChevronLeft, Tv2 } from "lucide-react";
 import { cn } from "@/utils";
 import { getStoredUser, logout } from "@/lib/api";
 
@@ -12,6 +12,7 @@ const navItems = [
   { label: "Lista de Favoritos", href: "/me/watchlist", icon: Heart },
   { label: "Histórico", href: "/me/history", icon: BookOpen },
   { label: "Suporte", href: "/me/tickets", icon: HeadphonesIcon },
+  { label: "Notificações", href: "/me/notificacoes", icon: Bell },
   { label: "Definições", href: "/me/settings", icon: Settings },
 ];
 

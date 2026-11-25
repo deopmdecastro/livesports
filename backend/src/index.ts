@@ -32,6 +32,8 @@ import creatorRoutes from './routes/creator.routes';
 import pollRoutes from './routes/poll.routes';
 import chatRoutes from './routes/chat.routes';
 import notificationsRoutes from './routes/notifications.routes';
+import pushRoutes from './routes/push.routes';
+import { ensurePushSchema, startNotificationWatcher } from './lib/notification-watcher';
 import statsRoutes from './routes/stats.routes';
 import bannerRoutes from './routes/banner.routes';
 import settingsRoutes from './routes/settings.routes';
@@ -324,6 +326,7 @@ app.use('/api/creator', creatorRoutes);
 app.use('/api/polls', pollRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/notifications', notificationsRoutes);
+app.use('/api/push', pushRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/banners', bannerRoutes);
 app.use('/api/settings', settingsRoutes);
@@ -414,14 +417,14 @@ io.on('connection', (socket) => {
 
   // Allow user to join their private room for notifications
   socket.on('join-user', (userId: string) => {
-    if (typeof userId === 'string' && userId.length <= 100) {
+    if (typeof userId === 'string' && userId.length <= 100 && (socket as any).user?.id === userId) {
       socket.join(`user-${userId}`);
     }
   });
 
   // Allow admins/editors to join the admin broadcast room
   socket.on('join-admin', () => {
-    socket.join('admin-room');
+    if (['admin', 'super_admin', 'moderator', 'editor'].includes((socket as any).user?.role)) socket.join('admin-room');
   });
 
   socket.on('join-live', (liveId: string) => {
@@ -481,6 +484,8 @@ const PORT = process.env.PORT || 3001;
 ensureRuntimeSchema()
   .then(async () => {
     console.log('✅ Database schema verified');
+    await ensurePushSchema();
+    startNotificationWatcher();
     await runRealContentSync(true).catch((syncErr: any) => {
       console.warn('[RealContentSync] Initial sync warning:', syncErr?.message || String(syncErr));
     });

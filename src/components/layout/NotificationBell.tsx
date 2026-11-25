@@ -144,7 +144,7 @@ export default function NotificationBell({ userId }: { userId?: string }) {
       </button>
 
       {open && (
-        <div className='absolute right-0 top-full z-50 mt-2 w-80 animate-fade-in-up overflow-hidden rounded-xl border border-[#1E1E2A] bg-[#0A0A0F] shadow-2xl'>
+        <div className='absolute right-0 top-full z-50 mt-2 w-[min(20rem,calc(100vw-2rem))] animate-fade-in-up overflow-hidden rounded-xl border border-[#1E1E2A] bg-[#0A0A0F] shadow-2xl'>
           {/* Header */}
           <div className='flex items-center justify-between border-b border-[#1E1E2A] px-4 py-3'>
             <div className='flex items-center gap-2'>
@@ -200,6 +200,7 @@ export default function NotificationBell({ userId }: { userId?: string }) {
             )}
           </div>
 
+          <Link href={userId ? '/me/notificacoes' : '/login'} onClick={() => setOpen(false)} className='block border-t border-[#1E1E2A] px-4 py-3 text-center text-xs font-semibold text-red-300 hover:text-white'>{userId ? 'Configurar notificações' : 'Inicie sessão para receber notificações'}</Link>
           {/* Footer */}
           {notifications.length > 0 && (
             <div className='border-t border-[#1E1E2A] px-4 py-2 text-center'>

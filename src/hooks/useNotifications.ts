@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { apiRequest } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
+import toast from 'react-hot-toast';
 
 export interface Notification {
   id: string;
@@ -82,15 +83,15 @@ export function useNotifications(userId?: string) {
       : undefined;
 
     const socket = getSocket();
-    if (token) socket.auth = { token };
+    if (token) { socket.auth = { token }; if (socket.connected) socket.disconnect(); }
     if (!socket.connected) socket.connect();
 
     // Join user room for private notifications
-    socket.on('connect', () => {
-      socket.emit('join-user', userId);
-    });
+    const join = () => socket.emit('join-user', userId);
+    socket.on('connect', join);
+    if (socket.connected) join();
 
-    socket.on('notification', (payload: Notification) => {
+    const onNotification = (payload: Notification) => {
       if (!mounted.current) return;
       setNotifications((prev) => {
         const exists = prev.some((n) => n.id === payload.id);
@@ -99,12 +100,14 @@ export function useNotifications(userId?: string) {
       });
       if (!payload.read) {
         setUnreadCount((prev) => prev + 1);
+        toast(`${payload.title}${payload.message ? ` — ${payload.message}` : ''}`, { icon: '🔔', id: payload.id, duration: 5000 });
       }
-    });
+    };
+    socket.on('notification', onNotification);
 
     return () => {
-      socket.off('notification');
-      socket.off('connect');
+      socket.off('notification', onNotification);
+      socket.off('connect', join);
     };
   }, [userId]);
 

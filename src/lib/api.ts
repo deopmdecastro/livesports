@@ -1,3 +1,5 @@
+import { disconnectSocket } from "@/lib/socket";
+
 // ─── Configuration ────────────────────────────────────────────────────────────
 
 const RAW_API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001') || "http://localhost:3001";
@@ -100,6 +102,17 @@ export async function logout(): Promise<void> {
   const refreshToken = getRefreshToken();
   const token = getToken();
   try {
+    // Remove this device's push subscription before ending the session.
+    if (token && typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+      try {
+        const registration = await navigator.serviceWorker.getRegistration();
+        const sub = await registration?.pushManager?.getSubscription();
+        if (sub) {
+          try { await fetch(`${API_URL}/push/unsubscribe`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ endpoint: sub.endpoint }) }); }
+          finally { await sub.unsubscribe(); }
+        }
+      } catch { /* logout must still work if push is unavailable */ }
+    }
     if (token) {
       await fetchWithRetry(`${API_URL}/auth/logout`, {
         method: "POST",
@@ -113,6 +126,7 @@ export async function logout(): Promise<void> {
   } catch {
     // Best-effort: still clear the local session below.
   } finally {
+    disconnectSocket();
     clearAuthSession();
   }
 }

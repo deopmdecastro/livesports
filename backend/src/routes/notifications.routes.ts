@@ -1,9 +1,11 @@
 import { Router } from 'express';
-import { authenticateToken, AuthRequest, requireEditor } from '../middleware/auth.middleware';
+import { authenticateToken, AuthRequest, requireRole } from '../middleware/auth.middleware';
 import { prisma } from '../lib/prisma';
 import { writeLog } from './logs.routes';
+import { sendPush } from '../lib/push';
 
 const router = Router();
+const requireStaff = requireRole('admin', 'super_admin', 'moderator', 'editor');
 const STAFF_ROLES = new Set(['admin', 'super_admin', 'moderator', 'editor']);
 const ALLOWED_NOTIFICATION_TYPES = new Set([
   'info',
@@ -77,7 +79,7 @@ router.get('/', authenticateToken, async (req: AuthRequest, res, next) => {
 });
 
 // ── GET /api/notifications/admin — list platform notifications for staff
-router.get('/admin', authenticateToken, requireEditor, async (req: AuthRequest, res, next) => {
+router.get('/admin', authenticateToken, requireStaff, async (req: AuthRequest, res, next) => {
   try {
     const limit = Math.min(Number(req.query.limit) || 100, 200);
     const q = String(req.query.q || '').trim();
@@ -156,26 +158,27 @@ router.get('/admin', authenticateToken, requireEditor, async (req: AuthRequest, 
 });
 
 // ── POST /api/notifications/send — send platform notification
-router.post('/send', authenticateToken, requireEditor, async (req: AuthRequest, res, next) => {
+router.post('/send', authenticateToken, requireStaff, async (req: AuthRequest, res, next) => {
   try {
     const title = String(req.body?.title || '').trim();
     const message = String(req.body?.message || '').trim();
     const type = normalizeNotificationType(req.body?.type);
     const userId = String(req.body?.userId || '').trim();
-    const sendToAll = Boolean(req.body?.sendToAll) || !userId;
+    const sendToAll = req.body?.sendToAll === true;
+    if (!sendToAll && !userId) { res.status(400).json({ success: false, error: 'Selecione um destinatário ou o envio para todos.' }); return; }
     const link = String(req.body?.actionUrl || req.body?.link || '').trim() || undefined;
 
-    if (!title || !message) {
+    if (!title || !message || title.length > 150 || message.length > 500 || (link && (!link.startsWith('/') || link.startsWith('//') || link.includes('\\')))) {
       res.status(400).json({ success: false, error: 'Titulo e mensagem sao obrigatorios' });
       return;
     }
 
     const recipients = sendToAll
       ? await prisma.$queryRawUnsafe<Array<{ id: string }>>(
-          `SELECT id FROM "users" WHERE status = 'active' ORDER BY created_at DESC LIMIT 5000`,
+          `SELECT u.id FROM "users" u LEFT JOIN notification_preferences p ON p.user_id=u.id WHERE u.status = 'active' AND COALESCE(p.announcements,true) ORDER BY u.created_at DESC LIMIT 5000`,
         )
       : await prisma.$queryRawUnsafe<Array<{ id: string }>>(
-          `SELECT id FROM "users" WHERE id = $1 LIMIT 1`,
+          `SELECT u.id FROM "users" u LEFT JOIN notification_preferences p ON p.user_id=u.id WHERE u.id = $1 AND u.status = 'active' AND COALESCE(p.announcements,true) LIMIT 1`,
           userId,
         );
 
@@ -184,7 +187,7 @@ router.post('/send', authenticateToken, requireEditor, async (req: AuthRequest, 
       return;
     }
 
-    await Promise.allSettled(
+    const results = await Promise.allSettled(
       recipients.map((recipient) =>
         createNotification({
           userId: recipient.id,
@@ -195,11 +198,13 @@ router.post('/send', authenticateToken, requireEditor, async (req: AuthRequest, 
           meta: {
             broadcast: sendToAll,
             createdBy: req.user?.id,
+            category: 'announcements',
           },
         }),
       ),
     );
 
+    const sentCount = results.filter(r => r.status === 'fulfilled' && r.value).length;
     await writeLog({
       level: 'info',
       service: 'admin',
@@ -219,7 +224,7 @@ router.post('/send', authenticateToken, requireEditor, async (req: AuthRequest, 
     res.status(201).json({
       success: true,
       data: {
-        sentCount: recipients.length,
+        sentCount,
         type,
         title,
       },
@@ -285,7 +290,7 @@ export async function createNotification(params: {
   message?: string;
   link?: string;
   meta?: Record<string, unknown>;
-}): Promise<void> {
+}): Promise<boolean> {
   try {
     const rows = await prisma.$queryRawUnsafe<any[]>(
       `INSERT INTO notifications (user_id, type, title, message, link, meta)
@@ -310,8 +315,11 @@ export async function createNotification(params: {
         createdAt: rows[0].created_at,
       });
     } catch {}
-  } catch {
-    // Silently fail — notifications are non-critical
+    void sendPush(params.userId, { title: params.title, body: params.message, link: params.link, id: rows[0].id, category: String(params.meta?.category || '') }).catch(err => console.warn('[push]', err.message));
+    return true;
+  } catch (error) {
+    console.error('[notifications] Falha ao criar notificação', error);
+    return false;
   }
 }
 

@@ -122,7 +122,7 @@ export default function NotificationsPage() {
           userId: form.sendToAll ? "" : form.userId,
         }),
       });
-      toast.success(`Notificação enviada para ${result.sentCount} destinatário(s)`);
+      toast.success(`Notificação criada para ${result.sentCount} destinatário(s). A entrega push depende do dispositivo.`);
       setShowCreate(false);
       setForm({ title: "", message: "", type: "system", userId: "", sendToAll: true });
       await load();
