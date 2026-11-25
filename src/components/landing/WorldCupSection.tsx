@@ -410,7 +410,20 @@ export default function WorldCupSection({
                   className="flex h-14 w-14 items-center justify-center rounded-2xl border p-2"
                   style={{ borderColor: theme.border, background: theme.badgeBg }}
                 >
-                  <img src={competition.thumbnail} alt="" className="max-h-full max-w-full object-contain" />
+                  <img
+                    src={competition.thumbnail}
+                    alt=""
+                    referrerPolicy="no-referrer"
+                    className="max-h-full max-w-full object-contain"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).style.display = "none";
+                      const fallback = e.currentTarget.parentElement?.querySelector("[data-logo-fallback]");
+                      if (fallback instanceof HTMLElement) fallback.style.display = "flex";
+                    }}
+                  />
+                  <div data-logo-fallback className="hidden h-full w-full items-center justify-center">
+                    <Trophy className="h-7 w-7" style={{ color: theme.primary }} />
+                  </div>
                 </div>
               ) : (
                 <div

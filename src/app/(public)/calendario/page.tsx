@@ -2,11 +2,15 @@ import type { Metadata } from "next";
 import SportsCalendar from "@/components/calendar/SportsCalendar";
 
 export const metadata: Metadata = {
-  title: "Calendario Desportivo | LiveSports",
+  title: "Calendário Desportivo | LiveSports",
   description:
-    "Consulte o calendario de jogos, ligas e competicoes do dia. Futebol, basquete, tenis, UFC, F1 e muito mais via TheSportsDB.",
+    "Consulte o calendário de jogos, ligas e competições do dia. Futebol, basquete, ténis, UFC, F1 e muito mais via TheSportsDB.",
 };
 
 export default function CalendarPage() {
-  return <SportsCalendar initialSport="Soccer" />;
+  return (
+    <div className="pb-8">
+      <SportsCalendar initialSport="Soccer" />
+    </div>
+  );
 }

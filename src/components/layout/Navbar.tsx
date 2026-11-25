@@ -177,7 +177,7 @@ export default function Navbar() {
 
   return (
     <>
-      <div className="fixed inset-x-0 top-0 z-[70] h-[26px] overflow-hidden border-b border-white/5 bg-[#c80812]">
+      <div className="fixed inset-x-0 top-0 z-[70] h-[22px] overflow-hidden border-b border-white/5 bg-[#c80812]">
         <div className="ticker-track h-full items-center gap-12 px-4">
           {[...tickerItems, ...tickerItems].map((item, index) => (
             <span
@@ -191,7 +191,7 @@ export default function Navbar() {
         </div>
       </div>
 
-      <header className="fixed inset-x-0 top-[26px] z-[65] px-3 pt-3 lg:px-5">
+      <header className="fixed inset-x-0 top-[22px] z-[65] px-3 pt-2 lg:px-5">
         <div
           className={`mx-auto max-w-[1400px] rounded-[24px] border transition-all duration-300 ${
             scrolled
@@ -199,7 +199,7 @@ export default function Navbar() {
               : "border-white/8 bg-[rgba(7,8,13,0.72)] backdrop-blur-xl"
           }`}
         >
-          <div className="flex h-[62px] items-center justify-between gap-3 px-4 sm:px-5 lg:px-6">
+          <div className="flex h-[56px] items-center justify-between gap-2 px-3 sm:gap-3 sm:px-5 lg:px-6">
             <div className="flex min-w-0 items-center gap-3 lg:gap-4">
               <Link href="/" className="shrink-0">
                 <BrandIdentity mode="navbar" />
@@ -393,7 +393,7 @@ export default function Navbar() {
       </header>
 
       {mobileOpen ? (
-        <div className="fixed inset-0 z-[60] top-[calc(26px+62px+12px)] lg:hidden safe-area-bottom">
+        <div className="fixed inset-0 z-[60] top-[calc(22px+56px+8px)] lg:hidden safe-area-bottom">
           <div className="absolute inset-0 bg-[rgba(5,6,10,0.94)] backdrop-blur-xl" onClick={() => setMobileOpen(false)} />
           <div className="relative mx-3 mb-3 flex max-h-[min(78vh,720px)] flex-col overflow-hidden rounded-[24px] border border-white/8 bg-[rgba(9,10,15,0.98)] shadow-[0_22px_60px_rgba(0,0,0,0.5)]">
             {/* Search */}

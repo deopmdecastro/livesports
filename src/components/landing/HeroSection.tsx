@@ -332,7 +332,7 @@ export default function HeroSection() {
 
   return (
     <section
-      className="relative overflow-hidden bg-[#05060a] px-3 pb-16 pt-[104px] sm:px-4 sm:pb-24 sm:pt-[112px] lg:px-6 lg:pb-28 lg:pt-[118px]"
+      className="relative overflow-hidden bg-[#05060a] px-3 pb-16 pt-6 sm:px-4 sm:pb-24 sm:pt-8 lg:px-6 lg:pb-28 lg:pt-10"
       role="region"
       aria-roledescription="carousel"
       aria-label="Destaques ao vivo"

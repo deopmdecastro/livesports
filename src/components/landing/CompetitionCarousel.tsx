@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Trophy } from "lucide-react";
 import type { CompetitionFormat, PublicCompetitionSummary } from "@/types";
 import { useLang } from "@/lib/lang";
 import { getCompetitionTheme } from "@/lib/competition-theme";
+import { cn } from "@/utils";
 
 const formatLabels: Record<CompetitionFormat, { pt: string; en: string }> = {
   groups: { pt: "Grupos", en: "Groups" },
@@ -19,11 +20,49 @@ interface Props {
   loading?: boolean;
 }
 
+function CompetitionLogo({
+  src,
+  active,
+  primary,
+}: {
+  src?: string;
+  active: boolean;
+  primary: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  const showImg = Boolean(src) && !failed;
+
+  if (showImg) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={src}
+        alt=""
+        loading="lazy"
+        referrerPolicy="no-referrer"
+        decoding="async"
+        className="max-h-full max-w-full object-contain"
+        onError={() => setFailed(true)}
+      />
+    );
+  }
+
+  return <Trophy className="h-5 w-5" style={{ color: active ? primary : "#6B7280" }} />;
+}
+
 export default function CompetitionCarousel({ competitions, selectedSlug, onSelect, loading }: Props) {
   const { lang } = useLang();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const pausedRef = useRef(false);
+  const rafRef = useRef<number | null>(null);
+  const [paused, setPaused] = useState(false);
   const activeTheme = getCompetitionTheme(competitions.find((c) => c.slug === selectedSlug));
 
+  useEffect(() => {
+    pausedRef.current = paused;
+  }, [paused]);
+
+  // Keep active chip in view when selection changes
   useEffect(() => {
     if (!scrollRef.current || !selectedSlug) return;
     const active = scrollRef.current.querySelector(`[data-slug="${selectedSlug}"]`);
@@ -32,12 +71,42 @@ export default function CompetitionCarousel({ competitions, selectedSlug, onSele
     }
   }, [selectedSlug, competitions.length]);
 
-  const scroll = (direction: "left" | "right") => {
+  // Continuous auto-scroll (marquee-style) while not paused
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || competitions.length < 3) return;
+
+    let last = performance.now();
+    const speed = 28; // px per second
+
+    const tick = (now: number) => {
+      const dt = Math.min(32, now - last);
+      last = now;
+      if (!pausedRef.current && el) {
+        el.scrollLeft += (speed * dt) / 1000;
+        // loop
+        const max = el.scrollWidth - el.clientWidth;
+        if (max > 0 && el.scrollLeft >= max - 1) {
+          el.scrollLeft = 0;
+        }
+      }
+      rafRef.current = requestAnimationFrame(tick);
+    };
+
+    rafRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [competitions.length]);
+
+  const scroll = useCallback((direction: "left" | "right") => {
+    setPaused(true);
     scrollRef.current?.scrollBy({
       left: direction === "left" ? -280 : 280,
       behavior: "smooth",
     });
-  };
+    window.setTimeout(() => setPaused(false), 2500);
+  }, []);
 
   if (loading && competitions.length === 0) {
     return (
@@ -54,12 +123,29 @@ export default function CompetitionCarousel({ competitions, selectedSlug, onSele
 
   if (competitions.length === 0) return null;
 
+  // Duplicate list for smoother loop perception when few items
+  const track = competitions.length < 6 ? [...competitions, ...competitions] : competitions;
+
   return (
-    <div className="mb-8">
+    <div
+      className="mb-8"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocusCapture={() => setPaused(true)}
+      onBlurCapture={() => setPaused(false)}
+    >
       <div className="mb-3 flex items-center justify-between gap-3">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
-          {lang === "pt" ? "Competições" : "Competitions"}
-        </p>
+        <div className="flex items-center gap-2">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
+            {lang === "pt" ? "Competições" : "Competitions"}
+          </p>
+          {!paused && competitions.length >= 3 ? (
+            <span className="hidden items-center gap-1 text-[10px] text-gray-600 sm:inline-flex">
+              <span className="h-1 w-1 animate-pulse rounded-full bg-[#E50914]" />
+              {lang === "pt" ? "A deslizar" : "Scrolling"}
+            </span>
+          ) : null}
+        </div>
         <div className="flex items-center gap-1">
           <button
             type="button"
@@ -82,8 +168,12 @@ export default function CompetitionCarousel({ competitions, selectedSlug, onSele
         </div>
       </div>
 
-      <div ref={scrollRef} className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory">
-        {competitions.map((item) => {
+      <div
+        ref={scrollRef}
+        className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide"
+        style={{ scrollBehavior: "auto" }}
+      >
+        {track.map((item, idx) => {
           const active = item.slug === selectedSlug;
           const format = (item.format || "groups") as CompetitionFormat;
           const formatLabel = formatLabels[format][lang === "pt" ? "pt" : "en"];
@@ -91,14 +181,19 @@ export default function CompetitionCarousel({ competitions, selectedSlug, onSele
 
           return (
             <button
-              key={item.id}
+              key={`${item.id}-${idx}`}
               type="button"
               data-slug={item.slug}
-              onClick={() => onSelect(item.slug)}
+              onClick={() => {
+                setPaused(true);
+                onSelect(item.slug);
+                window.setTimeout(() => setPaused(false), 4000);
+              }}
               aria-pressed={active}
-              className={`group flex w-[200px] flex-shrink-0 snap-start items-center gap-3 rounded-xl border p-3 text-left transition-all ${
-                active ? "shadow-lg" : "border-[#1E1E2A] bg-[#0E0E16]/80 hover:bg-[#111118]"
-              }`}
+              className={cn(
+                "group flex w-[200px] flex-shrink-0 items-center gap-3 rounded-xl border p-3 text-left transition-all duration-300",
+                active ? "shadow-lg scale-[1.02]" : "border-[#1E1E2A] bg-[#0E0E16]/80 hover:bg-[#111118] hover:-translate-y-0.5"
+              )}
               style={
                 active
                   ? {
@@ -116,13 +211,7 @@ export default function CompetitionCarousel({ competitions, selectedSlug, onSele
                   background: active ? theme.badgeBg : "#111118",
                 }}
               >
-                {item.thumbnail ? (
-                  <img src={item.thumbnail} alt="" className="max-h-full max-w-full object-contain" />
-                ) : item.heroBadgeIcon ? (
-                  <span className="text-xl leading-none">{item.heroBadgeIcon}</span>
-                ) : (
-                  <Trophy className="h-5 w-5" style={{ color: active ? theme.primary : "#6B7280" }} />
-                )}
+                <CompetitionLogo src={item.thumbnail} active={active} primary={theme.primary} />
               </div>
 
               <div className="min-w-0 flex-1">

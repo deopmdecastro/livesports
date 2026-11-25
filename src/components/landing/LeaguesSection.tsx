@@ -122,8 +122,18 @@ export default function LeaguesSection() {
                       alt={league.name}
                       className="max-w-full max-h-full object-contain drop-shadow-md group-hover:scale-110 transition-transform duration-300"
                       loading="lazy"
+                      referrerPolicy="no-referrer"
                       onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = "none";
+                        const img = e.target as HTMLImageElement;
+                        img.style.display = "none";
+                        const parent = img.parentElement;
+                        if (parent && !parent.querySelector("[data-fb]")) {
+                          const fb = document.createElement("span");
+                          fb.dataset.fb = "1";
+                          fb.className = "text-sm font-black text-gray-500";
+                          fb.textContent = league.name.slice(0, 2).toUpperCase();
+                          parent.appendChild(fb);
+                        }
                       }}
                     />
                   ) : (
@@ -169,6 +179,7 @@ export default function LeaguesSection() {
                       alt={league.name}
                       className="h-5 w-auto object-contain opacity-60"
                       loading="lazy"
+                      referrerPolicy="no-referrer"
                       onError={(e) => {
                         (e.target as HTMLImageElement).style.display = "none";
                       }}

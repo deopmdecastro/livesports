@@ -6,6 +6,7 @@ import {
   ArrowLeft, Eye, Heart, MessageCircle, Send, Share2, Users,
   Radio, Settings, Maximize2, Volume2, VolumeX, SkipForward,
   Wifi, WifiOff, AlertCircle, CheckCircle, Info, X, Trophy, Signal, Server, Smile,
+  Flame, ThumbsUp, PartyPopper, Zap, Frown, CircleDot,
 } from "lucide-react";
 import type { Live, LiveComment, LiveEngagement, Ad } from "@/types";
 import { cn, formatNumber } from "@/utils";
@@ -292,12 +293,26 @@ function chatColor(name: string) {
 }
 
 
-const QUICK_EMOJIS = ["🔥", "⚽", "👏", "❤️", "😂", "😮", "🎉", "💪", "🏆", "😭"];
+const LIVE_REACTIONS: Array<{
+  id: string;
+  label: string;
+  icon: typeof Flame;
+  color: string;
+}> = [
+  { id: "fire", label: "Fogo", icon: Flame, color: "#F97316" },
+  { id: "goal", label: "Golo", icon: CircleDot, color: "#22C55E" },
+  { id: "up", label: "Boa", icon: ThumbsUp, color: "#38BDF8" },
+  { id: "heart", label: "Amor", icon: Heart, color: "#E50914" },
+  { id: "wow", label: "Uau", icon: Zap, color: "#FBBF24" },
+  { id: "party", label: "Festa", icon: PartyPopper, color: "#A855F7" },
+  { id: "strong", label: "Força", icon: Trophy, color: "#F59E0B" },
+  { id: "sad", label: "Triste", icon: Frown, color: "#94A3B8" },
+];
 
 type FloatingFx = {
   id: string;
-  kind: "heart" | "emoji";
-  emoji?: string;
+  kind: "heart" | "reaction";
+  reactionId?: string;
   x: number;
   y: number;
 };
@@ -540,10 +555,12 @@ export default function WatchExperience({ live, liveId }: WatchExperienceProps) 
     }
   };
 
-  const sendEmoji = async (emoji: string) => {
+  const sendReaction = async (reactionId: string) => {
+    const reaction = LIVE_REACTIONS.find((r) => r.id === reactionId);
+    if (!reaction) return;
     pushEffect({
-      kind: "emoji",
-      emoji,
+      kind: "reaction",
+      reactionId,
       x: 35 + Math.random() * 30,
       y: 55 + Math.random() * 20,
     });
@@ -551,7 +568,11 @@ export default function WatchExperience({ live, liveId }: WatchExperienceProps) 
     try {
       const created = await apiRequest<LiveComment>(`/lives/${id}/comments`, {
         method: "POST",
-        body: JSON.stringify({ clientId, userName: getUserName(), message: emoji }),
+        body: JSON.stringify({
+          clientId,
+          userName: getUserName(),
+          message: `[${reaction.id}] ${reaction.label}`,
+        }),
       });
       setChat((c) => [...c, created]);
     } catch {
@@ -662,18 +683,30 @@ export default function WatchExperience({ live, liveId }: WatchExperienceProps) 
 
             {/* Floating reactions (hearts / emojis) */}
             <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden">
-              {effects.map((fx) => (
-                <span
-                  key={fx.id}
-                  className={cn(
-                    "absolute animate-watch-float text-2xl drop-shadow-[0_4px_12px_rgba(0,0,0,0.45)]",
-                    fx.kind === "heart" && "text-[#E50914]"
-                  )}
-                  style={{ left: `${fx.x}%`, top: `${fx.y}%` }}
-                >
-                  {fx.kind === "heart" ? "❤️" : fx.emoji}
-                </span>
-              ))}
+              {effects.map((fx) => {
+                if (fx.kind === "heart") {
+                  return (
+                    <span
+                      key={fx.id}
+                      className="absolute animate-watch-float text-[#E50914] drop-shadow-[0_4px_12px_rgba(0,0,0,0.45)]"
+                      style={{ left: `${fx.x}%`, top: `${fx.y}%` }}
+                    >
+                      <Heart className="h-7 w-7 fill-current" />
+                    </span>
+                  );
+                }
+                const reaction = LIVE_REACTIONS.find((r) => r.id === fx.reactionId);
+                const Icon = reaction?.icon || Flame;
+                return (
+                  <span
+                    key={fx.id}
+                    className="absolute animate-watch-float drop-shadow-[0_4px_12px_rgba(0,0,0,0.45)]"
+                    style={{ left: `${fx.x}%`, top: `${fx.y}%`, color: reaction?.color || "#fff" }}
+                  >
+                    <Icon className="h-7 w-7" />
+                  </span>
+                );
+              })}
             </div>
 
             {/* Tap-tap hint on mobile */}
@@ -749,16 +782,21 @@ export default function WatchExperience({ live, liveId }: WatchExperienceProps) 
               </button>
               {showEmojiBar ? (
                 <div className="absolute bottom-full left-0 z-30 mb-2 flex gap-1 rounded-2xl border border-white/10 bg-[#0F1018]/95 p-2 shadow-xl backdrop-blur-md">
-                  {QUICK_EMOJIS.map((emoji) => (
-                    <button
-                      key={emoji}
-                      type="button"
-                      onClick={() => void sendEmoji(emoji)}
-                      className="flex h-9 w-9 items-center justify-center rounded-xl text-lg transition-transform hover:scale-125 active:scale-95"
-                    >
-                      {emoji}
-                    </button>
-                  ))}
+                  {LIVE_REACTIONS.map((reaction) => {
+                    const Icon = reaction.icon;
+                    return (
+                      <button
+                        key={reaction.id}
+                        type="button"
+                        title={reaction.label}
+                        onClick={() => void sendReaction(reaction.id)}
+                        className="flex h-9 w-9 items-center justify-center rounded-xl transition-transform hover:scale-110 active:scale-95"
+                        style={{ color: reaction.color }}
+                      >
+                        <Icon className="h-4 w-4" />
+                      </button>
+                    );
+                  })}
                 </div>
               ) : null}
             </div>
@@ -893,16 +931,21 @@ export default function WatchExperience({ live, liveId }: WatchExperienceProps) 
           {/* Message input */}
           <div className="flex-shrink-0 border-t border-[#1E1E2A] p-3">
             <div className="mb-2 flex gap-1 overflow-x-auto pb-1 scrollbar-hide">
-              {QUICK_EMOJIS.map((emoji) => (
-                <button
-                  key={`chat-${emoji}`}
-                  type="button"
-                  onClick={() => void sendEmoji(emoji)}
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.03] text-base hover:bg-white/[0.08]"
-                >
-                  {emoji}
-                </button>
-              ))}
+              {LIVE_REACTIONS.map((reaction) => {
+                const Icon = reaction.icon;
+                return (
+                  <button
+                    key={`chat-${reaction.id}`}
+                    type="button"
+                    title={reaction.label}
+                    onClick={() => void sendReaction(reaction.id)}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.03] hover:bg-white/[0.08]"
+                    style={{ color: reaction.color }}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                  </button>
+                );
+              })}
             </div>
             <div className="flex gap-2">
               <input
@@ -964,11 +1007,21 @@ export default function WatchExperience({ live, liveId }: WatchExperienceProps) 
             </div>
             <div className="border-t border-[#1E1E2A] p-3">
               <div className="mb-2 flex gap-1 overflow-x-auto scrollbar-hide">
-                {QUICK_EMOJIS.map((emoji) => (
-                  <button key={`m-em-${emoji}`} type="button" onClick={() => void sendEmoji(emoji)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-base">
-                    {emoji}
-                  </button>
-                ))}
+                {LIVE_REACTIONS.map((reaction) => {
+                  const Icon = reaction.icon;
+                  return (
+                    <button
+                      key={`m-em-${reaction.id}`}
+                      type="button"
+                      title={reaction.label}
+                      onClick={() => void sendReaction(reaction.id)}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+                      style={{ color: reaction.color }}
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                    </button>
+                  );
+                })}
               </div>
               <div className="flex gap-2">
                 <input
