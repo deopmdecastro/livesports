@@ -579,11 +579,18 @@ body {
    ═══════════════════════════════════════════════════════════════════════════════ */
 .live-scroll {
   display: flex;
-  gap: 14px;
+  gap: 12px;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: 8px;
+  padding-bottom: 10px;
+  padding-left: 2px;
+  padding-right: 2px;
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
+}
+@media (min-width: 640px) {
+  .live-scroll { gap: 14px; }
 }
 .live-scroll > * {
   scroll-snap-align: start;
@@ -772,6 +779,47 @@ body {
 }
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 
+/* Screen-reader only (accessible skip link support) */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+.focus\:not-sr-only:focus {
+  position: fixed;
+  width: auto;
+  height: auto;
+  padding: inherit;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+/* Safe area (notched phones / home indicator) */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.safe-area-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.pb-safe {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+}
+
+/* Mobile touch targets */
+@media (max-width: 767px) {
+  .btn, button:not(.no-touch-boost), a.btn {
+    min-height: 44px;
+  }
+}
+
 /* Line clamp */
 .line-clamp-2 {
   display: -webkit-box;
@@ -845,4 +893,30 @@ body {
     transform: none;
   }
   html { scroll-behavior: auto; }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   Admin panel
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.admin-main {
+  -webkit-overflow-scrolling: touch;
+}
+.table-row-hover:hover {
+  background: rgba(255, 255, 255, 0.025);
+}
+@media (max-width: 1023px) {
+  .admin-main {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+}
+
+
+@keyframes watch-float {
+  0% { opacity: 0; transform: translate(-50%, 0) scale(0.6); }
+  15% { opacity: 1; transform: translate(-50%, -12px) scale(1.15); }
+  100% { opacity: 0; transform: translate(-50%, -88px) scale(1); }
+}
+.animate-watch-float {
+  animation: watch-float 1.35s var(--ease-out) forwards;
 }

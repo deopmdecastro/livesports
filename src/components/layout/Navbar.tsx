@@ -39,19 +39,20 @@ function useDebounce<T>(value: T, delay: number): T {
   return debounced;
 }
 
-const NAV_LINKS = [
+const NAV_LINKS: Array<{ href: string; label: string; hot?: boolean }> = [
   { href: "/", label: "Início", hot: false },
+  { href: "/ao-vivo", label: "Em Direto", hot: true },
   { href: "/calendario", label: "Calendário" },
-  { href: "/competicao", label: "Competições", hot: true },
+  { href: "/blog", label: "Notícias" },
+  { href: "/competicao", label: "Competições" },
   { href: "/futebol", label: "Futebol" },
-  { href: "/basquete", label: "Basquete" },
 ];
 
-const MORE_LINKS = [
-  { href: "/tenis", label: "Tênis" },
+const MORE_LINKS: Array<{ href: string; label: string; hot?: boolean }> = [
+  { href: "/basquete", label: "Basquete" },
+  { href: "/tenis", label: "Ténis" },
   { href: "/ufc", label: "UFC" },
-  { href: "/f1", label: "F1" },
-  { href: "/blog", label: "Blog" },
+  { href: "/f1", label: "Fórmula 1" },
 ];
 
 export default function Navbar() {
@@ -123,9 +124,37 @@ export default function Navbar() {
       }
     };
 
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setSearchOpen(false);
+        setUserMenuOpen(false);
+        setMoreOpen(false);
+        setMobileOpen(false);
+      }
+    };
+
     document.addEventListener("mousedown", handlePointerDown);
-    return () => document.removeEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, []);
+
+  // Lock body scroll while mobile menu is open (prevents background scroll on iOS)
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [mobileOpen]);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
 
   const handleLogout = useCallback(async () => {
     await performLogout();
@@ -149,7 +178,7 @@ export default function Navbar() {
 
   return (
     <>
-      <div className="fixed inset-x-0 top-0 z-[70] h-[26px] overflow-hidden border-b border-white/5 bg-[#c80812]">
+      <div className="fixed inset-x-0 top-0 z-[70] h-[22px] overflow-hidden border-b border-white/5 bg-[#c80812]">
         <div className="ticker-track h-full items-center gap-12 px-4">
           {[...tickerItems, ...tickerItems].map((item, index) => (
             <span
@@ -163,7 +192,7 @@ export default function Navbar() {
         </div>
       </div>
 
-      <header className="fixed inset-x-0 top-[26px] z-[65] px-3 pt-3 lg:px-5">
+      <header className="fixed inset-x-0 top-[22px] z-[65] px-3 pt-2 lg:px-5">
         <div
           className={`mx-auto max-w-[1400px] rounded-[24px] border transition-all duration-300 ${
             scrolled
@@ -171,18 +200,10 @@ export default function Navbar() {
               : "border-white/8 bg-[rgba(7,8,13,0.72)] backdrop-blur-xl"
           }`}
         >
-          <div className="flex h-[62px] items-center justify-between gap-3 px-4 sm:px-5 lg:px-6">
+          <div className="flex h-[56px] items-center justify-between gap-2 px-3 sm:gap-3 sm:px-5 lg:px-6">
             <div className="flex min-w-0 items-center gap-3 lg:gap-4">
               <Link href="/" className="shrink-0">
                 <BrandIdentity mode="navbar" />
-              </Link>
-
-              <Link
-                href="/competicao"
-                className="hidden xl:inline-flex items-center gap-2 rounded-full border border-[#ffd56a]/18 bg-[#ffd56a]/[0.06] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[#ffd56a] transition-colors hover:bg-[#ffd56a]/[0.1]"
-              >
-                <Trophy className="h-3.5 w-3.5" />
-                Competições
               </Link>
 
               <nav className="hidden lg:flex items-center gap-1">
@@ -238,7 +259,7 @@ export default function Navbar() {
 
             <div className="flex items-center gap-2">
               <div ref={searchRef} className="relative hidden md:block">
-                <div className="flex items-center gap-2 rounded-full border border-white/8 bg-black/25 pl-4 pr-3 py-2 transition-all focus-within:border-white/16 focus-within:bg-white/[0.04]">
+                <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] pl-3.5 pr-3 py-2 transition-all focus-within:border-[#E50914]/35 focus-within:bg-white/[0.06] focus-within:ring-2 focus-within:ring-[#E50914]/15">
                   <Search className="h-3.5 w-3.5 text-white/28" />
                   <input
                     type="search"
@@ -249,7 +270,7 @@ export default function Navbar() {
                       setSearchQuery(event.target.value);
                       setSearchOpen(true);
                     }}
-                    className="w-[150px] bg-transparent text-[13px] text-white placeholder-white/25 outline-none lg:w-[210px]"
+                    className="w-[140px] bg-transparent text-[13px] text-white placeholder-white/35 outline-none lg:w-[200px]"
                   />
                   {searchLoading ? <div className="h-3 w-3 rounded-full border-2 border-[#E50914]/30 border-t-[#E50914] animate-spin" /> : null}
                 </div>
@@ -365,57 +386,167 @@ export default function Navbar() {
       </header>
 
       {mobileOpen ? (
-        <div className="fixed inset-0 z-[60] top-[92px] lg:hidden">
-          <div className="absolute inset-0 bg-[rgba(5,6,10,0.92)] backdrop-blur-xl" onClick={() => setMobileOpen(false)} />
-          <div className="relative mx-3 overflow-hidden rounded-[24px] border border-white/8 bg-[rgba(9,10,15,0.96)] p-4 shadow-[0_22px_60px_rgba(0,0,0,0.45)]">
-            <div className="mb-4 flex items-center gap-2 rounded-[18px] border border-white/8 bg-black/20 px-3 py-3">
-              <Search className="h-4 w-4 text-white/28" />
-              <input
-                type="search"
-                placeholder={t.nav_search_placeholder}
-                aria-label={t.nav_search_placeholder}
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                className="flex-1 bg-transparent text-sm text-white placeholder-white/25 outline-none"
-              />
+        <div className="fixed inset-0 z-[60] top-[calc(22px+56px+8px)] lg:hidden safe-area-bottom">
+          <div className="absolute inset-0 bg-[rgba(5,6,10,0.94)] backdrop-blur-xl" onClick={() => setMobileOpen(false)} />
+          <div className="relative mx-3 mb-3 flex max-h-[min(78vh,720px)] flex-col overflow-hidden rounded-[24px] border border-white/8 bg-[rgba(9,10,15,0.98)] shadow-[0_22px_60px_rgba(0,0,0,0.5)]">
+            {/* Search */}
+            <div className="shrink-0 border-b border-white/[0.06] p-3">
+              <div className="flex items-center gap-2 rounded-[16px] border border-white/10 bg-black/30 px-3 py-3">
+                <Search className="h-4 w-4 shrink-0 text-white/35" />
+                <input
+                  type="search"
+                  placeholder={t.nav_search_placeholder}
+                  aria-label={t.nav_search_placeholder}
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  autoFocus
+                  className="min-w-0 flex-1 bg-transparent text-[15px] text-white placeholder-white/30 outline-none"
+                />
+                {searchQuery ? (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    aria-label="Limpar pesquisa"
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-white/40 hover:bg-white/5 hover:text-white"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                ) : null}
+              </div>
+              {/* Mobile search results */}
+              {searchQuery.length >= 2 ? (
+                <div className="mt-2 max-h-44 overflow-y-auto rounded-[14px] border border-white/8 bg-black/25">
+                  {searchLoading ? (
+                    <p className="px-3 py-3 text-xs text-white/40">A pesquisar…</p>
+                  ) : (() => {
+                    const results = [
+                      ...(searchResults?.lives || []),
+                      ...(searchResults?.events || []),
+                    ].slice(0, 6);
+                    if (!results.length) {
+                      return <p className="px-3 py-3 text-xs text-white/40">Sem resultados</p>;
+                    }
+                    return results.map((result) => (
+                      <Link
+                        key={`${result.kind}-${result.id}`}
+                        href={result.kind === "live" ? `/watch/${result.id}` : `/evento/${result.id}`}
+                        onClick={() => setMobileOpen(false)}
+                        className="flex items-center gap-3 border-b border-white/[0.04] px-3 py-2.5 text-sm text-white/70 last:border-0 active:bg-white/[0.06]"
+                      >
+                        <span className="min-w-0 flex-1 truncate font-medium text-white">
+                          {result.title ||
+                            (result.teamA && result.teamB
+                              ? `${result.teamA} vs ${result.teamB}`
+                              : "Resultado")}
+                        </span>
+                        <span className="shrink-0 text-[11px] text-white/35">
+                          {result.league || (result.kind === "live" ? "Live" : "Evento")}
+                        </span>
+                      </Link>
+                    ));
+                  })()}
+                </div>
+              ) : null}
             </div>
 
-            <nav className="space-y-1">
+            {/* Nav links — scrollable */}
+            <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-2">
+              {liveCount > 0 ? (
+                <Link
+                  href="/"
+                  onClick={() => setMobileOpen(false)}
+                  className="mb-1 flex items-center justify-between rounded-2xl border border-[#E50914]/20 bg-[#E50914]/10 px-3 py-3.5 text-sm font-bold text-[#ff6b73] active:bg-[#E50914]/16"
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <Radio className="h-4 w-4" />
+                    Ao vivo agora
+                  </span>
+                  <span className="rounded-full bg-[#E50914] px-2 py-0.5 text-[11px] font-black text-white">
+                    {liveCount}
+                  </span>
+                </Link>
+              ) : null}
               {[...NAV_LINKS, ...MORE_LINKS].map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
                   onClick={() => setMobileOpen(false)}
-                  className={`flex items-center justify-between rounded-2xl px-3 py-3 text-sm font-semibold transition-colors ${
-                    isActive(link.href) ? "bg-white/[0.05] text-white" : "text-white/60 hover:bg-white/[0.04] hover:text-white"
+                  className={`flex min-h-[48px] items-center justify-between rounded-2xl px-3 py-3 text-[15px] font-semibold transition-colors active:bg-white/[0.06] ${
+                    isActive(link.href) ? "bg-white/[0.06] text-white" : "text-white/65"
                   }`}
                 >
-                  <span>{link.label}</span>
+                  <span className="inline-flex items-center gap-2">
+                    {link.label}
+                    {link.hot ? (
+                      <span className="rounded-full bg-[#E50914]/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#ff6b73]">
+                        Hot
+                      </span>
+                    ) : null}
+                  </span>
                   {isActive(link.href) ? <span className="h-2 w-2 rounded-full bg-[#E50914]" /> : null}
                 </Link>
               ))}
             </nav>
 
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              {user ? (
-                <>
-                  <Link href="/me" onClick={() => setMobileOpen(false)} className="rounded-2xl border border-white/8 px-3 py-3 text-center text-sm font-semibold text-white/70">
-                    Perfil
+            {/* Footer actions */}
+            <div className="shrink-0 space-y-2 border-t border-white/[0.06] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setLang(lang === "pt" ? "en" : "pt")}
+                  className="flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] text-sm font-semibold text-white/70 active:bg-white/[0.06]"
+                >
+                  <Globe className="h-4 w-4" />
+                  {lang === "pt" ? "EN" : "PT"}
+                </button>
+                {isAdmin ? (
+                  <Link
+                    href="/admin"
+                    onClick={() => setMobileOpen(false)}
+                    className="flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] text-sm font-semibold text-white/70 active:bg-white/[0.06]"
+                  >
+                    <Shield className="h-4 w-4" />
+                    Admin
                   </Link>
-                  <button onClick={handleLogout} className="rounded-2xl border border-red-500/20 px-3 py-3 text-sm font-semibold text-red-400">
-                    Sair
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Link href="/login" onClick={() => setMobileOpen(false)} className="rounded-2xl border border-white/8 px-3 py-3 text-center text-sm font-semibold text-white/70">
-                    {t.nav_login}
-                  </Link>
-                  <Link href="/register" onClick={() => setMobileOpen(false)} className="btn btn-primary rounded-2xl py-3 text-sm">
-                    {t.nav_register}
-                  </Link>
-                </>
-              )}
+                ) : null}
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {user ? (
+                  <>
+                    <Link
+                      href="/me"
+                      onClick={() => setMobileOpen(false)}
+                      className="flex min-h-[48px] items-center justify-center rounded-2xl border border-white/10 text-sm font-semibold text-white/80 active:bg-white/[0.05]"
+                    >
+                      Perfil
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="flex min-h-[48px] items-center justify-center rounded-2xl border border-red-500/25 text-sm font-semibold text-red-400 active:bg-red-500/10"
+                    >
+                      Sair
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      href="/login"
+                      onClick={() => setMobileOpen(false)}
+                      className="flex min-h-[48px] items-center justify-center rounded-2xl border border-white/10 text-sm font-semibold text-white/80 active:bg-white/[0.05]"
+                    >
+                      {t.nav_login}
+                    </Link>
+                    <Link
+                      href="/register"
+                      onClick={() => setMobileOpen(false)}
+                      className="btn btn-primary flex min-h-[48px] items-center justify-center rounded-2xl text-sm font-bold"
+                    >
+                      {t.nav_register}
+                    </Link>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>

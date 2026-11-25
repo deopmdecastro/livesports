@@ -4,6 +4,7 @@ import { prisma } from '../lib/prisma';
 import { cached } from '../lib/cache';
 import { fetchNewsdataLatest, mapNewsdataArticle, isMissingNewsdataKey } from '../lib/newsdata';
 import { fetchNewsApiTopHeadlines, mapNewsApiArticle, isMissingNewsApiKey, NEWSAPI_LANGUAGE_COUNTRY } from '../lib/newsapi';
+import { fetchRealSportsNews } from '../lib/real-sports-feed';
 import { isTranslatablePair, oppositeLanguage, translateArticleFields } from '../lib/translate';
 
 /** True when a Postgres/Prisma error is a unique-constraint violation (code 23505).
@@ -128,18 +129,21 @@ router.get('/external', async (req, res, next) => {
     const hasNewsdata = !isMissingNewsdataKey(newsdataKey);
     const hasNewsapi = !isMissingNewsApiKey(newsapiKey);
 
-    if (!hasNewsdata && !hasNewsapi) {
-      res.status(400).json({
-        success: false,
-        error: 'Nenhuma API de noticias configurada. Define NEWSDATA_API_KEY e/ou NEWSAPI_KEY em Admin > API Keys.',
-      });
-      return;
-    }
-
     const { q, language = 'pt,en', country, page } = req.query as Record<string, string | undefined>;
     const languages = language.split(',').map((l) => l.trim().toLowerCase()).filter(Boolean);
 
     const tasks: Promise<any[]>[] = [];
+
+    // Always include free real-time sports feeds (RTP Desporto PT, BBC Sport EN, ESPN Champions League)
+    // so external sports news work out-of-the-box even without commercial API keys.
+    tasks.push(
+      cached(`realsportsnews:${q || ''}:${language}`, 5 * 60 * 1000, () =>
+        fetchRealSportsNews({ language, q }),
+      ).catch((err) => {
+        console.error('Real sports RSS/ESPN fetch failed:', err?.message || err);
+        return [];
+      }),
+    );
 
     if (hasNewsdata) {
       const cacheKey = `newsdata:${q || ''}:${language}:sports:${country || ''}:${page || ''}`;

@@ -44,7 +44,19 @@ function statusLabel(status: SportsCalendarEvent["status"], lang: "pt" | "en") {
 }
 
 function TeamCrest({ badge }: { badge: string | null }) {
-  if (badge) return <img src={badge} alt="" className="h-7 w-7 flex-shrink-0 object-contain" />;
+  const [failed, setFailed] = useState(false);
+  if (badge && !failed) {
+    return (
+      <img
+        src={badge}
+        alt=""
+        loading="lazy"
+        referrerPolicy="no-referrer"
+        onError={() => setFailed(true)}
+        className="h-7 w-7 flex-shrink-0 object-contain"
+      />
+    );
+  }
   return (
     <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-[#1A1C2A] text-gray-600">
       <Trophy className="h-3.5 w-3.5" />
@@ -278,7 +290,7 @@ export default function SportsCalendar({
   }, [date, sport, leagueId, selectedLeague?.currentSeason, lang, retryToken]);
 
   return (
-    <section className="relative overflow-hidden py-8 lg:py-12">
+    <section className="relative overflow-hidden py-6 sm:py-8 lg:py-12">
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute left-1/2 top-0 h-[320px] w-[720px] -translate-x-1/2 rounded-full bg-[#E50914]/10 blur-[100px]" />
       </div>
@@ -317,7 +329,7 @@ export default function SportsCalendar({
         ) : null}
 
         {/* ── Toolbar: day strip + team search + league filter ── */}
-        <div className="mb-5 overflow-hidden rounded-2xl border border-[#1E1E2A] bg-[#0E0E16]/80">
+        <div className="mb-5 overflow-hidden rounded-2xl border border-[#1E1E2A] bg-[#0E0E16]/90 shadow-[0_12px_40px_rgba(0,0,0,0.25)]">
           {/* Day strip */}
           <div className="flex items-center gap-3 border-b border-[#1A1C2A] px-4 py-3.5">
             <button
@@ -329,7 +341,7 @@ export default function SportsCalendar({
               <ChevronLeft className="h-4 w-4" />
             </button>
 
-            <div className="flex flex-1 items-center justify-between gap-1.5 overflow-x-auto sm:justify-center sm:gap-3">
+            <div className="flex flex-1 items-center gap-1.5 overflow-x-auto scrollbar-hide sm:justify-center sm:gap-2">
               {dayStrip.map((d) => {
                 const { weekday, day } = dayPillLabel(d, locale);
                 const active = d === date;
@@ -339,9 +351,9 @@ export default function SportsCalendar({
                     key={d}
                     type="button"
                     onClick={() => setDate(d)}
-                    className={`flex flex-shrink-0 flex-col items-center gap-1 whitespace-nowrap rounded-lg border px-2.5 py-2 transition-colors ${
+                    className={`flex min-w-[3.25rem] flex-shrink-0 flex-col items-center gap-1 whitespace-nowrap rounded-xl border px-2.5 py-2 transition-all ${
                       active
-                        ? "border-[#E50914]/50 bg-[#E50914]/15 text-white"
+                        ? "border-[#E50914]/50 bg-[#E50914]/15 text-white shadow-[0_0_16px_rgba(229,9,20,0.15)]"
                         : "border-transparent text-gray-500 hover:bg-white/[0.03] hover:text-gray-300"
                     }`}
                   >

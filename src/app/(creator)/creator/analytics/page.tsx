@@ -1,28 +1,41 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BarChart3, Eye, Users, TrendingUp, Radio, Heart, Calendar } from "lucide-react";
+import { BarChart3, Eye, Users, Radio, Heart } from "lucide-react";
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { apiRequest } from "@/lib/api";
 
 interface Stats {
-  totalLives: number; liveNow: number; totalViews: number;
-  currentViewers: number; totalLikes: number; subscribers: number;
-  channelViews: number; channelLiveCount: number;
+  totalLives: number;
+  liveNow: number;
+  totalViews: number;
+  currentViewers: number;
+  totalLikes: number;
+  subscribers: number;
+  channelViews: number;
+  channelLiveCount: number;
 }
 
-function MetricCard({ title, value, icon: Icon, color = "#E50914" }: {
-  title: string; value: string | number; icon: React.ElementType; color?: string;
+function MetricCard({
+  title,
+  value,
+  icon: Icon,
+  color = "#E50914",
+}: {
+  title: string;
+  value: string | number;
+  icon: React.ElementType;
+  color?: string;
 }) {
   return (
-    <div className="rounded-xl border border-[#1E1E2A] bg-[#0E0E16] p-4">
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-xs text-gray-500 uppercase tracking-wide">{title}</p>
-        <div className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${color}15` }}>
+    <div className="rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] p-4">
+      <div className="mb-2 flex items-center justify-between">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">{title}</p>
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: `${color}18` }}>
           <Icon className="h-4 w-4" style={{ color }} />
         </div>
       </div>
-      <p className="text-2xl font-black text-white">{value}</p>
+      <p className="text-2xl font-black tabular-nums text-white">{value}</p>
     </div>
   );
 }
@@ -38,78 +51,81 @@ export default function CreatorAnalyticsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-[#E50914]" /></div>;
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <div className="h-8 w-40 animate-pulse rounded-lg bg-[#1E1E2A]" />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-24 animate-pulse rounded-2xl bg-[#1E1E2A]" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   const hasActivity = Boolean(stats && (stats.totalLives > 0 || stats.totalViews > 0));
+  const chartData = [
+    { name: "Lives", value: stats?.totalLives || 0 },
+    { name: "Views", value: Math.min(stats?.totalViews || 0, 9999) },
+    { name: "Subs", value: stats?.subscribers || 0 },
+    { name: "Likes", value: stats?.totalLikes || 0 },
+  ];
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-black text-white flex items-center gap-2">
-          <BarChart3 className="h-5 w-5 text-[#E50914]" /> Analíticas
-        </h1>
-        <p className="text-xs text-gray-500 mt-0.5">Desempenho do teu canal nos últimos 30 dias</p>
+        <h1 className="text-xl font-black text-white sm:text-2xl">Analíticas</h1>
+        <p className="mt-1 text-sm text-gray-500">Desempenho do teu canal</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <MetricCard title="Lives" value={stats?.totalLives || 0} icon={Radio} />
-        <MetricCard title="Views Totais" value={(stats?.totalViews || 0).toLocaleString()} icon={Eye} color="#22C55E" />
-        <MetricCard title="Subscritores" value={(stats?.subscribers || 0).toLocaleString()} icon={Users} color="#E50914" />
-        <MetricCard title="Gostos" value={(stats?.totalLikes || 0).toLocaleString()} icon={Heart} color="#F59E0B" />
+        <MetricCard title="Views" value={(stats?.totalViews || 0).toLocaleString("pt-PT")} icon={Eye} color="#22C55E" />
+        <MetricCard title="Subscritores" value={(stats?.subscribers || 0).toLocaleString("pt-PT")} icon={Users} color="#38BDF8" />
+        <MetricCard title="Gostos" value={(stats?.totalLikes || 0).toLocaleString("pt-PT")} icon={Heart} color="#F472B6" />
       </div>
 
-      {!hasActivity ? (
-        <div className="rounded-xl border border-[#1E1E2A] bg-[#0E0E16] p-10 text-center">
-          <BarChart3 className="mx-auto h-8 w-8 text-gray-600" />
-          <p className="mt-3 text-sm font-semibold text-white">Ainda sem dados suficientes</p>
-          <p className="mt-1 text-xs text-gray-500">
-            Os gráficos de desempenho aparecem aqui assim que o teu canal tiver lives e visualizações registadas.
-          </p>
-        </div>
-      ) : (
-        <div className="rounded-xl border border-[#1E1E2A] bg-[#0E0E16] p-5">
-          <h3 className="text-sm font-bold text-white mb-4">Resumo do canal</h3>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart
-              data={[
-                { label: "Views totais", value: stats?.totalViews || 0 },
-                { label: "Espectadores atuais", value: stats?.currentViewers || 0 },
-                { label: "Gostos", value: stats?.totalLikes || 0 },
-                { label: "Subscritores", value: stats?.subscribers || 0 },
-              ]}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="#1E1E2A" />
-              <XAxis dataKey="label" tick={{ fill: "#9CA3AF", fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: "#9CA3AF", fontSize: 11 }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={{ background: "#111118", border: "1px solid #1E1E2A", borderRadius: "10px" }}
-                labelStyle={{ color: "#9CA3AF" }} itemStyle={{ color: "#E50914" }} />
-              <Bar dataKey="value" fill="#E50914" radius={[4, 4, 0, 0]} maxBarSize={48} />
-            </BarChart>
-          </ResponsiveContainer>
-          <p className="mt-3 text-[11px] text-gray-500">
-            Baseado nos totais reais dos últimos 30 dias. Um histórico diário detalhado ainda não está disponível.
-          </p>
-        </div>
-      )}
+      <div className="rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] p-4 sm:p-5">
+        <h2 className="mb-4 text-sm font-bold text-white">Resumo</h2>
+        {hasActivity ? (
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1E1E2A" />
+                <XAxis dataKey="name" tick={{ fill: "#6B7280", fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: "#6B7280", fontSize: 11 }} axisLine={false} tickLine={false} />
+                <Tooltip
+                  contentStyle={{
+                    background: "#0E0E16",
+                    border: "1px solid #1E1E2A",
+                    borderRadius: 12,
+                    fontSize: 12,
+                  }}
+                />
+                <Bar dataKey="value" fill="#E50914" radius={[8, 8, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <BarChart3 className="mb-3 h-8 w-8 text-gray-600" />
+            <p className="text-sm font-semibold text-white">Ainda sem dados suficientes</p>
+            <p className="mt-1 max-w-sm text-xs text-gray-500">
+              Quando as tuas lives tiverem audiência, o gráfico e as métricas aparecem aqui.
+            </p>
+          </div>
+        )}
+      </div>
 
-      <div className="rounded-xl border border-[#1E1E2A] bg-[#0E0E16] p-5">
-        <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
-          <Calendar className="h-4 w-4 text-red-400" /> Dicas para Melhorar
-        </h3>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-          {[
-            { label: "Horário ideal", desc: "Sábado e Domingo 20h-22h têm mais espectadores" },
-            { label: "Duração mínima", desc: "Lives acima de 1h30 geram 3x mais subscritores" },
-            { label: "Consistência", desc: "Transmitir 3+ vezes por semana aumenta retenção" },
-          ].map(({ label, desc }) => (
-            <div key={label} className="rounded-lg bg-[#1A1A2A] border border-[#2A2A3A] p-3">
-              <div className="flex items-center gap-1.5 mb-1">
-                <TrendingUp className="h-3.5 w-3.5 text-emerald-400" />
-                <span className="text-xs font-bold text-white">{label}</span>
-              </div>
-              <p className="text-[11px] text-gray-500">{desc}</p>
-            </div>
-          ))}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] p-4">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Viewers agora</p>
+          <p className="mt-1 text-3xl font-black text-white">{(stats?.currentViewers || 0).toLocaleString("pt-PT")}</p>
+        </div>
+        <div className="rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] p-4">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Views do canal</p>
+          <p className="mt-1 text-3xl font-black text-white">{(stats?.channelViews || 0).toLocaleString("pt-PT")}</p>
         </div>
       </div>
     </div>

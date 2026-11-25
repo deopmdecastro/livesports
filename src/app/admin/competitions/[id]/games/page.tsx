@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Edit2, Eye, Plus, RefreshCw, Search, Trash2 } from "lucide-react";
+import AdminFormWizard from "@/components/admin/AdminFormWizard";
 import type { Competition, Event, SportCategory } from "@/types";
 import toast from "react-hot-toast";
 import { apiRequest } from "@/lib/api";
@@ -324,22 +325,21 @@ export default function CompetitionGamesPage() {
         </div>
       </div>
 
-      {modalMode && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4">
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-white/10 bg-[#171717] shadow-2xl">
-            <div className="flex items-center justify-between border-b border-white/10 p-5">
-              <h3 className="text-lg font-bold text-white">
-                {modalMode === "create" ? "Novo Jogo" : modalMode === "edit" ? "Editar Jogo" : "Visualizar Jogo"}
-              </h3>
-              <button
-                onClick={() => setModalMode(null)}
-                className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
-              >
-                ✕
-              </button>
-            </div>
+      <AdminFormWizard
+        open={Boolean(modalMode)}
+        title={modalMode === "create" ? "Novo Jogo" : modalMode === "edit" ? "Editar Jogo" : "Visualizar Jogo"}
+        subtitle="Equipas, resultado, horário e capa do jogo"
+        icon={modalMode === "view" ? Eye : modalMode === "edit" ? Edit2 : Plus}
+        tone={modalMode === "create" ? "create" : modalMode === "edit" ? "edit" : "view"}
+        onClose={() => setModalMode(null)}
+        primaryLabel="Guardar"
+        onPrimary={() => { if (modalMode !== "view") void saveEvent(); }}
+        hidePrimary={modalMode === "view"}
+        secondaryLabel={modalMode === "view" ? "Fechar" : "Cancelar"}
+        showStepNav={false}
+      >
+            <div className="space-y-4">
 
-            <div className="space-y-4 p-5">
               <div>
                 <label className="mb-1.5 block text-xs font-semibold text-gray-300">Título</label>
                 <input
@@ -580,27 +580,9 @@ export default function CompetitionGamesPage() {
                   className="input-dark w-full resize-none px-3 py-2.5 text-sm"
                 />
               </div>
-
-              <div className="flex justify-end gap-3 border-t border-white/10 p-5">
-                <button
-                  onClick={() => setModalMode(null)}
-                  className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-gray-300 hover:bg-white/10"
-                >
-                  Cancelar
-                </button>
-                {modalMode !== "view" && (
-                  <button
-                    onClick={saveEvent}
-                    className="rounded-lg bg-[#E50914] px-4 py-2 text-sm font-bold text-white hover:bg-[#B00000]"
-                  >
-                    Salvar
-                  </button>
-                )}
-              </div>
             </div>
-          </div>
-        </div>
-      )}
+      </AdminFormWizard>
+
     </div>
   );
 }

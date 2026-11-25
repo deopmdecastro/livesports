@@ -31,6 +31,10 @@ function normalize(v?: string) {
 }
 
 function matchLive(event: Event, lives: Live[]) {
+  if (event.id.startsWith("live-room-")) {
+    const rawId = event.id.replace("live-room-", "");
+    return lives.find((l) => l.id === rawId);
+  }
   const et = normalize(event.title);
   const ett = [normalize(event.teamA), normalize(event.teamB)].filter(Boolean).join("-");
   return lives.find((l) => {
@@ -51,10 +55,11 @@ function LiveCard({ event, live }: { event: Event; live?: Live }) {
 
   return (
     <Link href={href}
-      className="group relative flex-shrink-0 w-[260px] sm:w-[280px] overflow-hidden rounded-2xl
+      className="group relative flex-shrink-0 w-[min(260px,78vw)] sm:w-[280px] overflow-hidden rounded-2xl
         bg-gradient-to-br from-[#0F111C] to-[#0A0C14] border border-white/[0.04]
-        hover:border-[#E50914]/20 hover:shadow-[0_12px_40px_rgba(0,0,0,0.5),0_0_24px_rgba(229,9,20,0.08)]
-        transition-all duration-300 hover:-translate-y-1">
+        hover:border-[#E50914]/25 hover:shadow-[0_12px_40px_rgba(0,0,0,0.5),0_0_28px_rgba(229,9,20,0.12)]
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E50914] focus-visible:ring-offset-2 focus-visible:ring-offset-[#06070D]
+        active:scale-[0.98] transition-all duration-300 hover:-translate-y-1">
 
       {/* Top accent for live */}
       {isLive && <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-[#E50914] to-transparent" />}
@@ -150,7 +155,43 @@ export default function LiveNowSection() {
     load();
   }, []);
 
-  const liveEvents = useMemo(() => events.filter((e) => e.status === "live"), [events]);
+  const liveStreamsAsEvents: Event[] = useMemo(() => {
+    return lives
+      .filter((l) => l.status === "live")
+      .map((l) => ({
+        id: `live-room-${l.id}`,
+        title: l.title,
+        sport: l.sport,
+        league: l.league,
+        leagueLogo: l.leagueLogo,
+        teamA: l.teamA,
+        teamALogo: l.teamALogo,
+        teamB: l.teamB,
+        teamBLogo: l.teamBLogo,
+        scoreA: l.scoreA,
+        scoreB: l.scoreB,
+        matchTime: l.matchTime || "AO VIVO",
+        scheduledAt: l.scheduledAt || l.startedAt || new Date().toISOString(),
+        status: "live" as const,
+        thumbnail: l.thumbnail || l.banner,
+        featured: l.featured,
+        viewerCount: l.viewerCount,
+        createdAt: l.createdAt || new Date().toISOString(),
+      }));
+  }, [lives]);
+
+  const liveEvents = useMemo(() => {
+    const fromEvents = events.filter((e) => e.status === "live");
+    const combined = [...liveStreamsAsEvents];
+    for (const ev of fromEvents) {
+      const exists = combined.some(
+        (c) => normalize(c.title) === normalize(ev.title) || (c.teamA && ev.teamA && normalize(c.teamA) === normalize(ev.teamA)),
+      );
+      if (!exists) combined.push(ev);
+    }
+    return combined;
+  }, [events, liveStreamsAsEvents]);
+
   const upcomingEvents = useMemo(
     () => events
       .filter((e) => e.status !== "finished" && e.status !== "cancelled")
@@ -159,12 +200,12 @@ export default function LiveNowSection() {
     [events]
   );
 
-  const displayEvents = liveEvents.length >= 2 ? liveEvents : upcomingEvents;
+  const displayEvents = liveEvents.length >= 2 ? liveEvents : [...liveEvents, ...upcomingEvents].slice(0, 12);
 
   if (loading) {
     return (
       <section className="py-10">
-        <div className="max-w-[1400px] mx-auto px-5 lg:px-8">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-5 lg:px-8">
           <div className="section-header">
             <div className="section-header-bar" />
             <div>
@@ -185,8 +226,8 @@ export default function LiveNowSection() {
   if (displayEvents.length === 0) return null;
 
   return (
-    <section className="py-10 lg:py-14 border-t border-white/[0.03]">
-      <div className="max-w-[1400px] mx-auto px-5 lg:px-8">
+    <section className="py-8 sm:py-10 lg:py-14 border-t border-white/[0.03]">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-5 lg:px-8">
         <div className="section-header">
           <div className="section-header-bar" />
           <div>

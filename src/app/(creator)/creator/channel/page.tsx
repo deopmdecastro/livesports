@@ -84,13 +84,10 @@ export default function CreatorChannelPage() {
   }
 
   return (
-    <div className="max-w-2xl space-y-6">
-      <div className="flex items-center gap-3">
-        <Tv2 className="h-6 w-6 text-[#E50914]" />
-        <div>
-          <h1 className="text-xl font-black text-white">{hasChannel ? "Editar Canal" : "Criar Canal"}</h1>
-          <p className="text-xs text-gray-500">Configura a tua presença na plataforma</p>
-        </div>
+    <div className="mx-auto max-w-2xl space-y-6">
+      <div>
+        <h1 className="text-xl font-black text-white sm:text-2xl">{hasChannel ? "Editar Canal" : "Criar Canal"}</h1>
+        <p className="mt-1 text-sm text-gray-500">Configura a tua presença na plataforma</p>
       </div>
 
       {!hasChannel && (
@@ -172,7 +169,7 @@ export default function CreatorChannelPage() {
         </div>
       </div>
 
-      <div className="rounded-xl border border-[#1E1E2A] bg-[#0E0E16] p-6 space-y-4">
+      <div className="space-y-4 rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] p-4 sm:p-6">
         <h2 className="text-sm font-bold text-white border-b border-[#1E1E2A] pb-3">Redes Sociais</h2>
         {[
           { key: "website", icon: Globe, label: "Website" },
@@ -192,7 +189,7 @@ export default function CreatorChannelPage() {
         ))}
       </div>
 
-      <div className="flex justify-end gap-3">
+      <div className="sticky bottom-0 flex flex-col-reverse gap-2 border-t border-[#1E1E2A] bg-[#060609]/95 py-3 backdrop-blur-md sm:flex-row sm:justify-end">
         {!hasChannel && (
           <button onClick={handleApply} disabled={applying}
             className="flex items-center gap-2 rounded-xl border border-[#E50914]/30 px-4 py-2 text-sm text-[#E50914] hover:bg-[#E50914]/10 transition-colors disabled:opacity-60">
@@ -200,7 +197,7 @@ export default function CreatorChannelPage() {
           </button>
         )}
         <button onClick={handleSave} disabled={saving}
-          className="flex items-center gap-2 rounded-xl bg-[#E50914] px-5 py-2 text-sm font-bold text-white hover:bg-[#B00000] transition-colors disabled:opacity-60">
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#E50914] px-5 py-2.5 text-sm font-bold text-white shadow-[0_8px_24px_rgba(229,9,20,0.22)] transition-colors hover:bg-[#B00000] disabled:opacity-60">
           <Save className="h-4 w-4" />
           {saving ? "A guardar..." : hasChannel ? "Guardar Alterações" : "Criar Canal"}
         </button>

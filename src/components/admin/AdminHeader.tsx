@@ -3,6 +3,7 @@
 import { Bell, Search, ChevronDown, Menu, X, Radio, Check, CheckCheck, Trash2, Ticket, BarChart2, Tv, AlertCircle, Info } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { cn } from "@/utils";
 import { apiRequest } from "@/lib/api";
 import { useNotifications, type Notification } from "@/hooks/useNotifications";
@@ -109,7 +110,44 @@ interface AdminHeaderProps {
   onMenuToggle?: () => void;
 }
 
+const ADMIN_TITLES: Record<string, string> = {
+  "/admin": "Dashboard",
+  "/admin/dashboard": "Dashboard",
+  "/admin/lives": "Lives",
+  "/admin/events": "Eventos",
+  "/admin/competitions": "Competições",
+  "/admin/categories": "Categorias",
+  "/admin/news": "Notícias",
+  "/admin/banners": "Banners",
+  "/admin/chat": "Chat das Lives",
+  "/admin/creators": "Criadores",
+  "/admin/users": "Utilizadores",
+  "/admin/roles": "Funções",
+  "/admin/permissions": "Permissões",
+  "/admin/ads": "Anúncios",
+  "/admin/campaigns": "Campanhas",
+  "/admin/ads/positions": "Posições de Ads",
+  "/admin/reports": "Relatórios",
+  "/admin/settings": "Configurações",
+  "/admin/profile": "Perfil Admin",
+  "/admin/api-keys": "API Keys",
+  "/admin/notifications": "Notificações",
+  "/admin/logs": "Logs",
+  "/admin/support": "Suporte",
+};
+
+function resolveAdminTitle(pathname: string | null, fallback: string) {
+  if (!pathname) return fallback;
+  if (ADMIN_TITLES[pathname]) return ADMIN_TITLES[pathname];
+  const match = Object.keys(ADMIN_TITLES)
+    .filter((key) => key !== "/admin" && pathname.startsWith(key + "/"))
+    .sort((a, b) => b.length - a.length)[0];
+  return match ? ADMIN_TITLES[match] : fallback;
+}
+
 export default function AdminHeader({ title = "Dashboard", onMenuToggle }: AdminHeaderProps) {
+  const pathname = usePathname();
+  const pageTitle = resolveAdminTitle(pathname, title);
   const [notifOpen, setNotifOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -182,15 +220,26 @@ export default function AdminHeader({ title = "Dashboard", onMenuToggle }: Admin
     loadProfile();
   }, []);
 
-  // Close dropdowns on outside click
+  // Close dropdowns on outside click / Escape
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       if (!target.closest('[data-notif-dropdown]')) setNotifOpen(false);
       if (!target.closest('[data-profile-dropdown]')) setProfileOpen(false);
     };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setNotifOpen(false);
+        setProfileOpen(false);
+        setSearchOpen(false);
+      }
+    };
     document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('keydown', onKey);
+    };
   }, []);
 
   useEffect(() => {
@@ -203,20 +252,21 @@ export default function AdminHeader({ title = "Dashboard", onMenuToggle }: Admin
   const initials = userName.split(' ').map(w => w.charAt(0)).slice(0, 2).join('').toUpperCase();
 
   return (
-    <header className="h-14 bg-[#0A0A0F]/95 backdrop-blur border-b border-[#1A1A24] flex items-center justify-between px-4 sticky top-0 z-30">
+    <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-[#1A1A24] bg-[#0A0A0F]/95 px-3 backdrop-blur-md sm:px-4">
       {/* Left */}
       <div className="flex items-center gap-3">
         <button
           onClick={onMenuToggle}
-          className="lg:hidden p-2 text-gray-400 hover:text-white rounded-lg hover:bg-[#1A1A24] transition-colors"
+          className="flex h-10 w-10 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-[#1A1A24] hover:text-white lg:hidden"
         >
           <Menu className="w-5 h-5" />
         </button>
-        <div className="flex items-center gap-2">
-          <div className="hidden lg:flex items-center gap-1.5 text-[10px] text-gray-600">
+        <div className="flex min-w-0 items-center gap-2">
+          <h1 className="truncate text-sm font-bold text-white lg:hidden">{pageTitle}</h1>
+          <div className="hidden items-center gap-1.5 text-[10px] text-gray-600 lg:flex">
             <span className="text-gray-500">Admin</span>
             <span>/</span>
-            <span className="text-white font-medium">{title}</span>
+            <span className="font-medium text-white">{pageTitle}</span>
           </div>
         </div>
       </div>

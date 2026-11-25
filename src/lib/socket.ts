@@ -9,8 +9,12 @@ let _socket: Socket | null = null;
 
 function getApiUrl(): string {
   if (typeof window !== 'undefined') {
-    const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-    return base;
+    const configured = process.env.NEXT_PUBLIC_API_URL;
+    // Use same-origin proxy when accessed externally so browsers never call localhost:3001
+    if (!configured || configured.includes('localhost')) {
+      return window.location.origin;
+    }
+    return configured;
   }
   return 'http://localhost:3001';
 }
@@ -19,7 +23,7 @@ export function getSocket(): Socket {
   if (!_socket) {
     _socket = io(getApiUrl(), {
       path: '/socket.io',
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'],
       reconnectionAttempts: 5,
       reconnectionDelay: 2000,
       autoConnect: false,

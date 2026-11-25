@@ -15,9 +15,9 @@ interface Position {
 }
 
 const POSITION_LABELS: Record<string, string> = {
-  header: "Topo global", sidebar: "Sidebar direita", in_content: "Meio do conteudo",
-  player: "Player pre-roll", popup: "Popup/flutuante", footer: "Rodape global",
-  live_preroll: "Pre-roll Live",
+  header: "Topo global", sidebar: "Sidebar direita", in_content: "Meio do conteúdo",
+  player: "Player pre-roll", popup: "Popup/flutuante", footer: "Rodapé global",
+  live_preroll: "Pré-roll Live",
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -39,7 +39,7 @@ export default function AdPositionsPage() {
       }));
       setPositions(items);
     } catch (err) {
-      toast.error("Erro ao carregar posicoes");
+      toast.error("Erro ao carregar posições");
     } finally { setLoading(false); }
   };
 
@@ -56,9 +56,9 @@ export default function AdPositionsPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-black text-white flex items-center gap-2">
-            <MapPin className="h-5 w-5 text-[#E50914]" /> Posicoes de Ads
+            <MapPin className="h-5 w-5 text-[#E50914]" /> Posições de Ads
           </h1>
-          <p className="text-xs text-gray-500 mt-0.5">{stats.total} posicoes · {stats.active} com ads ativos · {stats.totalAds} ads no total</p>
+          <p className="text-xs text-gray-500 mt-0.5">{stats.total} posições · {stats.active} com ads ativos · {stats.totalAds} ads no total</p>
         </div>
         <button onClick={load} className="p-2 rounded-lg border border-[#2A2A2A] text-gray-400 hover:text-white"><RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /></button>
       </div>

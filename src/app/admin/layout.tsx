@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import AdminHeader from "@/components/admin/AdminHeader";
 import { cn } from "@/utils";
@@ -10,37 +11,69 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [sidebarOpen]);
+
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSidebarOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [sidebarOpen]);
+
   return (
-    <div className="flex h-screen overflow-hidden bg-[#0A0A0A]">
-      {/* Sidebar - Desktop (fixed height, scrolls internally) */}
+    <div className="flex h-[100dvh] overflow-hidden bg-[#08080C] text-white">
       <div className="hidden lg:flex lg:flex-shrink-0">
         <AdminSidebar />
       </div>
 
-      {/* Sidebar - Mobile Overlay */}
-      {sidebarOpen && (
+      <div
+        className={cn(
+          "fixed inset-0 z-50 lg:hidden transition-opacity duration-300",
+          sidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        )}
+        aria-hidden={!sidebarOpen}
+      >
         <div
-          className="fixed inset-0 bg-black/70 z-40 lg:hidden"
+          className="absolute inset-0 bg-black/75 backdrop-blur-sm"
           onClick={() => setSidebarOpen(false)}
-        >
-          <div
-            className="w-60 h-full"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <AdminSidebar />
-          </div>
-        </div>
-      )}
-
-      {/* Main Content — header stays fixed, only <main> scrolls */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <AdminHeader
-          onMenuToggle={() => setSidebarOpen(true)}
         />
-        <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
-          {children}
+        <div
+          className={cn(
+            "absolute inset-y-0 left-0 flex w-[min(18rem,88vw)] transform transition-transform duration-300 ease-out",
+            sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          )}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Menu de administração"
+        >
+          <AdminSidebar
+            onNavigate={() => setSidebarOpen(false)}
+            showClose
+            onClose={() => setSidebarOpen(false)}
+          />
+        </div>
+      </div>
+
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <AdminHeader onMenuToggle={() => setSidebarOpen(true)} />
+        <main className="admin-main flex-1 overflow-y-auto overscroll-contain p-3 sm:p-4 lg:p-6">
+          <div className="mx-auto w-full max-w-[1440px]">{children}</div>
         </main>
       </div>
     </div>

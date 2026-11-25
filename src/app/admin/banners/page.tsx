@@ -7,6 +7,7 @@ import {
   GripVertical, Info, Sparkles, Loader2,
 } from "lucide-react";
 import AdminSelect from "@/components/admin/AdminSelect";
+import AdminFormWizard from "@/components/admin/AdminFormWizard";
 import AdminImageField from "@/components/admin/AdminImageField";
 import { IMAGE_SIZE_PRESETS } from "@/lib/image-upload-hints";
 import { apiRequest } from "@/lib/api";
@@ -129,8 +130,8 @@ export default function BannersPage() {
   const fetchBanners = useCallback(async () => {
     try {
       setLoading(true);
-      const json = await apiRequest<{ items: BannerItem[] }>("/banners");
-      const items = json.items || [];
+      const data = await apiRequest<BannerItem[] | { items: BannerItem[] }>("/banners");
+      const items = Array.isArray(data) ? data : data.items || [];
       const heroItems = items.filter((b: BannerItem) => b.position === "hero");
       const otherItems = items.filter((b: BannerItem) => b.position !== "hero");
       setHeroSlides(heroItems.sort((a, b) => a.sortOrder - b.sortOrder));
@@ -191,36 +192,24 @@ export default function BannersPage() {
       };
 
       if (heroModal === "edit" && selectedHero) {
-        const res = await fetch(`/banners/${selectedHero.id}`, {
+        await apiRequest(`/banners/${selectedHero.id}`, {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
-        const json = await res.json();
-        if (json.success) {
-          toast.success("Slide do Hero atualizado!");
-          fetchBanners();
-        } else {
-          toast.error(json.error || "Erro ao atualizar");
-        }
+        toast.success("Slide do Hero atualizado!");
+        fetchBanners();
       } else {
-        const res = await fetch(`/banners`, {
+        await apiRequest(`/banners`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
-        const json = await res.json();
-        if (json.success) {
-          toast.success("Slide do Hero criado!");
-          fetchBanners();
-        } else {
-          toast.error(json.error || "Erro ao criar");
-        }
+        toast.success("Slide do Hero criado!");
+        fetchBanners();
       }
       setHeroModal(null);
     } catch (err) {
       console.error(err);
-      toast.error("Erro ao guardar");
+      toast.error(err instanceof Error ? err.message : "Erro ao guardar");
     } finally {
       setSaving(false);
     }
@@ -243,14 +232,11 @@ export default function BannersPage() {
   const deleteHeroSlide = async (id: string) => {
     if (!confirm("Remover este slide?")) return;
     try {
-      const res = await fetch(`/banners/${id}`, { method: "DELETE" });
-      const json = await res.json();
-      if (json.success) {
-        setHeroSlides((prev) => prev.filter((s) => s.id !== id));
-        toast.success("Slide removido!");
-      }
+      await apiRequest(`/banners/${id}`, { method: "DELETE" });
+      setHeroSlides((prev) => prev.filter((s) => s.id !== id));
+      toast.success("Slide removido!");
     } catch (err) {
-      toast.error("Erro ao remover");
+      toast.error(err instanceof Error ? err.message : "Erro ao remover");
     }
   };
 
@@ -292,35 +278,23 @@ export default function BannersPage() {
       };
 
       if (bannerModal === "edit" && selectedBanner) {
-        const res = await fetch(`/banners/${selectedBanner.id}`, {
+        await apiRequest(`/banners/${selectedBanner.id}`, {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
-        const json = await res.json();
-        if (json.success) {
-          toast.success("Banner atualizado!");
-          fetchBanners();
-        } else {
-          toast.error(json.error || "Erro ao atualizar");
-        }
+        toast.success("Banner atualizado!");
+        fetchBanners();
       } else {
-        const res = await fetch(`/banners`, {
+        await apiRequest(`/banners`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
-        const json = await res.json();
-        if (json.success) {
-          toast.success("Banner criado!");
-          fetchBanners();
-        } else {
-          toast.error(json.error || "Erro ao criar");
-        }
+        toast.success("Banner criado!");
+        fetchBanners();
       }
       setBannerModal(null);
     } catch (err) {
-      toast.error("Erro ao guardar");
+      toast.error(err instanceof Error ? err.message : "Erro ao guardar");
     } finally {
       setSaving(false);
     }
@@ -343,14 +317,11 @@ export default function BannersPage() {
   const deleteBanner = async (id: string) => {
     if (!confirm("Remover este banner?")) return;
     try {
-      const res = await fetch(`/banners/${id}`, { method: "DELETE" });
-      const json = await res.json();
-      if (json.success) {
-        setBanners((prev) => prev.filter((b) => b.id !== id));
-        toast.success("Banner removido!");
-      }
+      await apiRequest(`/banners/${id}`, { method: "DELETE" });
+      setBanners((prev) => prev.filter((b) => b.id !== id));
+      toast.success("Banner removido!");
     } catch (err) {
-      toast.error("Erro ao remover");
+      toast.error(err instanceof Error ? err.message : "Erro ao remover");
     }
   };
 
@@ -584,28 +555,20 @@ export default function BannersPage() {
         </div>
       )}
 
-      {heroModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] shadow-2xl">
-            <div className="flex items-center justify-between border-b border-[#1E1E2A] p-5">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#E50914]/15 border border-[#E50914]/20">
-                  <Sparkles className="h-4 w-4 text-[#E50914]" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-white">
-                    {heroModal === "create" ? "Novo Slide do Hero" : heroModal === "edit" ? "Editar Slide" : "Visualizar Slide"}
-                  </h3>
-                  <p className="text-[11px] text-gray-500">
-                    {heroModal === "view" ? "Detalhes do slide" : "Preencha os dados do slide do carrossel"}
-                  </p>
-                </div>
-              </div>
-              <button onClick={() => setHeroModal(null)} className="rounded-lg p-2 text-gray-400 hover:bg-white/5 hover:text-white">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
+      <AdminFormWizard
+        open={Boolean(heroModal)}
+        title={heroModal === "create" ? "Novo Slide do Hero" : heroModal === "edit" ? "Editar Slide" : "Visualizar Slide"}
+        subtitle={heroModal === "view" ? "Detalhes do slide" : "Carrossel principal da homepage"}
+        icon={Sparkles}
+        tone={heroModal === "create" ? "create" : heroModal === "edit" ? "edit" : "view"}
+        onClose={() => setHeroModal(null)}
+        primaryLabel={heroModal === "edit" ? "Guardar" : "Criar Slide"}
+        onPrimary={() => { if (heroModal !== "view") void saveHeroSlide(); }}
+        primaryLoading={saving}
+        hidePrimary={heroModal === "view"}
+        secondaryLabel={heroModal === "view" ? "Fechar" : "Cancelar"}
+        showStepNav={false}
+      >
             {heroForm.imageUrl && (
               <div className="relative h-32 overflow-hidden border-b border-[#1E1E2A]">
                 <img src={heroForm.imageUrl} alt="" className="h-full w-full object-cover" />
@@ -625,7 +588,7 @@ export default function BannersPage() {
               </div>
             )}
 
-            <div className="space-y-4 p-5">
+            <div className="space-y-4">
               <div>
                 <FieldLabel required>Titulo</FieldLabel>
                 <Input value={heroForm.title} onChange={(v) => setHeroForm({ ...heroForm, title: v })} placeholder="Ex: Copa do Mundo 2026" disabled={heroModal === "view"} />
@@ -675,42 +638,24 @@ export default function BannersPage() {
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 border-t border-[#1E1E2A] p-5">
-              <button onClick={() => setHeroModal(null)} className="rounded-xl border border-[#1E1E2A] bg-[#111118] px-5 py-2.5 text-sm text-gray-300 hover:bg-[#1A1A28] hover:text-white transition-colors">
-                {heroModal === "view" ? "Fechar" : "Cancelar"}
-              </button>
-              {heroModal !== "view" && (
-                <button onClick={saveHeroSlide} disabled={saving} className="rounded-xl bg-gradient-to-r from-[#E50914] to-[#B00000] px-6 py-2.5 text-sm font-bold text-white hover:from-[#FF1A24] hover:to-[#E50914] transition-all shadow-[0_4px_16px_rgba(229,9,20,0.3)] disabled:opacity-50 flex items-center gap-2">
-                  {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {heroModal === "edit" ? "Guardar alteracoes" : "Criar Slide"}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      </AdminFormWizard>
 
-      {bannerModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] shadow-2xl">
-            <div className="flex items-center justify-between border-b border-[#1E1E2A] p-5">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-500/10 border border-red-500/20">
-                  <Image className="h-4 w-4 text-red-400" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-white">
-                    {bannerModal === "create" ? "Novo Banner" : bannerModal === "edit" ? "Editar Banner" : "Visualizar Banner"}
-                  </h3>
-                  <p className="text-[11px] text-gray-500">Banner publicitario do site</p>
-                </div>
-              </div>
-              <button onClick={() => setBannerModal(null)} className="rounded-lg p-2 text-gray-400 hover:bg-white/5 hover:text-white">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
+      <AdminFormWizard
+        open={Boolean(bannerModal)}
+        title={bannerModal === "create" ? "Novo Banner" : bannerModal === "edit" ? "Editar Banner" : "Visualizar Banner"}
+        subtitle={bannerModal === "view" ? "Detalhes do banner" : "Posicionamento e imagem do site"}
+        icon={Image}
+        tone={bannerModal === "create" ? "create" : bannerModal === "edit" ? "edit" : "view"}
+        onClose={() => setBannerModal(null)}
+        primaryLabel={bannerModal === "edit" ? "Guardar" : "Criar Banner"}
+        onPrimary={() => { if (bannerModal !== "view") void saveBanner(); }}
+        primaryLoading={saving}
+        hidePrimary={bannerModal === "view"}
+        secondaryLabel={bannerModal === "view" ? "Fechar" : "Cancelar"}
+        showStepNav={false}
+      >
+            <div className="space-y-4">
 
-            <div className="space-y-4 p-5">
               <div>
                 <FieldLabel required>Titulo</FieldLabel>
                 <Input value={bannerForm.title} onChange={(v) => setBannerForm({ ...bannerForm, title: v })} disabled={bannerModal === "view"} placeholder="Nome do banner" />
@@ -743,20 +688,7 @@ export default function BannersPage() {
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 border-t border-[#1E1E2A] p-5">
-              <button onClick={() => setBannerModal(null)} className="rounded-xl border border-[#1E1E2A] bg-[#111118] px-5 py-2.5 text-sm text-gray-300 hover:bg-[#1A1A28] hover:text-white transition-colors">
-                {bannerModal === "view" ? "Fechar" : "Cancelar"}
-              </button>
-              {bannerModal !== "view" && (
-                <button onClick={saveBanner} disabled={saving} className="rounded-xl bg-gradient-to-r from-[#E50914] to-[#B00000] px-6 py-2.5 text-sm font-bold text-white hover:from-[#FF1A24] hover:to-[#E50914] transition-all disabled:opacity-50 flex items-center gap-2">
-                  {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {bannerModal === "edit" ? "Guardar" : "Criar Banner"}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      </AdminFormWizard>
     </div>
   );
 }

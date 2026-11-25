@@ -20,6 +20,7 @@ import {
   UserX,
   X,
 } from "lucide-react";
+import AdminFormWizard from "@/components/admin/AdminFormWizard";
 import { cn, formatRelativeTime } from "@/utils";
 import type { User, UserRole, UserStatus } from "@/types";
 import toast from "react-hot-toast";
@@ -63,7 +64,7 @@ const statusOptions = [
 
 const booleanOptions = [
   { value: "true", label: "Sim" },
-  { value: "false", label: "Nao" },
+  { value: "false", label: "Não" },
 ];
 
 const emptyForm = {
@@ -98,6 +99,7 @@ export default function UsersPage() {
   const [roleFilter, setRoleFilter] = useState("all");
   const [selected, setSelected] = useState<string[]>([]);
   const [modalMode, setModalMode] = useState<"create" | "edit" | "view" | null>(null);
+  const [saving, setSaving] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [form, setForm] = useState(emptyForm);
 
@@ -117,7 +119,7 @@ export default function UsersPage() {
   useEffect(() => {
     apiRequest<ApiListResponse<User>>("/users?limit=100")
       .then((data) => setUsers(data.items))
-      .catch((error) => toast.error(error instanceof Error ? error.message : "Nao foi possivel carregar utilizadores."))
+      .catch((error) => toast.error(error instanceof Error ? error.message : "Não foi possível carregar utilizadores."))
       .finally(() => setLoading(false));
   }, []);
 
@@ -149,6 +151,7 @@ export default function UsersPage() {
       toast.error("Informe nome e email.");
       return;
     }
+    setSaving(true);
 
     const payload = {
       name: form.name,
@@ -185,7 +188,9 @@ export default function UsersPage() {
       }
       setModalMode(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel guardar o utilizador.");
+      toast.error(error instanceof Error ? error.message : "Não foi possível guardar o utilizador.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -198,7 +203,7 @@ export default function UsersPage() {
       setUsers((current) => current.map((user) => user.id === id ? updated : user));
       toast.success("Status atualizado!");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel atualizar o status.");
+      toast.error(error instanceof Error ? error.message : "Não foi possível atualizar o status.");
     }
   };
 
@@ -208,7 +213,7 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-5">
-      <div className="overflow-hidden rounded-xl border border-white/10 bg-[#151515]">
+      <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#151515]">
         <div className="border-b border-white/10 bg-gradient-to-r from-[#211112] via-[#151515] to-[#111827] p-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
@@ -216,8 +221,8 @@ export default function UsersPage() {
                 <Users className="h-3.5 w-3.5" />
                 Identidade e acesso
               </div>
-              <h2 className="text-2xl font-black tracking-tight text-white">Gestao de Utilizadores</h2>
-              <p className="mt-1 text-sm text-gray-400">{loading ? "A carregar utilizadores reais..." : `${users.length} utilizadores cadastrados - ${filtered.length} visiveis nos filtros`}</p>
+              <h2 className="text-2xl font-black tracking-tight text-white">Gestão de Utilizadores</h2>
+              <p className="mt-1 text-sm text-gray-400">{loading ? "A carregar utilizadores…" : `${users.length} utilizadores cadastrados — ${filtered.length} visiveis nos filtros`}</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <button className="inline-flex h-10 items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 text-sm font-semibold text-gray-200 transition-colors hover:bg-white/10 hover:text-white">
@@ -262,7 +267,7 @@ export default function UsersPage() {
             </div>
             <div className="flex flex-col gap-3 sm:flex-row">
               <AdminSelect value={statusFilter} onChange={setStatusFilter} options={[{ value: "all", label: "Todos os status" }, ...statusOptions]} className="sm:w-52" ariaLabel="Filtrar por status" />
-              <AdminSelect value={roleFilter} onChange={setRoleFilter} options={[{ value: "all", label: "Todas as funcoes" }, ...roleOptions]} className="sm:w-52" ariaLabel="Filtrar por funcao" />
+              <AdminSelect value={roleFilter} onChange={setRoleFilter} options={[{ value: "all", label: "Todas as funções" }, ...roleOptions]} className="sm:w-52" ariaLabel="Filtrar por funcao" />
             </div>
           </div>
         </div>
@@ -275,7 +280,7 @@ export default function UsersPage() {
             {selected.length} selecionado(s)
           </div>
           <button onClick={() => setSelected([])} className="self-start rounded-lg border border-red-400/20 bg-red-400/10 px-3 py-1.5 text-xs font-bold text-red-200 transition-colors hover:bg-red-400/20 sm:self-auto">
-            Limpar selecao
+            Limpar seleção
           </button>
         </div>
       )}
@@ -299,7 +304,7 @@ export default function UsersPage() {
                 <th className="w-10 px-4 py-3 text-left">
                   <input type="checkbox" checked={selected.length === filtered.length && filtered.length > 0} onChange={() => setSelected(selected.length === filtered.length ? [] : filtered.map((user) => user.id))} className="h-4 w-4 accent-[#E50914]" />
                 </th>
-                {["Utilizador", "Pais", "Funcao", "Seguranca", "Status", "Registo", "Acoes"].map((heading) => (
+                {["Utilizador", "País", "Função", "Seguranca", "Status", "Registo", "Acoes"].map((heading) => (
                   <th key={heading} className="whitespace-nowrap px-4 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-gray-500">{heading}</th>
                 ))}
               </tr>
@@ -339,7 +344,7 @@ export default function UsersPage() {
                       {user.status !== "suspended" && <AdminActionButton onClick={() => handleStatusChange(user.id, "suspended")} title="Suspender" tone="warning"><UserX className="h-3.5 w-3.5" /></AdminActionButton>}
                       {user.status !== "banned" && <AdminActionButton onClick={() => handleStatusChange(user.id, "banned")} title="Banir" tone="danger"><Ban className="h-3.5 w-3.5" /></AdminActionButton>}
                       <AdminActionButton onClick={() => toast.success("Email de redefinicao enviado!")} title="Reset password" tone="warning"><RefreshCw className="h-3.5 w-3.5" /></AdminActionButton>
-                      <AdminActionButton onClick={async () => { try { await apiRequest(`/users/${user.id}`, { method: "DELETE" }); setUsers((current) => current.filter((item) => item.id !== user.id)); toast.success("Utilizador removido!"); } catch (error) { toast.error(error instanceof Error ? error.message : "Nao foi possivel remover o utilizador."); } }} title="Excluir" tone="danger"><Trash2 className="h-3.5 w-3.5" /></AdminActionButton>
+                      <AdminActionButton onClick={async () => { try { await apiRequest(`/users/${user.id}`, { method: "DELETE" }); setUsers((current) => current.filter((item) => item.id !== user.id)); toast.success("Utilizador removido!"); } catch (error) { toast.error(error instanceof Error ? error.message : "Não foi possível remover o utilizador."); } }} title="Excluir" tone="danger"><Trash2 className="h-3.5 w-3.5" /></AdminActionButton>
                     </div>
                   </td>
                 </tr>
@@ -357,17 +362,22 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {modalMode && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-white/10 bg-[#171717] shadow-2xl">
-            <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.02] p-5">
-              <div>
-                <h3 className="text-lg font-bold text-white">{modalMode === "create" ? "Novo Utilizador" : modalMode === "edit" ? "Editar Utilizador" : "Visualizar Utilizador"}</h3>
-                <p className="text-xs text-gray-500">Dados de perfil, acesso e seguranca da conta.</p>
-              </div>
-              <button onClick={() => setModalMode(null)} className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-white/10 hover:text-white"><X className="h-4 w-4" /></button>
-            </div>
-            <div className="space-y-4 p-5">
+      <AdminFormWizard
+        open={Boolean(modalMode)}
+        title={modalMode === "create" ? "Novo Utilizador" : modalMode === "edit" ? "Editar Utilizador" : "Visualizar Utilizador"}
+        subtitle="Dados de perfil, acesso e segurança da conta"
+        icon={modalMode === "view" ? Eye : modalMode === "edit" ? Edit2 : Plus}
+        tone={modalMode === "create" ? "create" : modalMode === "edit" ? "edit" : "view"}
+        onClose={() => setModalMode(null)}
+        primaryLabel={modalMode === "edit" ? "Guardar" : "Criar Utilizador"}
+        onPrimary={() => { if (!(modalMode === "view")) void saveUser(); }}
+        primaryLoading={saving}
+        hidePrimary={modalMode === "view"}
+        secondaryLabel={modalMode === "view" ? "Fechar" : "Cancelar"}
+        showStepNav={false}
+        maxWidthClass="max-w-2xl"
+      >
+            <div className="space-y-4">
               {editingUser && (
                 <div className="flex items-center gap-3 rounded-lg border border-white/10 bg-white/[0.03] p-3">
                   <img src={editingUser.avatar || `https://i.pravatar.cc/40?u=${encodeURIComponent(editingUser.email)}`} alt="" className="h-12 w-12 rounded-full border border-white/10 object-cover" />
@@ -411,11 +421,11 @@ export default function UsersPage() {
                 </div>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
-                <div><label className="mb-1.5 block text-xs font-medium text-gray-300">Pais</label><input disabled={modalMode === "view"} value={form.country} onChange={(event) => setForm({ ...form, country: event.target.value })} className="input-dark w-full px-3 py-2.5 text-sm" placeholder="PT, BR, AO..." /></div>
+                <div><label className="mb-1.5 block text-xs font-medium text-gray-300">País</label><input disabled={modalMode === "view"} value={form.country} onChange={(event) => setForm({ ...form, country: event.target.value })} className="input-dark w-full px-3 py-2.5 text-sm" placeholder="PT, BR, AO..." /></div>
                 <div><label className="mb-1.5 block text-xs font-medium text-gray-300">Telefone</label><input disabled={modalMode === "view"} value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} className="input-dark w-full px-3 py-2.5 text-sm" placeholder="+351 999 999 999" /></div>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
-                <div><label className="mb-1.5 block text-xs font-medium text-gray-300">Funcao</label><AdminSelect disabled={modalMode === "view"} value={form.role} onChange={(value) => setForm({ ...form, role: value })} options={roleOptions} /></div>
+                <div><label className="mb-1.5 block text-xs font-medium text-gray-300">Função</label><AdminSelect disabled={modalMode === "view"} value={form.role} onChange={(value) => setForm({ ...form, role: value })} options={roleOptions} /></div>
                 <div><label className="mb-1.5 block text-xs font-medium text-gray-300">Status</label><AdminSelect disabled={modalMode === "view"} value={form.status} onChange={(value) => setForm({ ...form, status: value })} options={statusOptions} /></div>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
@@ -423,13 +433,8 @@ export default function UsersPage() {
                 <div><label className="mb-1.5 block text-xs font-medium text-gray-300">Email verificado</label><AdminSelect disabled={modalMode === "view"} value={form.emailVerified} onChange={(value) => setForm({ ...form, emailVerified: value })} options={booleanOptions} /></div>
               </div>
             </div>
-            <div className="flex justify-end gap-3 border-t border-white/10 p-5">
-              <button onClick={() => setModalMode(null)} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-gray-300 transition-colors hover:bg-white/10 hover:text-white">Fechar</button>
-              {modalMode !== "view" && <button onClick={saveUser} className="rounded-lg bg-[#E50914] px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-[#B00000]">Salvar</button>}
-            </div>
-          </div>
-        </div>
-      )}
+      </AdminFormWizard>
+
     </div>
   );
 }

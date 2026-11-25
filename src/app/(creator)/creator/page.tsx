@@ -2,7 +2,20 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Radio, Eye, Users, TrendingUp, Plus, ArrowUpRight, Tv2, BarChart3, Star, Zap, AlertCircle } from "lucide-react";
+import {
+  Radio,
+  Eye,
+  Users,
+  TrendingUp,
+  Plus,
+  ArrowUpRight,
+  Tv2,
+  BarChart3,
+  Star,
+  Zap,
+  AlertCircle,
+  Heart,
+} from "lucide-react";
 import { apiRequest } from "@/lib/api";
 
 interface CreatorStats {
@@ -29,22 +42,31 @@ interface Channel {
   description?: string;
 }
 
-function Skeleton({ className = "" }: { className?: string }) {
-  return <div className={`animate-pulse rounded-lg bg-[#1E1E2A] ${className}`} />;
-}
-
-function StatCard({ title, value, subtitle, icon: Icon, color = "#E50914" }: {
-  title: string; value: string | number; subtitle?: string; icon: React.ElementType; color?: string;
+function StatCard({
+  title,
+  value,
+  subtitle,
+  icon: Icon,
+  color = "#E50914",
+}: {
+  title: string;
+  value: string | number;
+  subtitle?: string;
+  icon: React.ElementType;
+  color?: string;
 }) {
   return (
-    <div className="rounded-xl border border-[#1E1E2A] bg-[#0E0E16] p-5 hover:border-[#E50914]/20 transition-colors">
-      <div className="flex items-start justify-between mb-3">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{title}</p>
-          <p className="mt-1 text-2xl font-black text-white">{value}</p>
-          {subtitle && <p className="text-[10px] text-gray-600 mt-0.5">{subtitle}</p>}
+    <div className="rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] p-4 transition-colors hover:border-[#E50914]/25 sm:p-5">
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">{title}</p>
+          <p className="mt-1 text-2xl font-black tabular-nums text-white">{value}</p>
+          {subtitle ? <p className="mt-0.5 text-[11px] text-gray-600">{subtitle}</p> : null}
         </div>
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: `${color}15` }}>
+        <div
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+          style={{ backgroundColor: `${color}18` }}
+        >
           <Icon className="h-5 w-5" style={{ color }} />
         </div>
       </div>
@@ -62,132 +84,170 @@ export default function CreatorDashboard() {
     const load = async () => {
       try {
         const [statsData, channelData] = await Promise.all([
-          apiRequest<CreatorStats>("/creator/stats"),
-          apiRequest<Channel | null>("/creator/me"),
+          apiRequest<CreatorStats>("/creator/stats").catch(() => null),
+          apiRequest<Channel>("/creator/channel").catch(() => null),
         ]);
         setStats(statsData);
-        setChannel(channelData);
-        if (!channelData) setNoChannel(true);
+        if (channelData) setChannel(channelData);
+        else setNoChannel(true);
       } catch {
         setNoChannel(true);
-      } finally { setLoading(false); }
+      } finally {
+        setLoading(false);
+      }
     };
-    load();
+    void load();
   }, []);
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <Skeleton className="h-8 w-48" />
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          {[1,2,3,4].map(i => <Skeleton key={i} className="h-28" />)}
+      <div className="space-y-4">
+        <div className="h-8 w-48 animate-pulse rounded-lg bg-[#1E1E2A]" />
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-28 animate-pulse rounded-2xl bg-[#1E1E2A]" />
+          ))}
         </div>
-        <Skeleton className="h-40" />
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-xl font-black text-white">Creator Studio</h1>
-          <p className="text-xs text-gray-500 mt-0.5">Gere o teu conteúdo e analisa as tuas métricas</p>
+          <h1 className="text-xl font-black text-white sm:text-2xl">Dashboard</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            {channel ? `Canal · ${channel.name}` : "Visão geral da tua atividade"}
+          </p>
         </div>
-        <Link href="/admin/lives/new" className="flex items-center gap-2 rounded-xl bg-[#E50914] px-4 py-2 text-sm font-bold text-white hover:bg-[#B00000] transition-colors">
-          <Plus className="h-4 w-4" /> Nova Live
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/creator/lives"
+            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2 text-sm font-semibold text-white/80 transition-colors hover:bg-white/[0.06] hover:text-white"
+          >
+            <Radio className="h-4 w-4" />
+            Lives
+          </Link>
+          <Link
+            href="/creator/channel"
+            className="inline-flex items-center gap-2 rounded-xl bg-[#E50914] px-3.5 py-2 text-sm font-bold text-white shadow-[0_8px_24px_rgba(229,9,20,0.25)] transition hover:bg-[#C50010]"
+          >
+            <Plus className="h-4 w-4" />
+            {channel ? "Gerir canal" : "Criar canal"}
+          </Link>
+        </div>
       </div>
 
-      {noChannel && (
-        <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/5 p-5 flex items-start gap-4">
-          <AlertCircle className="h-5 w-5 text-yellow-400 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="font-semibold text-yellow-300">Canal não configurado</p>
-            <p className="text-sm text-yellow-200/70 mt-1">Cria o teu canal para começar a transmitir e monetizar o teu conteúdo.</p>
-            <Link href="/creator/channel" className="inline-flex items-center gap-1.5 mt-3 rounded-lg bg-yellow-500/20 border border-yellow-500/30 px-3 py-1.5 text-xs font-bold text-yellow-300 hover:bg-yellow-500/30 transition-colors">
-              <Tv2 className="h-3.5 w-3.5" /> Criar Canal
-            </Link>
-          </div>
-        </div>
-      )}
-
-      {channel && (
-        <div className="rounded-xl border border-[#E50914]/20 bg-gradient-to-r from-[#E50914]/5 to-transparent p-5">
-          <div className="flex items-center gap-4">
-            {channel.avatar ? (
-              <img src={channel.avatar} alt={channel.name} className="w-14 h-14 rounded-full object-cover border-2 border-[#E50914]/30" />
-            ) : (
-              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#E50914] to-[#B00000] flex items-center justify-center text-xl font-black text-white flex-shrink-0">
-                {channel.name.slice(0, 1)}
+      {noChannel || !channel ? (
+        <div className="overflow-hidden rounded-2xl border border-[#E50914]/25 bg-gradient-to-br from-[#E50914]/10 to-transparent p-5 sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#E50914]/30 bg-[#E50914]/15 text-[#ff6b73]">
+                <AlertCircle className="h-5 w-5" />
               </div>
-            )}
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-black text-white truncate">{channel.name}</h2>
-                {channel.verified && <Star className="h-4 w-4 text-yellow-400 fill-yellow-400 flex-shrink-0" />}
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                  channel.status === 'active' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-yellow-500/15 text-yellow-400'
-                }`}>{channel.status}</span>
-              </div>
-              <p className="text-xs text-gray-400 mt-0.5 truncate">{channel.description || 'Sem descrição'}</p>
-              <div className="flex items-center gap-4 mt-2">
-                <span className="text-xs text-gray-400"><span className="font-bold text-white">{channel.subscriberCount}</span> subscritores</span>
-                <span className="text-xs text-gray-400"><span className="font-bold text-white">{channel.liveCount}</span> lives</span>
-                <span className="text-xs text-gray-400"><span className="font-bold text-white">{channel.totalViews}</span> views</span>
+              <div>
+                <h2 className="text-base font-bold text-white">Ainda não tens canal</h2>
+                <p className="mt-1 max-w-md text-sm text-white/55">
+                  Cria o teu canal para publicar lives, ver estatísticas e aparecer na plataforma.
+                </p>
               </div>
             </div>
-            <Link href="/creator/channel" className="flex items-center gap-1.5 text-xs text-[#E50914] hover:underline flex-shrink-0">
-              Editar <ArrowUpRight className="h-3 w-3" />
+            <Link
+              href="/creator/channel"
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-[#0A0A10] transition hover:bg-white/90"
+            >
+              <Tv2 className="h-4 w-4" />
+              Configurar canal
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] p-4 sm:p-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              {channel.avatar ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={channel.avatar} alt="" className="h-12 w-12 rounded-xl object-cover" />
+              ) : (
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#E50914]/15 text-[#E50914]">
+                  <Tv2 className="h-6 w-6" />
+                </div>
+              )}
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-base font-bold text-white">{channel.name}</h2>
+                  {channel.verified ? (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-300">
+                      <Star className="h-3 w-3" /> Verificado
+                    </span>
+                  ) : null}
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
+                      channel.status === "active"
+                        ? "bg-emerald-500/15 text-emerald-400"
+                        : "bg-white/5 text-gray-400"
+                    }`}
+                  >
+                    {channel.status}
+                  </span>
+                </div>
+                <p className="mt-0.5 text-xs text-gray-500">/{channel.slug}</p>
+              </div>
+            </div>
+            <Link
+              href={`/canal/${channel.slug}`}
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#ff6b73] hover:text-white"
+            >
+              Ver página pública <ArrowUpRight className="h-4 w-4" />
             </Link>
           </div>
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatCard title="Lives Totais" value={stats?.totalLives || 0} subtitle={`${stats?.liveNow || 0} ao vivo agora`} icon={Radio} />
-        <StatCard title="Visualizações" value={(stats?.totalViews || 0).toLocaleString()} subtitle="últimos 30 dias" icon={Eye} color="#22C55E" />
-        <StatCard title="Subscritores" value={(stats?.subscribers || 0).toLocaleString()} icon={Users} color="#E50914" />
-        <StatCard title="Espectadores" value={(stats?.currentViewers || 0).toLocaleString()} subtitle="ao vivo agora" icon={Zap} color="#F59E0B" />
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatCard title="Lives" value={stats?.totalLives ?? 0} subtitle={`${stats?.liveNow ?? 0} ao vivo`} icon={Radio} />
+        <StatCard title="Views" value={(stats?.totalViews ?? 0).toLocaleString("pt-PT")} icon={Eye} color="#22C55E" />
+        <StatCard title="Subscritores" value={(stats?.subscribers ?? 0).toLocaleString("pt-PT")} icon={Users} color="#38BDF8" />
+        <StatCard title="Gostos" value={(stats?.totalLikes ?? 0).toLocaleString("pt-PT")} icon={Heart} color="#F472B6" />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-3">
         {[
-          { href: "/creator/lives", label: "Gerir Lives", desc: "Criar e gerir transmissões", icon: Radio, color: "text-[#E50914]" },
-          { href: "/creator/analytics", label: "Analíticas", desc: "Ver métricas detalhadas", icon: BarChart3, color: "text-red-400" },
-          { href: "/creator/channel", label: "Canal", desc: "Configurar o meu canal", icon: Tv2, color: "text-yellow-400" },
-        ].map(({ href, label, desc, icon: Icon, color }) => (
-          <Link key={href} href={href} className="group flex items-center gap-4 rounded-xl border border-[#1E1E2A] bg-[#0E0E16] p-4 hover:border-[#E50914]/20 transition-all">
-            <Icon className={`h-6 w-6 ${color} flex-shrink-0`} />
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-white">{label}</p>
-              <p className="text-xs text-gray-500">{desc}</p>
+          {
+            href: "/creator/lives",
+            icon: Zap,
+            title: "Gerir lives",
+            desc: "Lista e estado das tuas transmissões",
+          },
+          {
+            href: "/creator/analytics",
+            icon: BarChart3,
+            title: "Analíticas",
+            desc: "Views, gostos e crescimento",
+          },
+          {
+            href: "/creator/channel",
+            icon: Tv2,
+            title: "Perfil do canal",
+            desc: "Nome, redes e identidade visual",
+          },
+        ].map(({ href, icon: Icon, title, desc }) => (
+          <Link
+            key={href}
+            href={href}
+            className="group rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] p-4 transition-all hover:border-[#E50914]/30 hover:bg-[#111118]"
+          >
+            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl border border-[#E50914]/20 bg-[#E50914]/10 text-[#ff6b73] transition group-hover:scale-105">
+              <Icon className="h-5 w-5" />
             </div>
-            <ArrowUpRight className="h-4 w-4 text-gray-600 group-hover:text-[#E50914] transition-colors flex-shrink-0" />
+            <p className="text-sm font-bold text-white">{title}</p>
+            <p className="mt-1 text-xs leading-relaxed text-gray-500">{desc}</p>
+            <span className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold text-gray-500 group-hover:text-[#ff6b73]">
+              Abrir <ArrowUpRight className="h-3.5 w-3.5" />
+            </span>
           </Link>
         ))}
-      </div>
-
-      <div className="rounded-xl border border-[#1E1E2A] bg-[#0E0E16] p-5">
-        <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
-          <TrendingUp className="h-4 w-4 text-emerald-400" /> Dicas para Crescer
-        </h3>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {[
-            { tip: "Transmite regularmente", desc: "Consistência é chave para ganhar subscritores" },
-            { tip: "Usa títulos apelativos", desc: "Inclui os nomes das equipas e ligas" },
-            { tip: "Interaje com o chat", desc: "Responde às perguntas dos espectadores" },
-            { tip: "Cria sondagens", desc: "Mantém o público envolvido com votações" },
-          ].map(({ tip, desc }) => (
-            <div key={tip} className="flex gap-3">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#E50914] mt-1.5 flex-shrink-0" />
-              <div>
-                <p className="text-xs font-semibold text-white">{tip}</p>
-                <p className="text-[11px] text-gray-500">{desc}</p>
-              </div>
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   );

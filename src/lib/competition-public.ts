@@ -43,7 +43,7 @@ export async function fetchPublicCompetition(slug = DEFAULT_COMPETITION_SLUG): P
 export function getCompetitionHero(competition: Competition) {
   return {
     badge: competition.heroBadge || competition.name,
-    badgeIcon: competition.heroBadgeIcon || "🏆",
+    badgeIcon: competition.heroBadgeIcon || "",
     titleLine1: competition.heroTitleLine1 || competition.name,
     titleLine2: competition.heroTitleLine2 || competition.season || "",
     description: competition.heroDescription || competition.description || "",

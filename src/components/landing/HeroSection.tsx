@@ -18,8 +18,12 @@ import {
   Tv2,
   Users,
   Zap,
+  Globe2,
+  Search,
+  Film,
 } from "lucide-react";
 import type { Ad, Live } from "@/types";
+import type { PromotionalBanner } from "@/components/ads/PromoBannerStrip";
 import { publicApiRequest, type ApiListResponse } from "@/lib/api";
 import { resolveCountryFlagUrl } from "@/lib/flags";
 import { useLang } from "@/lib/lang";
@@ -194,6 +198,7 @@ export default function HeroSection() {
   const [paused, setPaused] = useState(false);
   const [allLives, setAllLives] = useState<Live[]>([]);
   const [ads, setAds] = useState<Ad[]>([]);
+  const [heroBanners, setHeroBanners] = useState<PromotionalBanner[]>([]);
   const [countdown, setCountdown] = useState({ d: 0, h: 0, m: 0, s: 0 });
   const autoPlayRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -201,12 +206,14 @@ export default function HeroSection() {
   useEffect(() => {
     const load = async () => {
       try {
-        const [livesRes, adsRes] = await Promise.all([
+        const [livesRes, adsRes, bannersRes] = await Promise.all([
           publicApiRequest<ApiListResponse<Live>>("/lives?limit=50"),
           publicApiRequest<Ad[]>("/ads?status=active"),
+          publicApiRequest<PromotionalBanner[]>("/banners?position=hero&active=true").catch(() => []),
         ]);
         setAllLives(livesRes.items || []);
         setAds(Array.isArray(adsRes) ? adsRes : []);
+        setHeroBanners(Array.isArray(bannersRes) ? bannersRes : []);
       } catch {
         /* silent */
       }
@@ -218,12 +225,14 @@ export default function HeroSection() {
   const slides = useMemo(() => {
     const items: Array<{
       id: string;
-      kind: "live" | "ad";
+      kind: "live" | "ad" | "banner";
       isLive: boolean;
       image: string;
       title: string;
       subtitle: string;
       highlight: string;
+      ctaText?: string;
+      linkUrl?: string;
       live?: Live;
       ad?: Ad;
     }> = [];
@@ -244,12 +253,27 @@ export default function HeroSection() {
         highlight: live.status === "live" ? "Ao vivo" : live.status === "scheduled" ? "Agendado" : "Destaque",
         live,
       });
-      if (items.length >= 5) break;
+      if (items.length >= 4) break;
+    }
+
+    for (const banner of heroBanners) {
+      if (items.length >= 6) break;
+      items.push({
+        id: `banner-${banner.id}`,
+        kind: "banner",
+        isLive: false,
+        image: banner.imageUrl || FALLBACK_IMAGES[items.length % FALLBACK_IMAGES.length],
+        title: banner.title,
+        subtitle: banner.subtitle || "Cobertura oficial em direto e alta definição",
+        highlight: banner.badge || "Destaque Oficial",
+        ctaText: banner.ctaText || "Explorar",
+        linkUrl: banner.linkUrl || "/ao-vivo",
+      });
     }
 
     const heroAds = ads.filter((ad) => ad.position === "header" || ad.position === "live_preroll");
     for (const ad of heroAds) {
-      if (items.length >= 6) break;
+      if (items.length >= 7) break;
       items.push({
         id: `ad-${ad.id}`,
         kind: "ad",
@@ -257,7 +281,7 @@ export default function HeroSection() {
         image: ad.imageUrl || FALLBACK_IMAGES[items.length % FALLBACK_IMAGES.length],
         title: ad.title,
         subtitle: ad.campaign || "Patrocinado",
-        highlight: "Premium",
+        highlight: "Patrocinador",
         ad,
       });
     }
@@ -275,7 +299,7 @@ export default function HeroSection() {
     }
 
     return items;
-  }, [ads, allLives]);
+  }, [ads, allLives, heroBanners]);
 
   useEffect(() => {
     if (slides.length <= 1 || paused) return;
@@ -332,7 +356,7 @@ export default function HeroSection() {
 
   return (
     <section
-      className="relative overflow-hidden bg-[#05060a] px-4 pb-24 pt-[112px] lg:px-6 lg:pb-28 lg:pt-[118px]"
+      className="relative overflow-hidden bg-[#05060a] px-3 pb-12 pt-4 sm:px-4 sm:pb-16 sm:pt-6 lg:px-6 lg:pb-20 lg:pt-8"
       role="region"
       aria-roledescription="carousel"
       aria-label="Destaques ao vivo"
@@ -362,11 +386,11 @@ export default function HeroSection() {
             </div>
           ))}
 
-          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(4,5,10,0.97)_0%,rgba(4,5,10,0.92)_22%,rgba(4,5,10,0.55)_58%,rgba(4,5,10,0.22)_100%)]" />
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(4,5,10,0.98)_0%,rgba(4,5,10,0.94)_28%,rgba(4,5,10,0.55)_62%,rgba(4,5,10,0.25)_100%)]" />
           <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(229,9,20,0.10)_0%,transparent_24%,transparent_78%,rgba(3,4,9,0.92)_100%)]" />
           <div className="absolute inset-0 border border-white/[0.03] [mask-image:linear-gradient(180deg,white,transparent)]" />
 
-          <div className="relative z-10 grid min-h-[560px] gap-8 px-6 py-8 sm:px-8 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-end lg:px-10 lg:py-10 xl:min-h-[600px] xl:px-12 xl:py-12">
+          <div className="relative z-10 grid min-h-[380px] gap-6 px-4 py-5 sm:min-h-[460px] sm:gap-7 sm:px-8 sm:py-7 lg:grid-cols-[minmax(0,1fr)_400px] lg:items-end lg:min-h-[520px] lg:px-10 lg:py-10 xl:min-h-[600px] xl:px-12 xl:py-12">
             <div className="flex max-w-[720px] flex-col justify-between gap-8">
               <div className="space-y-6">
                 <div className="flex flex-wrap items-center gap-3">
@@ -393,7 +417,7 @@ export default function HeroSection() {
                 </div>
 
                 <div className="space-y-4">
-                  <h1 className="max-w-[11ch] text-display text-[60px] leading-[0.92] text-white sm:text-[76px] lg:text-[88px] xl:text-[104px]">
+                  <h1 className="max-w-[11ch] text-display text-[42px] leading-[0.94] text-white sm:text-[60px] md:text-[76px] lg:text-[88px] xl:text-[104px]">
                     {headlineParts ? (
                       <>
                         <span>{headlineParts[0]}</span>
@@ -431,37 +455,51 @@ export default function HeroSection() {
                   </div>
                 ) : null}
 
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
                   {slide.kind === "live" ? (
-                    <Link href={`/watch/${slide.live!.id}`} className="btn btn-primary btn-lg rounded-full px-7 shadow-[0_0_36px_rgba(229,9,20,0.24)]">
+                    <Link href={`/watch/${slide.live!.id}`} className="btn btn-primary btn-lg w-full justify-center rounded-full px-7 shadow-[0_0_36px_rgba(229,9,20,0.24)] sm:w-auto">
                       <Play className="h-5 w-5 fill-current" />
-                      {slide.isLive ? "Ver detalhes" : t.hero_watch}
+                      {slide.isLive ? "Assistir Agora" : t.hero_watch}
+                    </Link>
+                  ) : slide.kind === "banner" && slide.linkUrl ? (
+                    <Link href={slide.linkUrl} className="btn btn-primary btn-lg w-full justify-center rounded-full px-7 shadow-[0_0_36px_rgba(229,9,20,0.24)] sm:w-auto">
+                      <Play className="h-5 w-5 fill-current" />
+                      {slide.ctaText || "Explorar"}
                     </Link>
                   ) : slide.ad?.clickUrl ? (
-                    <a href={slide.ad.clickUrl} target="_blank" rel="noreferrer" className="btn btn-primary btn-lg rounded-full px-7">
+                    <a href={slide.ad.clickUrl} target={slide.ad.clickUrl.startsWith("http") ? "_blank" : undefined} rel="noreferrer" className="btn btn-primary btn-lg w-full justify-center rounded-full px-7 sm:w-auto">
                       <Play className="h-5 w-5 fill-current" />
-                      Explorar
+                      Explorar Oferta
                     </a>
-                  ) : null}
-                  <Link href="/register" className="btn btn-secondary btn-lg rounded-full border-white/12 bg-black/20 px-7 text-white hover:bg-white/[0.06]">
+                  ) : (
+                    <Link href="/calendario" className="btn btn-primary btn-lg w-full justify-center rounded-full px-7 sm:w-auto">
+                      <CalendarDays className="h-5 w-5" />
+                      Ver calendário
+                    </Link>
+                  )}
+                  <Link href="/register" className="btn btn-secondary btn-lg w-full justify-center rounded-full border-white/12 bg-black/25 px-7 text-white backdrop-blur-md hover:bg-white/[0.08] sm:w-auto">
                     <Users className="h-5 w-5" />
                     {t.hero_create_account}
+                  </Link>
+                  <Link href="/futebol" className="btn btn-ghost btn-lg w-full justify-center rounded-full px-5 text-white/70 hover:text-white sm:w-auto">
+                    <Trophy className="h-5 w-5" />
+                    Explorar desportos
                   </Link>
                 </div>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="grid grid-cols-2 gap-2.5 sm:gap-3 xl:grid-cols-4">
                 {featureItems.map(({ icon: Icon, title, subtitle }) => (
                   <div
                     key={title}
-                    className="flex items-center gap-3 rounded-[22px] border border-white/8 bg-white/[0.035] px-4 py-4 backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
+                    className="flex items-center gap-2.5 rounded-2xl border border-white/8 bg-white/[0.035] px-3 py-3 backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] transition-colors hover:border-white/15 hover:bg-white/[0.05]"
                   >
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[#E50914]/25 bg-[#E50914]/10 text-[#ff5e67]">
-                      <Icon className="h-[18px] w-[18px]" />
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#E50914]/25 bg-[#E50914]/10 text-[#ff5e67]">
+                      <Icon className="h-4 w-4" />
                     </span>
-                    <span className="leading-tight">
-                      <span className="block text-[11px] font-bold uppercase tracking-[0.16em] text-white/70">{title}</span>
-                      <span className="block text-[11px] font-bold uppercase tracking-[0.16em] text-white/30">{subtitle}</span>
+                    <span className="min-w-0 leading-tight">
+                      <span className="block truncate text-[10px] font-bold uppercase tracking-[0.14em] text-white/75">{title}</span>
+                      <span className="block truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-white/35">{subtitle}</span>
                     </span>
                   </div>
                 ))}
@@ -477,33 +515,53 @@ export default function HeroSection() {
                   <QuickLiveRail lives={otherLives} />
                 </>
               ) : (
-                <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(14,16,24,0.88),rgba(7,8,13,0.96))] p-6 shadow-[0_30px_90px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
-                  <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl border border-[#E50914]/25 bg-[#E50914]/12 text-[#ff5d66]">
-                    <Zap className="h-7 w-7" />
+                <div className="overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(165deg,rgba(18,20,30,0.95),rgba(7,8,13,0.98))] p-6 shadow-[0_30px_90px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
+                  <div className="mb-5 flex items-start justify-between gap-3">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#E50914]/30 bg-gradient-to-br from-[#E50914]/25 to-[#E50914]/05 text-[#ff5d66] shadow-[0_0_24px_rgba(229,9,20,0.2)]">
+                      <Zap className="h-6 w-6" />
+                    </div>
+                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-white/50">
+                      Premium
+                    </span>
                   </div>
-                  <h2 className="text-heading text-3xl text-white">Experiência premium de streaming</h2>
-                  <p className="mt-3 text-sm leading-7 text-white/55">
-                    Interface ultramoderna, estatísticas em tempo real, destaques de competições e acesso rápido às transmissões do momento.
+                  <h2 className="text-heading text-2xl leading-tight text-white sm:text-[1.75rem]">
+                    Experiência premium de streaming
+                  </h2>
+                  <p className="mt-2.5 text-sm leading-6 text-white/55">
+                    Estatísticas ao vivo, competições em destaque e acesso rápido às transmissões do momento.
                   </p>
-                  <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                  <div className="mt-5 grid gap-2.5 sm:grid-cols-2">
                     {[
-                      "Cobertura global",
-                      "Busca instantânea",
-                      "Placar em tempo real",
-                      "Navegação cinematográfica",
-                    ].map((item) => (
-                      <div key={item} className="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-sm font-semibold text-white/80">
-                        {item}
+                      { icon: Globe2, label: "Cobertura global" },
+                      { icon: Search, label: "Busca instantânea" },
+                      { icon: BarChart3, label: "Placar em tempo real" },
+                      { icon: Film, label: "Navegação fluida" },
+                    ].map(({ icon: Icon, label }) => (
+                      <div
+                        key={label}
+                        className="flex items-center gap-2.5 rounded-2xl border border-white/[0.07] bg-white/[0.03] px-3 py-3 text-sm font-semibold text-white/85 transition-colors hover:border-white/15 hover:bg-white/[0.05]"
+                      >
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#E50914]/12 text-[#ff6b73]">
+                          <Icon className="h-3.5 w-3.5" />
+                        </span>
+                        {label}
                       </div>
                     ))}
                   </div>
+                  <Link
+                    href="/register"
+                    className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#E50914] to-[#B00000] px-4 py-3 text-sm font-bold text-white shadow-[0_8px_28px_rgba(229,9,20,0.28)] transition hover:brightness-110"
+                  >
+                    <Users className="h-4 w-4" />
+                    Começar grátis
+                  </Link>
                 </div>
               )}
             </div>
           </div>
 
           {slides.length > 1 ? (
-            <div className="relative z-10 flex flex-wrap items-center justify-between gap-4 border-t border-white/[0.06] px-6 py-4 sm:px-8 lg:px-10 xl:px-12">
+            <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] px-4 py-3 sm:gap-4 sm:px-8 sm:py-4 lg:px-10 xl:px-12">
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setCurrent((value) => (value - 1 + slides.length) % slides.length)}
