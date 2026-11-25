@@ -9,6 +9,7 @@ import toast from "react-hot-toast";
 import AdminImageField from "@/components/admin/AdminImageField";
 import { IMAGE_SIZE_PRESETS, type ImageSizeHint } from "@/lib/image-upload-hints";
 import AdminSelect from "@/components/admin/AdminSelect";
+import AdminFormWizard from "@/components/admin/AdminFormWizard";
 import AdminActionButton from "@/components/admin/AdminActionButton";
 import { apiRequest } from "@/lib/api";
 
@@ -506,15 +507,21 @@ export default function AdsPage() {
         </div>
       </div>
 
-      {modalMode && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 p-0 backdrop-blur-sm sm:items-center sm:p-4">
-          <div className="max-h-[92dvh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-[#2A2A2A] bg-[#1A1A1A]">
-            <div className="flex items-center justify-between border-b border-[#2A2A2A] p-5">
-              <h3 className="font-bold text-white">{modalMode === "create" ? "Novo Anuncio" : modalMode === "edit" ? "Editar Anuncio" : "Visualizar Anuncio"}</h3>
-              <button onClick={() => setModalMode(null)} className="text-gray-400 hover:text-white"><X className="h-4 w-4" /></button>
-            </div>
+      <AdminFormWizard
+        open={Boolean(modalMode)}
+        title={modalMode === "create" ? "Novo Anúncio" : modalMode === "edit" ? "Editar Anúncio" : "Visualizar Anúncio"}
+        subtitle={modalMode === "view" ? "Modo leitura" : "Preencha os dados da campanha publicitária"}
+        icon={modalMode === "view" ? Eye : modalMode === "edit" ? Edit2 : Plus}
+        tone={modalMode === "create" ? "create" : modalMode === "edit" ? "edit" : "view"}
+        onClose={() => setModalMode(null)}
+        primaryLabel={modalMode === "edit" ? "Guardar" : "Criar Anúncio"}
+        onPrimary={() => { if (!readOnly) void handleSave(); }}
+        hidePrimary={readOnly}
+        secondaryLabel={readOnly ? "Fechar" : "Cancelar"}
+        showStepNav={false}
+      >
+            <div className="space-y-4">
 
-            <div className="space-y-4 p-5">
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-gray-300">Titulo *</label>
                 <input disabled={readOnly} value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} className="input-dark w-full px-3 py-2.5 text-sm" placeholder="Nome do anuncio" />
@@ -560,13 +567,7 @@ export default function AdsPage() {
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 border-t border-[#2A2A2A] p-5">
-              <button onClick={() => setModalMode(null)} className="rounded-lg bg-[#2A2A2A] px-4 py-2 text-sm text-gray-300 hover:bg-[#3A3A3A]">Fechar</button>
-              {!readOnly && <button onClick={handleSave} className="rounded-lg bg-[#E50914] px-4 py-2 text-sm font-bold text-white hover:bg-[#B00000]">{modalMode === "edit" ? "Salvar" : "Criar Anuncio"}</button>}
-            </div>
-          </div>
-        </div>
-      )}
+      </AdminFormWizard>
     </div>
   );
 }

@@ -17,9 +17,10 @@ interface AdminFormWizardProps {
   subtitle?: string;
   icon?: ElementType;
   tone?: "create" | "edit" | "view";
-  steps: WizardStep[];
-  stepKey: string;
-  onStepChange: (key: string) => void;
+  /** Pass [] or omit for a simple modal without steps */
+  steps?: WizardStep[];
+  stepKey?: string;
+  onStepChange?: (key: string) => void;
   onClose: () => void;
   children: ReactNode;
   footerLeft?: ReactNode;
@@ -29,6 +30,8 @@ interface AdminFormWizardProps {
   primaryLoading?: boolean;
   secondaryLabel?: string;
   showStepNav?: boolean;
+  /** Hide primary button (e.g. view-only) */
+  hidePrimary?: boolean;
   maxWidthClass?: string;
 }
 
@@ -44,8 +47,8 @@ export default function AdminFormWizard({
   subtitle,
   icon: Icon,
   tone = "create",
-  steps,
-  stepKey,
+  steps = [],
+  stepKey = "",
   onStepChange,
   onClose,
   children,
@@ -56,20 +59,22 @@ export default function AdminFormWizard({
   primaryLoading,
   secondaryLabel = "Cancelar",
   showStepNav = true,
+  hidePrimary = false,
   maxWidthClass = "max-w-2xl",
 }: AdminFormWizardProps) {
   if (!open) return null;
 
-  const index = Math.max(0, steps.findIndex((s) => s.key === stepKey));
+  const hasSteps = steps.length > 1;
+  const index = hasSteps ? Math.max(0, steps.findIndex((s) => s.key === stepKey)) : 0;
   const isFirst = index <= 0;
-  const isLast = index >= steps.length - 1;
-  const progress = steps.length > 1 ? ((index + 1) / steps.length) * 100 : 100;
+  const isLast = !hasSteps || index >= steps.length - 1;
+  const progress = hasSteps ? ((index + 1) / steps.length) * 100 : 100;
 
   const goPrev = () => {
-    if (!isFirst) onStepChange(steps[index - 1].key);
+    if (!isFirst && onStepChange) onStepChange(steps[index - 1].key);
   };
   const goNext = () => {
-    if (!isLast) onStepChange(steps[index + 1].key);
+    if (!isLast && onStepChange) onStepChange(steps[index + 1].key);
   };
 
   return (
@@ -107,8 +112,7 @@ export default function AdminFormWizard({
             </button>
           </div>
 
-          {/* Progress */}
-          {steps.length > 1 ? (
+          {hasSteps ? (
             <div className="mt-4">
               <div className="mb-2 flex items-center justify-between text-[10px] font-semibold uppercase tracking-wider text-gray-500">
                 <span>
@@ -128,7 +132,7 @@ export default function AdminFormWizard({
                     <button
                       key={step.key}
                       type="button"
-                      onClick={() => onStepChange(step.key)}
+                      onClick={() => onStepChange?.(step.key)}
                       className={cn(
                         "flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl px-2 py-2 text-[11px] font-bold transition-all sm:px-3",
                         active && "bg-[#E50914]/15 text-[#ff6b73] ring-1 ring-[#E50914]/30",
@@ -165,7 +169,7 @@ export default function AdminFormWizard({
               >
                 {secondaryLabel}
               </button>
-              {showStepNav && steps.length > 1 && !isFirst ? (
+              {showStepNav && hasSteps && !isFirst ? (
                 <button
                   type="button"
                   onClick={goPrev}
@@ -175,7 +179,7 @@ export default function AdminFormWizard({
                   Anterior
                 </button>
               ) : null}
-              {showStepNav && steps.length > 1 && !isLast ? (
+              {showStepNav && hasSteps && !isLast ? (
                 <button
                   type="button"
                   onClick={goNext}
@@ -185,14 +189,16 @@ export default function AdminFormWizard({
                   <ChevronRight className="h-4 w-4" />
                 </button>
               ) : null}
-              <button
-                type="button"
-                onClick={onPrimary}
-                disabled={primaryDisabled || primaryLoading}
-                className="inline-flex min-w-[7.5rem] items-center justify-center rounded-xl bg-[#E50914] px-5 py-2.5 text-sm font-bold text-white shadow-[0_4px_20px_rgba(229,9,20,0.25)] transition-all hover:bg-[#C50010] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {primaryLoading ? "A guardar…" : primaryLabel}
-              </button>
+              {!hidePrimary ? (
+                <button
+                  type="button"
+                  onClick={onPrimary}
+                  disabled={primaryDisabled || primaryLoading}
+                  className="inline-flex min-w-[7.5rem] items-center justify-center rounded-xl bg-[#E50914] px-5 py-2.5 text-sm font-bold text-white shadow-[0_4px_20px_rgba(229,9,20,0.25)] transition-all hover:bg-[#C50010] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {primaryLoading ? "A guardar…" : primaryLabel}
+                </button>
+              ) : null}
             </div>
           </div>
         </div>

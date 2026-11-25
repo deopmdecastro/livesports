@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Megaphone, Edit2, Trash2, RefreshCw } from "lucide-react";
+import { Megaphone, Edit2, Trash2, RefreshCw, Plus, X } from "lucide-react";
+import AdminFormWizard from "@/components/admin/AdminFormWizard";
 import toast from "react-hot-toast";
 import { apiRequest } from "@/lib/api";
 
@@ -156,39 +157,41 @@ export default function CampaignsPage() {
         </div>
       )}
 
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] shadow-2xl">
-            <div className="flex items-center justify-between border-b border-[#1E1E2A] p-4">
-              <h3 className="font-black text-white">{editing ? `Editar: ${editing.name}` : "Editar Campanha"}</h3>
-              <button onClick={() => setShowModal(false)} className="p-2 text-gray-400 hover:text-white">✕</button>
+      <AdminFormWizard
+        open={showModal}
+        title={editing ? `Editar: ${editing.name}` : "Nova Campanha"}
+        subtitle="Defina orçamento, anunciante e estado"
+        icon={editing ? Edit2 : Plus}
+        tone={editing ? "edit" : "create"}
+        onClose={() => setShowModal(false)}
+        primaryLabel="Guardar"
+        onPrimary={() => void handleSave()}
+        primaryLoading={saving}
+        maxWidthClass="max-w-md"
+        showStepNav={false}
+      >
+        <div className="space-y-3">
+          {[
+            { label: "Nome *", key: "name", type: "text" as const },
+            { label: "Anunciante", key: "advertiser", type: "text" as const },
+            { label: "Orçamento (EUR)", key: "budget", type: "number" as const },
+            { label: "Status", key: "status", type: "select" as const },
+          ].map(({ label, key, type }) => (
+            <div key={key}>
+              <label className="mb-1 block text-xs font-semibold text-gray-400">{label}</label>
+              {type === "select" ? (
+                <select value={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.value })} className="input-dark w-full px-3 py-2.5 text-sm">
+                  {["active", "paused", "completed", "draft"].map((o) => (
+                    <option key={o} value={o}>{o}</option>
+                  ))}
+                </select>
+              ) : (
+                <input type={type} value={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.value })} className="input-dark w-full px-3 py-2.5 text-sm" />
+              )}
             </div>
-            <div className="p-4 space-y-3">
-              {[
-                { label: "Nome *", key: "name", type: "text" as const },
-                { label: "Anunciante", key: "advertiser", type: "text" as const },
-                { label: "Orcamento (EUR)", key: "budget", type: "number" as const },
-                { label: "Status", key: "status", type: "select" as const },
-              ].map(({ label, key, type }) => (
-                <div key={key}>
-                  <label className="block text-xs font-semibold text-gray-400 mb-1">{label}</label>
-                  {type === "select" ? (
-                    <select value={form[key]} onChange={e => setForm({ ...form, [key]: e.target.value })} className="input-dark w-full px-3 py-2 text-sm">
-                      {["active","paused","completed","draft"].map(o => <option key={o} value={o}>{o}</option>)}
-                    </select>
-                  ) : (
-                    <input type={type} value={form[key]} onChange={e => setForm({ ...form, [key]: e.target.value })} className="input-dark w-full px-3 py-2 text-sm" />
-                  )}
-                </div>
-              ))}
-            </div>
-            <div className="flex justify-end gap-2 border-t border-[#1E1E2A] p-4">
-              <button onClick={() => setShowModal(false)} className="rounded-xl border border-[#1E1E2A] px-4 py-2 text-sm text-gray-300">Cancelar</button>
-              <button onClick={handleSave} disabled={saving} className="rounded-xl bg-[#E50914] px-5 py-2 text-sm font-bold text-white disabled:opacity-60">{saving ? "Guardando..." : "Guardar"}</button>
-            </div>
-          </div>
+          ))}
         </div>
-      )}
+      </AdminFormWizard>
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Edit2, Eye, Plus, Search, Trash2, X } from "lucide-react";
 import AdminSelect from "@/components/admin/AdminSelect";
+import AdminFormWizard from "@/components/admin/AdminFormWizard";
 import AdminActionButton from "@/components/admin/AdminActionButton";
 import { slugify } from "@/utils";
 import type { Category, SportCategory } from "@/types";
@@ -192,14 +193,22 @@ export default function CategoriesPage() {
         </table>
       </div>
 
-      {modalMode && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-lg rounded-xl border border-[#2A2A2A] bg-[#1A1A1A]">
-            <div className="flex items-center justify-between border-b border-[#2A2A2A] p-5">
-              <h3 className="font-bold text-white">{modalMode === "create" ? "Nova Categoria" : modalMode === "edit" ? "Editar Categoria" : "Visualizar Categoria"}</h3>
-              <button onClick={() => setModalMode(null)} className="text-gray-400 hover:text-white"><X className="h-4 w-4" /></button>
-            </div>
-            <div className="space-y-4 p-5">
+      <AdminFormWizard
+        open={Boolean(modalMode)}
+        title={modalMode === "create" ? "Nova Categoria" : modalMode === "edit" ? "Editar Categoria" : "Visualizar Categoria"}
+        subtitle={modalMode === "view" ? "Modo leitura" : "Preencha os campos e guarde"}
+        icon={modalMode === "view" ? Eye : modalMode === "edit" ? Edit2 : Plus}
+        tone={modalMode === "create" ? "create" : modalMode === "edit" ? "edit" : "view"}
+        onClose={() => setModalMode(null)}
+        primaryLabel={modalMode === "edit" ? "Guardar" : "Criar Categoria"}
+        onPrimary={() => { if (modalMode !== "view") void saveCategory(); }}
+        primaryLoading={saving}
+        hidePrimary={modalMode === "view"}
+        secondaryLabel={modalMode === "view" ? "Fechar" : "Cancelar"}
+        showStepNav={false}
+      >
+            <div className="space-y-4">
+
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-gray-300">Nome *</label>
                 <input disabled={modalMode === "view"} value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value, slug: slugify(event.target.value) })} className="input-dark w-full px-3 py-2.5 text-sm" />
@@ -223,17 +232,8 @@ export default function CategoriesPage() {
                 <textarea disabled={modalMode === "view"} value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} rows={3} className="input-dark w-full resize-none px-3 py-2.5 text-sm" />
               </div>
             </div>
-            <div className="flex justify-end gap-3 border-t border-[#2A2A2A] p-5">
-              <button onClick={() => setModalMode(null)} className="rounded-lg bg-[#2A2A2A] px-4 py-2 text-sm text-gray-300 hover:bg-[#3A3A3A]">Fechar</button>
-              {modalMode !== "view" && (
-                <button onClick={saveCategory} disabled={saving} className="rounded-lg bg-[#E50914] px-4 py-2 text-sm font-bold text-white hover:bg-[#B00000] disabled:opacity-50">
-                  {saving ? "A guardar..." : "Salvar"}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      </AdminFormWizard>
+
     </div>
   );
 }
