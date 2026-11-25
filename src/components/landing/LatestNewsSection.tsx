@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type SyntheticEvent } from "react";
 import { ArrowRight, Clock3, Flame, Globe2, Newspaper, Sparkles } from "lucide-react";
 import { publicApiRequest, type ApiListResponse } from "@/lib/api";
 import { useLang } from "@/lib/lang";
@@ -12,6 +12,17 @@ import {
 } from "@/lib/blog";
 import type { NewsArticle } from "@/types";
 import { formatNumber, formatRelativeTime, getSportLabel } from "@/utils";
+
+const FALLBACK_THUMB =
+  "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=600&q=80";
+
+/** Third-party news thumbnails often break (hotlink/expiry): fall back once. */
+function swapToFallback(e: SyntheticEvent<HTMLImageElement>) {
+  const img = e.currentTarget;
+  if (img.dataset.fallback === "1") return;
+  img.dataset.fallback = "1";
+  img.src = FALLBACK_THUMB;
+}
 
 export default function LatestNewsSection() {
   const { lang } = useLang();
@@ -117,9 +128,10 @@ export default function LatestNewsSection() {
             >
               <img
                 src={lead.thumbnail || "https://images.unsplash.com/photo-1522778119026-d647f0596c20?w=1200&q=80"}
-                alt={lead.title}
+                alt=""
                 loading="lazy"
                 referrerPolicy="no-referrer"
+                onError={swapToFallback}
                 className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#05060B] via-[#05060B]/75 to-transparent" />
@@ -181,9 +193,10 @@ export default function LatestNewsSection() {
                 <div className="relative h-20 w-24 sm:h-24 sm:w-32 shrink-0 overflow-hidden rounded-xl bg-[#161824]">
                   <img
                     src={item.thumbnail || "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=600&q=80"}
-                    alt={item.title}
+                    alt=""
                     loading="lazy"
                     referrerPolicy="no-referrer"
+                    onError={swapToFallback}
                     className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-108"
                   />
                 </div>

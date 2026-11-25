@@ -23,3 +23,10 @@
 - [x] Live Now: cards adaptativos + scroll touch
 - [x] Safe-area utilities + footer pb-safe
 - [x] SportQuickStrip espaçamento mobile
+
+## Banners & notícias (2026-11-25)
+
+- [x] PromoBannerStrip: carrossel (auto-rotação, pausa em hover/foco, swipe, setas, indicadores)
+- [x] Respeita `prefers-reduced-motion`; rótulo "Publicidade"; `rel="sponsored"` em links externos
+- [x] Promoções da própria plataforma quando não há banners patrocinados (slot nunca fica vazio)
+- [x] Fallback de imagem quebrada em banners e miniaturas de notícias reais

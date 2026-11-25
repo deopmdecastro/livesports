@@ -34,7 +34,7 @@ export default function HomePage() {
         </div>
         <div className="space-y-4">
           <AdSlot hideWhenEmpty position="sidebar" variant="box" />
-          <PromoBannerStrip position="sidebar" />
+          <PromoBannerStrip position="sidebar" houseFallback={false} />
         </div>
       </section>
 
