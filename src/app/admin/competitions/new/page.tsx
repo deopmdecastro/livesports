@@ -14,10 +14,10 @@ import { SLUG_THEME_DEFAULTS } from "@/lib/competition-theme";
 const sportOptions: { value: SportCategory; label: string }[] = [
   { value: "football", label: "Futebol" },
   { value: "basketball", label: "Basquete" },
-  { value: "tennis", label: "Tenis" },
+  { value: "tennis", label: "Tênis" },
   { value: "ufc", label: "UFC" },
-  { value: "f1", label: "Formula 1" },
-  { value: "volleyball", label: "Volei" },
+  { value: "f1", label: "Fórmula 1" },
+  { value: "volleyball", label: "Vólei" },
   { value: "baseball", label: "Beisebol" },
   { value: "other", label: "Outros" },
 ];
@@ -89,7 +89,7 @@ export default function CompetitionNewPage() {
 
   const handleSave = async () => {
     if (!canSave) {
-      toast.error("Preencha nome e slug da competicao.");
+      toast.error("Preencha o nome e o slug da competição.");
       return;
     }
 
@@ -114,10 +114,10 @@ export default function CompetitionNewPage() {
         }),
       });
 
-      toast.success("Competicao criada!");
+      toast.success("Competição criada!");
       router.push(`/admin/competitions/${created.id}/games`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel criar competicao.");
+      toast.error(error instanceof Error ? error.message : "Não foi possível criar a competição.");
     } finally {
       setSaving(false);
     }

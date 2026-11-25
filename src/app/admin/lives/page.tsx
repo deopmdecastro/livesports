@@ -262,7 +262,7 @@ export default function LivesPage() {
       setLives((prev) => prev.filter((live) => live.id !== id));
       toast.success("Live removida com sucesso!");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel remover a live.");
+      toast.error(error instanceof Error ? error.message : "Não foi possível remover a live.");
     }
   };
 
@@ -276,6 +276,24 @@ export default function LivesPage() {
       toast.success(archived ? "Live arquivada!" : "Live restaurada!");
     } catch {
       toast.error(archived ? "Erro ao arquivar" : "Erro ao restaurar");
+    }
+  };
+
+
+  const handleToggleFeatured = async (live: Live) => {
+    const next = !live.featured;
+    // Optimistic update for quick Hero control
+    setLives((prev) => prev.map((l) => (l.id === live.id ? { ...l, featured: next } : l)));
+    try {
+      const updated = await apiRequest<Live>(`/lives/${live.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ featured: next }),
+      });
+      setLives((prev) => prev.map((l) => (l.id === live.id ? { ...l, ...updated, featured: updated.featured ?? next } : l)));
+      toast.success(next ? "Live em destaque no Hero" : "Removida do Hero");
+    } catch (error) {
+      setLives((prev) => prev.map((l) => (l.id === live.id ? { ...l, featured: live.featured } : l)));
+      toast.error(error instanceof Error ? error.message : "Não foi possível atualizar o destaque.");
     }
   };
 
@@ -377,12 +395,12 @@ export default function LivesPage() {
   const handleSave = async () => {
     // Allow creating lives without event - just need title
     if (!editingLive && !form.eventId && !form.title.trim()) {
-      toast.error("Informe o titulo da live ou selecione um evento.");
+      toast.error("Informe o título da live ou selecione um evento.");
       return;
     }
 
     if (editingLive && !form.title.trim()) {
-      toast.error("Informe o titulo da live.");
+      toast.error("Informe o título da live.");
       return;
     }
 
@@ -655,6 +673,13 @@ export default function LivesPage() {
                       </AdminActionButton>
                       <AdminActionButton title="Editar live" onClick={() => handleEdit(live)} tone="edit">
                         <Edit2 className="h-4 w-4" />
+                      </AdminActionButton>
+                      <AdminActionButton
+                        title={live.featured ? "Remover do Hero" : "Destacar no Hero"}
+                        onClick={() => handleToggleFeatured(live)}
+                        tone={live.featured ? "warning" : "view"}
+                      >
+                        <Star className={cn("h-3.5 w-3.5", live.featured && "fill-amber-300 text-amber-300")} />
                       </AdminActionButton>
                       <AdminActionButton title="Arquivar live" onClick={() => handleArchiveToggle(live, true)} tone="view">
                         <Archive className="h-4 w-4 text-amber-400" />

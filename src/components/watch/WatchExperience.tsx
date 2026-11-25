@@ -5,12 +5,13 @@ import Link from "next/link";
 import {
   ArrowLeft, Eye, Heart, MessageCircle, Send, Share2, Users,
   Radio, Settings, Maximize2, Volume2, VolumeX, SkipForward,
-  Wifi, WifiOff, AlertCircle, CheckCircle, Info, X, Trophy, Signal, Server,
+  Wifi, WifiOff, AlertCircle, CheckCircle, Info, X, Trophy, Signal, Server, Smile,
 } from "lucide-react";
 import type { Live, LiveComment, LiveEngagement, Ad } from "@/types";
 import { cn, formatNumber } from "@/utils";
 import { resolveCountryFlagUrl } from "@/lib/flags";
 import LivePlayer from "@/components/watch/LivePlayer";
+import AdSlot from "@/components/ads/AdSlot";
 import { apiRequest, publicApiRequest } from "@/lib/api";
 import { useViewerCount } from "@/hooks/useViewerCount";
 
@@ -290,6 +291,21 @@ function chatColor(name: string) {
   return CHAT_COLORS[n % CHAT_COLORS.length];
 }
 
+
+const QUICK_EMOJIS = ["🔥", "⚽", "👏", "❤️", "😂", "😮", "🎉", "💪", "🏆", "😭"];
+
+type FloatingFx = {
+  id: string;
+  kind: "heart" | "emoji";
+  emoji?: string;
+  x: number;
+  y: number;
+};
+
+function spawnId() {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function WatchExperience({ live, liveId }: WatchExperienceProps) {
   const id = liveId || live.id;
@@ -317,6 +333,11 @@ export default function WatchExperience({ live, liveId }: WatchExperienceProps) 
   const [connStatus, setConnStatus] = useState<"ok" | "reconnecting" | "offline">("ok");
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [effects, setEffects] = useState<FloatingFx[]>([]);
+  const [showEmojiBar, setShowEmojiBar] = useState(false);
+  const [mobileChatOpen, setMobileChatOpen] = useState(false);
+  const lastTapRef = useRef(0);
+  const likeBurstRef = useRef(0);
 
   // Scroll chat to bottom
   useEffect(() => {
@@ -452,16 +473,89 @@ export default function WatchExperience({ live, liveId }: WatchExperienceProps) 
     } catch { /* ignore */ }
   };
 
-  const toggleLike = async () => {
+  const pushEffect = useCallback((fx: Omit<FloatingFx, "id">) => {
+    const item: FloatingFx = { ...fx, id: spawnId() };
+    setEffects((prev) => [...prev.slice(-24), item]);
+    window.setTimeout(() => {
+      setEffects((prev) => prev.filter((e) => e.id !== item.id));
+    }, 1400);
+  }, []);
+
+  const burstHearts = useCallback((x = 50, y = 45) => {
+    for (let i = 0; i < 5; i++) {
+      window.setTimeout(() => {
+        pushEffect({
+          kind: "heart",
+          x: Math.min(90, Math.max(10, x + (Math.random() * 18 - 9))),
+          y: Math.min(80, Math.max(20, y + (Math.random() * 12 - 6))),
+        });
+      }, i * 60);
+    }
+  }, [pushEffect]);
+
+  const toggleLike = async (opts?: { forceLike?: boolean; x?: number; y?: number }) => {
+    const forceLike = opts?.forceLike;
     try {
+      // Optimistic UI for double-tap / tap-tap
+      if (forceLike || !liked) {
+        setLiked(true);
+        setLikeCount((c) => c + (liked ? 0 : 1));
+        burstHearts(opts?.x ?? 50, opts?.y ?? 42);
+      }
       const s = await apiRequest<{ liked: boolean; likeCount: number }>(`/lives/${id}/like`, {
         method: "POST",
         body: JSON.stringify({ clientId }),
       });
       setLiked(s.liked);
       setLikeCount(s.likeCount);
+      if (s.liked) burstHearts(opts?.x ?? 50, opts?.y ?? 42);
     } catch {
-      setLiked((c) => !c);
+      if (!forceLike) setLiked((c) => !c);
+    }
+  };
+
+  const handlePlayerTap = (e: { currentTarget: EventTarget & HTMLElement; target: EventTarget; clientX?: number; clientY?: number; changedTouches?: TouchList }) => {
+    // Ignore taps on controls / overlays with data-no-tap
+    const target = e.target as HTMLElement;
+    if (target.closest("[data-no-tap]")) return;
+
+    const now = Date.now();
+    const delta = now - lastTapRef.current;
+    lastTapRef.current = now;
+
+    let x = 50;
+    let y = 42;
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    if ("clientX" in e && typeof e.clientX === "number") {
+      x = ((e.clientX - rect.left) / rect.width) * 100;
+      y = ((e.clientY - rect.top) / rect.height) * 100;
+    } else if ("changedTouches" in e && e.changedTouches[0]) {
+      x = ((e.changedTouches[0].clientX - rect.left) / rect.width) * 100;
+      y = ((e.changedTouches[0].clientY - rect.top) / rect.height) * 100;
+    }
+
+    if (delta > 0 && delta < 320) {
+      likeBurstRef.current += 1;
+      void toggleLike({ forceLike: true, x, y });
+    }
+  };
+
+  const sendEmoji = async (emoji: string) => {
+    pushEffect({
+      kind: "emoji",
+      emoji,
+      x: 35 + Math.random() * 30,
+      y: 55 + Math.random() * 20,
+    });
+    setShowEmojiBar(false);
+    try {
+      const created = await apiRequest<LiveComment>(`/lives/${id}/comments`, {
+        method: "POST",
+        body: JSON.stringify({ clientId, userName: getUserName(), message: emoji }),
+      });
+      setChat((c) => [...c, created]);
+    } catch {
+      /* local effect already shown */
     }
   };
 
@@ -557,8 +651,36 @@ export default function WatchExperience({ live, liveId }: WatchExperienceProps) 
         {/* Player + controls */}
         <section className="flex flex-col flex-1 min-w-0 min-h-0 relative">
           {/* Player area */}
-          <div className="flex-1 min-h-0 relative bg-black">
+          <div
+            className="relative min-h-0 flex-1 select-none bg-black"
+            onTouchEnd={(e) => {
+              // Double-tap (tap-tap) to like — desktop uses the heart button / reactions
+              handlePlayerTap(e);
+            }}
+          >
             <LivePlayer live={liveToPlay} adOverlay={adOverlay} />
+
+            {/* Floating reactions (hearts / emojis) */}
+            <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden">
+              {effects.map((fx) => (
+                <span
+                  key={fx.id}
+                  className={cn(
+                    "absolute animate-watch-float text-2xl drop-shadow-[0_4px_12px_rgba(0,0,0,0.45)]",
+                    fx.kind === "heart" && "text-[#E50914]"
+                  )}
+                  style={{ left: `${fx.x}%`, top: `${fx.y}%` }}
+                >
+                  {fx.kind === "heart" ? "❤️" : fx.emoji}
+                </span>
+              ))}
+            </div>
+
+            {/* Tap-tap hint on mobile */}
+            <div className="pointer-events-none absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-full bg-black/50 px-3 py-1 text-[10px] font-medium text-white/50 sm:hidden">
+              Toque 2× para gostar
+            </div>
+
             {showPreroll && (
               <PrerollAd
                 ad={prerollAd!}
@@ -596,9 +718,10 @@ export default function WatchExperience({ live, liveId }: WatchExperienceProps) 
           <div className="flex flex-shrink-0 items-center gap-2 border-t border-[#1E1E2A] bg-[#0A0A10] px-3 py-2">
             {/* Like */}
             <button
-              onClick={toggleLike}
+              data-no-tap
+              onClick={() => void toggleLike()}
               className={cn(
-                "inline-flex h-8 items-center gap-1.5 rounded-xl px-3 text-sm font-semibold transition-all",
+                "inline-flex h-9 items-center gap-1.5 rounded-xl px-3 text-sm font-semibold transition-all active:scale-95",
                 liked
                   ? "bg-[#E50914]/15 border border-[#E50914]/30 text-[#E50914]"
                   : "bg-[#111118] border border-[#1E1E2A] text-gray-400 hover:text-white hover:border-[#E50914]/30"
@@ -606,6 +729,50 @@ export default function WatchExperience({ live, liveId }: WatchExperienceProps) 
             >
               <Heart className={cn("h-3.5 w-3.5", liked && "fill-current")} />
               <span className="text-xs">{formatNumber(likeCount)}</span>
+            </button>
+
+            {/* Emoji reactions */}
+            <div className="relative" data-no-tap>
+              <button
+                type="button"
+                onClick={() => setShowEmojiBar((v) => !v)}
+                className={cn(
+                  "inline-flex h-9 items-center gap-1.5 rounded-xl border px-3 text-sm font-semibold transition-all",
+                  showEmojiBar
+                    ? "border-[#E50914]/30 bg-[#E50914]/15 text-[#E50914]"
+                    : "border-[#1E1E2A] bg-[#111118] text-gray-400 hover:text-white"
+                )}
+                aria-label="Reações"
+              >
+                <Smile className="h-3.5 w-3.5" />
+                <span className="hidden text-xs sm:inline">Reagir</span>
+              </button>
+              {showEmojiBar ? (
+                <div className="absolute bottom-full left-0 z-30 mb-2 flex gap-1 rounded-2xl border border-white/10 bg-[#0F1018]/95 p-2 shadow-xl backdrop-blur-md">
+                  {QUICK_EMOJIS.map((emoji) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      onClick={() => void sendEmoji(emoji)}
+                      className="flex h-9 w-9 items-center justify-center rounded-xl text-lg transition-transform hover:scale-125 active:scale-95"
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            {/* Mobile chat toggle */}
+            <button
+              data-no-tap
+              type="button"
+              onClick={() => setMobileChatOpen(true)}
+              className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-[#1E1E2A] bg-[#111118] px-3 text-gray-400 lg:hidden"
+              aria-label="Abrir chat"
+            >
+              <MessageCircle className="h-3.5 w-3.5" />
+              <span className="text-xs">{chat.length}</span>
             </button>
 
             {/* Share */}
@@ -664,6 +831,11 @@ export default function WatchExperience({ live, liveId }: WatchExperienceProps) 
               )}
             </div>
           </div>
+
+          {/* Prepared ad space under player */}
+          <div className="hidden border-t border-[#1E1E2A] bg-[#08080C] px-3 py-2 sm:block" data-no-tap>
+            <AdSlot position="in_content" variant="horizontal" className="mx-auto max-w-4xl" />
+          </div>
         </section>
 
         {/* Chat sidebar */}
@@ -720,30 +892,101 @@ export default function WatchExperience({ live, liveId }: WatchExperienceProps) 
 
           {/* Message input */}
           <div className="flex-shrink-0 border-t border-[#1E1E2A] p-3">
+            <div className="mb-2 flex gap-1 overflow-x-auto pb-1 scrollbar-hide">
+              {QUICK_EMOJIS.map((emoji) => (
+                <button
+                  key={`chat-${emoji}`}
+                  type="button"
+                  onClick={() => void sendEmoji(emoji)}
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.03] text-base hover:bg-white/[0.08]"
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
             <div className="flex gap-2">
               <input
                 ref={inputRef}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-                placeholder="Comentar..."
+                placeholder="Comentar a partida..."
                 maxLength={500}
-                className="flex-1 min-w-0 rounded-xl border border-[#1E1E2A] bg-[#111118] px-3 py-2 text-xs text-white placeholder-gray-600 outline-none transition-all focus:border-[#E50914]/50 focus:ring-1 focus:ring-[#E50914]/20"
+                className="flex-1 min-w-0 rounded-xl border border-[#1E1E2A] bg-[#111118] px-3 py-2.5 text-xs text-white placeholder-gray-600 outline-none transition-all focus:border-[#E50914]/50 focus:ring-1 focus:ring-[#E50914]/20"
               />
               <button
                 onClick={sendMessage}
                 disabled={!message.trim()}
-                className="flex-shrink-0 rounded-xl bg-gradient-to-r from-[#E50914] to-[#B00000] p-2 text-white transition-all hover:from-[#FF1A24] hover:to-[#E50914] disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex-shrink-0 rounded-xl bg-gradient-to-r from-[#E50914] to-[#B00000] p-2.5 text-white transition-all hover:from-[#FF1A24] hover:to-[#E50914] disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <Send className="h-4 w-4" />
               </button>
             </div>
-            <p className="text-[10px] text-gray-700 mt-1.5 text-right">
+            <p className="mt-1.5 text-right text-[10px] text-gray-700">
               {message.length}/500
             </p>
           </div>
         </aside>
       </main>
+
+      {/* Mobile chat sheet */}
+      {mobileChatOpen ? (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end lg:hidden" data-no-tap>
+          <div className="absolute inset-0 bg-black/70" onClick={() => setMobileChatOpen(false)} />
+          <div className="relative flex max-h-[70dvh] flex-col rounded-t-3xl border border-white/10 bg-[#0A0A10] pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <div className="flex items-center justify-between border-b border-[#1E1E2A] px-4 py-3">
+              <div className="flex items-center gap-2">
+                <MessageCircle className="h-4 w-4 text-[#E50914]" />
+                <h2 className="text-sm font-bold text-white">Chat ao Vivo</h2>
+                <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] text-gray-500">{chat.length}</span>
+              </div>
+              <button type="button" onClick={() => setMobileChatOpen(false)} className="rounded-lg p-2 text-gray-400 hover:text-white" aria-label="Fechar chat">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">
+              {chat.length === 0 ? (
+                <p className="py-8 text-center text-xs text-gray-600">Seja o primeiro a comentar!</p>
+              ) : (
+                chat.map((msg) => (
+                  <div key={`m-${msg.id}`} className="flex items-start gap-2">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#1A1A28] text-[10px] font-black">
+                      {msg.userName[0]?.toUpperCase() || "?"}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <span className={cn("text-[11px] font-bold", chatColor(msg.userName))}>{msg.userName}</span>
+                      <p className="break-words text-xs text-gray-300">{msg.message}</p>
+                    </div>
+                  </div>
+                ))
+              )}
+              <div ref={chatEndRef} />
+            </div>
+            <div className="border-t border-[#1E1E2A] p-3">
+              <div className="mb-2 flex gap-1 overflow-x-auto scrollbar-hide">
+                {QUICK_EMOJIS.map((emoji) => (
+                  <button key={`m-em-${emoji}`} type="button" onClick={() => void sendEmoji(emoji)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-base">
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <input
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+                  placeholder="Comentar..."
+                  maxLength={500}
+                  className="flex-1 rounded-xl border border-[#1E1E2A] bg-[#111118] px-3 py-2.5 text-sm text-white outline-none focus:border-[#E50914]/50"
+                />
+                <button onClick={sendMessage} disabled={!message.trim()} className="rounded-xl bg-[#E50914] px-3 text-white disabled:opacity-40">
+                  <Send className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -125,7 +125,14 @@ export default function LivePlayer({ live, adOverlay = null, autoPlayMuted = fal
       video.src = activeServer.url;
       video.addEventListener("loadedmetadata", onLoadedMeta, { once: true });
     } else if (Hls.isSupported()) {
-      const hls = new Hls({ lowLatencyMode: true, backBufferLength: 60 });
+      const hls = new Hls({
+        lowLatencyMode: true,
+        backBufferLength: 30,
+        enableWorker: true,
+        fragLoadingMaxRetry: 4,
+        manifestLoadingMaxRetry: 4,
+        startLevel: -1,
+      });
       hlsRef.current = hls;
       hls.loadSource(activeServer.url);
       hls.attachMedia(video);
@@ -134,13 +141,24 @@ export default function LivePlayer({ live, adOverlay = null, autoPlayMuted = fal
         setBuffering(false);
       });
       hls.on(Hls.Events.ERROR, (_, data) => {
-        if (data.fatal) {
-          setError("Nao foi possivel carregar este servidor. Tente outro.");
-          setBuffering(false);
+        if (!data.fatal) return;
+        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+          setError("Rede instável — a reconectar…");
+          setBuffering(true);
+          try { hls.startLoad(); } catch { /* ignore */ }
+          return;
         }
+        if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+          setError("A recuperar o stream…");
+          setBuffering(true);
+          try { hls.recoverMediaError(); } catch { /* ignore */ }
+          return;
+        }
+        setError("Não foi possível carregar este servidor. Experimente outro.");
+        setBuffering(false);
       });
     } else {
-      setError("Este navegador nao suporta transmissao HLS.");
+      setError("Este navegador não suporta transmissão HLS.");
       setBuffering(false);
     }
 
@@ -202,7 +220,7 @@ export default function LivePlayer({ live, adOverlay = null, autoPlayMuted = fal
         setPlaying(true);
         setError("");
       } catch {
-        setError("Clique em play para iniciar a transmissao.");
+        setError("Toque em play para iniciar a transmissão.");
       }
     } else {
       userPausedRef.current = true; // remember user paused explicitly
@@ -330,7 +348,7 @@ export default function LivePlayer({ live, adOverlay = null, autoPlayMuted = fal
           {buffering && (
             <div className="flex items-center gap-3 rounded-full border border-white/15 bg-black/70 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur-sm">
               <Radio className="h-4 w-4 animate-pulse text-[#E50914]" />
-              A carregar transmissao...
+              A carregar transmissão…
             </div>
           )}
           {error && !playing && (

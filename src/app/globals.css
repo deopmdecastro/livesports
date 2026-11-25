@@ -910,3 +910,13 @@ body {
     padding-bottom: max(1rem, env(safe-area-inset-bottom));
   }
 }
+
+
+@keyframes watch-float {
+  0% { opacity: 0; transform: translate(-50%, 0) scale(0.6); }
+  15% { opacity: 1; transform: translate(-50%, -12px) scale(1.15); }
+  100% { opacity: 0; transform: translate(-50%, -88px) scale(1); }
+}
+.animate-watch-float {
+  animation: watch-float 1.35s var(--ease-out) forwards;
+}
