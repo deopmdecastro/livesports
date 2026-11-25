@@ -24,13 +24,9 @@ import {
 } from "lucide-react";
 import type { Ad, Live } from "@/types";
 import type { PromotionalBanner } from "@/components/ads/PromoBannerStrip";
+import ResilientLogo from "@/components/ui/ResilientLogo";
 import { publicApiRequest, type ApiListResponse } from "@/lib/api";
-import { resolveCountryFlagUrl } from "@/lib/flags";
 import { useLang } from "@/lib/lang";
-
-function isImageValue(value?: string) {
-  return Boolean(value && (/^(https?:|data:|blob:)/.test(value) || value.startsWith("/")));
-}
 
 function formatViewers(n: number) {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -55,19 +51,18 @@ function TeamBadge({
     md: "h-14 w-14",
     lg: "h-[70px] w-[70px]",
   };
-  const src = resolveCountryFlagUrl({ code, name, logo, size: pxMap[size] }) || (isImageValue(logo) ? logo : null);
-
-  if (src) {
-    return (
-      <div className={`flex ${wrapperMap[size]} items-center justify-center rounded-[18px] border border-white/10 bg-black/30 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]`}>
-        <img src={src} alt={name || ""} className="h-full w-full rounded-[14px] object-contain" loading="lazy" />
-      </div>
-    );
-  }
 
   return (
-    <div className={`flex ${wrapperMap[size]} items-center justify-center rounded-[18px] border border-white/10 bg-gradient-to-br from-[#151720] to-[#08090f] text-sm font-black text-white`}>
-      {(name || "?").slice(0, 2).toUpperCase()}
+    <div className={`flex ${wrapperMap[size]} items-center justify-center rounded-[18px] border border-white/10 bg-black/30 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]`}>
+      <ResilientLogo
+        src={logo}
+        name={name}
+        code={code}
+        kind="team"
+        size={pxMap[size]}
+        alt={name || ""}
+        className="h-full w-full rounded-[14px]"
+      />
     </div>
   );
 }

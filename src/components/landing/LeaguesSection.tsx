@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import ResilientLogo from "@/components/ui/ResilientLogo";
 import { useLang } from "@/lib/lang";
 import { publicApiRequest } from "@/lib/api";
 
@@ -115,32 +116,14 @@ export default function LeaguesSection() {
                 href={`/futebol?league=${league.key}`}
                 className="group flex flex-col items-center gap-2.5 p-3 rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] hover:border-[#E50914]/30 hover:bg-[#111118] transition-all duration-300 cursor-pointer"
               >
-                <div className="relative w-12 h-12 flex items-center justify-center rounded-lg bg-[#1A1A24]">
-                  {league.logo ? (
-                    <img
-                      src={league.logo}
-                      alt={league.name}
-                      className="max-w-full max-h-full object-contain drop-shadow-md group-hover:scale-110 transition-transform duration-300"
-                      loading="lazy"
-                      referrerPolicy="no-referrer"
-                      onError={(e) => {
-                        const img = e.target as HTMLImageElement;
-                        img.style.display = "none";
-                        const parent = img.parentElement;
-                        if (parent && !parent.querySelector("[data-fb]")) {
-                          const fb = document.createElement("span");
-                          fb.dataset.fb = "1";
-                          fb.className = "text-sm font-black text-gray-500";
-                          fb.textContent = league.name.slice(0, 2).toUpperCase();
-                          parent.appendChild(fb);
-                        }
-                      }}
-                    />
-                  ) : (
-                    <span className="text-sm font-black text-gray-500">
-                      {league.name.slice(0, 2).toUpperCase()}
-                    </span>
-                  )}
+                <div className="relative w-12 h-12 flex items-center justify-center rounded-lg bg-[#1A1A24] p-1.5">
+                  <ResilientLogo
+                    src={league.logo}
+                    name={league.name}
+                    kind="league"
+                    alt={league.name}
+                    className="max-w-full max-h-full drop-shadow-md group-hover:scale-110 transition-transform duration-300"
+                  />
                 </div>
                 <div className="text-center">
                   <p className="text-[10px] font-bold text-gray-300 group-hover:text-white leading-tight text-center transition-colors line-clamp-2">
@@ -173,18 +156,13 @@ export default function LeaguesSection() {
             <div className="flex gap-8 animate-marquee whitespace-nowrap">
               {[...displayLeagues.slice(0, 12), ...displayLeagues.slice(0, 12)].map((league, i) => (
                 <div key={`${league.key}-${i}`} className="flex items-center gap-2.5 flex-shrink-0">
-                  {league.logo && (
-                    <img
-                      src={league.logo}
-                      alt={league.name}
-                      className="h-5 w-auto object-contain opacity-60"
-                      loading="lazy"
-                      referrerPolicy="no-referrer"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = "none";
-                      }}
-                    />
-                  )}
+                  <ResilientLogo
+                    src={league.logo}
+                    name={league.name}
+                    kind="league"
+                    alt={league.name}
+                    className="h-5 w-5 opacity-70"
+                  />
                   <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     {league.name}
                   </span>

@@ -14,6 +14,7 @@ import {
   Trophy,
 } from "lucide-react";
 import { useLang } from "@/lib/lang";
+import ResilientLogo from "@/components/ui/ResilientLogo";
 import {
   fetchSportsCalendar,
   fetchSportsLeagues,
@@ -43,24 +44,16 @@ function statusLabel(status: SportsCalendarEvent["status"], lang: "pt" | "en") {
   return labels[lang][status];
 }
 
-function TeamCrest({ badge }: { badge: string | null }) {
-  const [failed, setFailed] = useState(false);
-  if (badge && !failed) {
-    return (
-      <img
-        src={badge}
-        alt=""
-        loading="lazy"
-        referrerPolicy="no-referrer"
-        onError={() => setFailed(true)}
-        className="h-7 w-7 flex-shrink-0 object-contain"
-      />
-    );
-  }
+function TeamCrest({ badge, name }: { badge: string | null; name?: string | null }) {
   return (
-    <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-[#1A1C2A] text-gray-600">
-      <Trophy className="h-3.5 w-3.5" />
-    </div>
+    <ResilientLogo
+      src={badge}
+      name={name}
+      kind="team"
+      size={28}
+      alt={name || ""}
+      className="h-7 w-7 flex-shrink-0"
+    />
   );
 }
 
@@ -93,7 +86,7 @@ function EventCard({ event, lang }: { event: SportsCalendarEvent; lang: "pt" | "
           <div className="flex items-center justify-center gap-3 sm:justify-start">
             <div className="flex flex-1 items-center justify-end gap-2 sm:flex-initial sm:w-[38%]">
               <span className="truncate text-right text-sm font-semibold text-white">{event.homeTeam}</span>
-              <TeamCrest badge={event.homeBadge} />
+              <TeamCrest badge={event.homeBadge} name={event.homeTeam} />
             </div>
             <span
               className={`flex-shrink-0 rounded-md px-2 py-1 text-center text-sm font-black ${
@@ -103,7 +96,7 @@ function EventCard({ event, lang }: { event: SportsCalendarEvent; lang: "pt" | "
               {event.status === "upcoming" ? "vs" : `${event.homeScore ?? 0} – ${event.awayScore ?? 0}`}
             </span>
             <div className="flex flex-1 items-center gap-2 sm:flex-initial sm:w-[38%]">
-              <TeamCrest badge={event.awayBadge} />
+              <TeamCrest badge={event.awayBadge} name={event.awayTeam} />
               <span className="truncate text-sm font-semibold text-white">{event.awayTeam}</span>
             </div>
           </div>
@@ -146,11 +139,7 @@ function LeagueGroup({
   return (
     <div>
       <div className="flex items-center gap-2 border-b border-[#1A1C2A] bg-white/[0.015] px-4 py-2.5">
-        {leagueBadge ? (
-          <img src={leagueBadge} alt="" className="h-5 w-5 object-contain" />
-        ) : (
-          <Trophy className="h-4 w-4 text-gray-600" />
-        )}
+        <ResilientLogo src={leagueBadge} name={league} kind="league" size={20} alt="" className="h-5 w-5" />
         <span className="text-xs font-bold text-gray-300">{league}</span>
         {round ? <span className="text-[11px] text-gray-600">· {round}</span> : null}
         <span className="ml-auto text-[11px] text-gray-600">{events.length}</span>

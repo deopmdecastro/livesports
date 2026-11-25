@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, Globe2, Play, Radio, Tv2, Users } from "lucide-react";
+import ResilientLogo from "@/components/ui/ResilientLogo";
 import { publicApiRequest } from "@/lib/api";
 import { useLang } from "@/lib/lang";
 import type { SportCategory } from "@/types";
@@ -17,6 +18,7 @@ export interface FreeTvChannelItem {
   sport: SportCategory;
   league: string;
   logo: string;
+  logoBackups?: string[];
   banner: string;
   language: string;
   quality: string;
@@ -182,12 +184,13 @@ export default function FreeChannelsSection() {
                 {/* Channel Logo Badge */}
                 <div className="absolute bottom-3 left-3 flex items-center gap-2.5">
                   <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl border border-white/15 bg-white/95 p-1.5 shadow-lg">
-                    <img
+                    <ResilientLogo
                       src={ch.logo}
+                      backupUrls={ch.logoBackups}
+                      name={ch.name}
+                      kind="channel"
                       alt={ch.name}
-                      loading="lazy"
-                      referrerPolicy="no-referrer"
-                      className="h-full w-full object-contain"
+                      className="h-full w-full"
                     />
                   </div>
                   <div className="min-w-0">

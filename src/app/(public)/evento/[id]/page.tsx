@@ -2,8 +2,8 @@ import Link from "next/link";
 import { ArrowLeft, CalendarClock, Flag, Shield, Shirt, Trophy } from "lucide-react";
 import { notFound } from "next/navigation";
 import type { Event } from "@/types";
+import ResilientLogo from "@/components/ui/ResilientLogo";
 import { serverApiRequest } from "@/lib/server-api";
-import { resolveCountryFlagUrl } from "@/lib/flags";
 import { getSportLabel } from "@/utils";
 
 interface PageProps {
@@ -114,16 +114,9 @@ function statLabel(type: string) {
 }
 
 function TeamLogo({ logo, name, code }: { logo?: string; name?: string; code?: string }) {
-  const flagUrl = resolveCountryFlagUrl({ code, name, logo, size: 80 });
-  const src = flagUrl || (isImageValue(logo) ? logo : null);
-
-  if (src) {
-    return <img src={src} alt="" className="h-20 w-20 rounded-full border border-white/10 bg-black/20 object-cover p-1" />;
-  }
-
   return (
-    <div className="flex h-20 w-20 items-center justify-center rounded-full border border-white/10 bg-[#202020] text-xl font-black text-white">
-      {(name || "?").slice(0, 2).toUpperCase()}
+    <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-black/25 p-1.5">
+      <ResilientLogo src={logo} name={name} code={code} kind="team" size={80} alt={name || ""} className="h-full w-full" />
     </div>
   );
 }
@@ -209,7 +202,9 @@ function TimelinePanel({ items }: { items: ApiFootballTimelineItem[] }) {
             </div>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2 text-sm font-bold text-white">
-                {isImageValue(teamLogo) && <img src={teamLogo} alt="" className="h-5 w-5 object-contain" />}
+                {(teamLogo || item.team?.name) && (
+                  <ResilientLogo src={teamLogo} name={item.team?.name} kind="team" size={24} alt="" className="h-5 w-5" />
+                )}
                 <span>{item.type || "Lance"}</span>
                 {item.detail && <span className="text-gray-400">- {item.detail}</span>}
               </div>
@@ -243,7 +238,9 @@ function LineupsPanel({ lineups }: { lineups: ApiFootballLineup[] }) {
         <div key={lineup.team?.name} className="rounded-xl border border-white/10 bg-[#171717] p-4">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2">
-              {isImageValue(lineup.team?.logo) && <img src={lineup.team?.logo} alt="" className="h-8 w-8 object-contain" />}
+              {(lineup.team?.logo || lineup.team?.name) && (
+                <ResilientLogo src={lineup.team?.logo} name={lineup.team?.name} kind="team" size={32} alt="" className="h-8 w-8" />
+              )}
               <h3 className="truncate text-sm font-black text-white">{lineup.team?.name || "Equipa"}</h3>
             </div>
             {lineup.formation && <span className="rounded bg-black/30 px-2 py-1 text-xs font-bold text-gray-300">{lineup.formation}</span>}
@@ -350,7 +347,11 @@ export default async function EventDetailPage({ params }: PageProps) {
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-gray-400">Liga</span>
                   <span className="flex min-w-0 items-center gap-2 font-bold">
-                    {isImageValue(event.leagueLogo) ? <img src={event.leagueLogo} alt="" className="h-5 w-5 object-contain" /> : <Shield className="h-4 w-4" />}
+                    {(event.leagueLogo || event.league) ? (
+                      <ResilientLogo src={event.leagueLogo} name={event.league} kind="league" size={20} alt="" className="h-5 w-5" />
+                    ) : (
+                      <Shield className="h-4 w-4" />
+                    )}
                     <span className="truncate">{event.league || "-"}</span>
                   </span>
                 </div>

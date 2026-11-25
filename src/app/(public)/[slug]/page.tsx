@@ -9,6 +9,7 @@ import type { ApiListResponse } from "@/lib/api";
 import StaticPageClient from "@/components/static/StaticPageClient";
 import { getStaticPageContent, type StaticPageSlug } from "@/lib/static-pages-content";
 import AdSlot from "@/components/ads/AdSlot";
+import ResilientLogo from "@/components/ui/ResilientLogo";
 
 export const dynamic = "force-dynamic";
 
@@ -132,11 +133,11 @@ function StreamCard({ live }: { live: Live }) {
         </div>
 
         {/* Team Crests Overlay if present */}
-        {(live.teamALogo || live.teamBLogo) && (
+        {(live.teamALogo || live.teamBLogo || (live.teamA && live.teamB)) && (
           <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between rounded-xl border border-white/10 bg-black/65 px-3 py-2 backdrop-blur-md">
             <div className="flex items-center gap-2 min-w-0">
-              {live.teamALogo && (
-                <img src={live.teamALogo} alt={live.teamA || ""} className="h-6 w-6 object-contain shrink-0" />
+              {(live.teamALogo || live.teamA) && (
+                <ResilientLogo src={live.teamALogo} name={live.teamA} kind="team" size={24} alt={live.teamA || ""} className="h-6 w-6 shrink-0" />
               )}
               <span className="truncate text-xs font-bold text-white">{live.teamA}</span>
             </div>
@@ -145,8 +146,8 @@ function StreamCard({ live }: { live: Live }) {
             </span>
             <div className="flex items-center gap-2 min-w-0 justify-end">
               <span className="truncate text-xs font-bold text-white">{live.teamB}</span>
-              {live.teamBLogo && (
-                <img src={live.teamBLogo} alt={live.teamB || ""} className="h-6 w-6 object-contain shrink-0" />
+              {(live.teamBLogo || live.teamB) && (
+                <ResilientLogo src={live.teamBLogo} name={live.teamB} kind="team" size={24} alt={live.teamB || ""} className="h-6 w-6 shrink-0" />
               )}
             </div>
           </div>
@@ -201,8 +202,8 @@ function MatchEventCard({ event }: { event: Event }) {
       <div>
         <div className="flex items-center justify-between gap-2 mb-4">
           <div className="flex items-center gap-2 min-w-0">
-            {event.leagueLogo && (
-              <img src={event.leagueLogo} alt="" className="h-4 w-4 object-contain opacity-80" />
+            {(event.leagueLogo || event.league) && (
+              <ResilientLogo src={event.leagueLogo} name={event.league || event.sport} kind="league" size={20} alt="" className="h-4 w-4 opacity-85" />
             )}
             <span className="truncate text-[11px] font-bold uppercase tracking-wider text-white/45">
               {event.league || getSportLabel(event.sport)}
@@ -219,13 +220,15 @@ function MatchEventCard({ event }: { event: Event }) {
 
         <div className="flex items-center justify-between gap-3 my-4">
           <div className="flex flex-col items-center gap-2 flex-1 min-w-0">
-            {event.teamALogo ? (
-              <img src={event.teamALogo} alt={event.teamA || ""} className="h-11 w-11 object-contain" />
-            ) : (
-              <div className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-xs font-black text-white">
-                {(event.teamA || "?").slice(0, 2).toUpperCase()}
-              </div>
-            )}
+            <ResilientLogo
+              src={event.teamALogo}
+              name={event.teamA || event.title}
+              code={event.teamACode}
+              kind="team"
+              size={44}
+              alt={event.teamA || ""}
+              className="h-11 w-11"
+            />
             <span className="w-full truncate text-center text-xs font-bold text-white/90">
               {event.teamA || event.title}
             </span>
@@ -244,13 +247,15 @@ function MatchEventCard({ event }: { event: Event }) {
           </div>
 
           <div className="flex flex-col items-center gap-2 flex-1 min-w-0">
-            {event.teamBLogo ? (
-              <img src={event.teamBLogo} alt={event.teamB || ""} className="h-11 w-11 object-contain" />
-            ) : (
-              <div className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-xs font-black text-white">
-                {(event.teamB || "?").slice(0, 2).toUpperCase()}
-              </div>
-            )}
+            <ResilientLogo
+              src={event.teamBLogo}
+              name={event.teamB}
+              code={event.teamBCode}
+              kind="team"
+              size={44}
+              alt={event.teamB || ""}
+              className="h-11 w-11"
+            />
             <span className="w-full truncate text-center text-xs font-bold text-white/90">
               {event.teamB || "—"}
             </span>

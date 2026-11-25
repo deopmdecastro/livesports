@@ -5,23 +5,16 @@ import Link from "next/link";
 import { Eye, Zap } from "lucide-react";
 import type { Event, Live } from "@/types";
 import type { ApiListResponse } from "@/lib/api";
+import ResilientLogo from "@/components/ui/ResilientLogo";
 import { publicApiRequest } from "@/lib/api";
-import { resolveCountryFlagUrl } from "@/lib/flags";
 import { useLang } from "@/lib/lang";
 
 /* ── Helpers ──────────────────────────────────────────────────────────────── */
 
-function isImageValue(value?: string) {
-  return Boolean(value && (/^(https?:|data:|blob:)/.test(value) || value.startsWith("/")));
-}
-
 function TeamMark({ logo, name, code }: { logo?: string; name?: string; code?: string }) {
-  const flagUrl = resolveCountryFlagUrl({ code, name, logo, size: 40 });
-  const src = flagUrl || (isImageValue(logo) ? logo : null);
-  if (src) return <img loading="lazy" src={src} alt={name || ""} className="h-10 w-10 rounded-full border border-white/10 bg-black/20 object-cover p-0.5" />;
   return (
-    <div className="h-10 w-10 flex items-center justify-center rounded-full border border-white/10 bg-gradient-to-br from-[#1A1A28] to-[#0A0A14] font-black text-white text-xs">
-      {(name || "?").slice(0, 2).toUpperCase()}
+    <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-black/25 p-1">
+      <ResilientLogo src={logo} name={name} code={code} kind="team" size={40} alt={name || ""} className="h-full w-full" />
     </div>
   );
 }
@@ -81,9 +74,16 @@ function LiveCard({ event, live }: { event: Event; live?: Live }) {
       <div className="relative p-5">
         {/* League */}
         <div className="flex items-center gap-2 mb-4">
-          {isImageValue(event.leagueLogo)
-            ? <img loading="lazy" src={event.leagueLogo} alt="" className="h-4 w-4 object-contain opacity-60" />
-            : null}
+          {(event.leagueLogo || event.league) ? (
+            <ResilientLogo
+              src={event.leagueLogo}
+              name={event.league || event.sport}
+              kind="league"
+              size={24}
+              alt=""
+              className="h-4 w-4 opacity-75"
+            />
+          ) : null}
           <span className="text-[10px] font-semibold text-white/30 uppercase tracking-wider truncate">
             {event.league || event.sport || "Desporto"}
           </span>
