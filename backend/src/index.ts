@@ -14,6 +14,7 @@ import liveRoutes from './routes/live.routes';
 import eventRoutes from './routes/event.routes';
 import eventCommunityRoutes from './routes/event-community.routes';
 import { ensureEventPollSchema } from './lib/event-poll-schema';
+import { ensureAutoHighlightsSchema, startHighlightsWatcher } from './lib/auto-highlights';
 import competitionRoutes from './routes/competition.routes';
 
 import userRoutes from './routes/user.routes';
@@ -485,6 +486,8 @@ ensureRuntimeSchema()
     console.log('✅ Database schema verified');
     await ensurePushSchema();
     await ensureEventPollSchema();
+    await ensureAutoHighlightsSchema();
+    startHighlightsWatcher();
     startNotificationWatcher();
     await runRealContentSync(true).catch((syncErr: any) => {
       console.warn('[RealContentSync] Initial sync warning:', syncErr?.message || String(syncErr));
