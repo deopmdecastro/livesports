@@ -203,13 +203,18 @@ export default function Footer() {
         <div className="h-px bg-gradient-to-r from-transparent via-[#1E1E2A] to-transparent mb-6" />
 
         {/* Bottom */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-gray-600 text-sm">
+        <div className="flex flex-col items-center justify-between gap-4 text-center sm:flex-row sm:text-left">
+          <p className="text-gray-500 text-sm">
             © 2026 {branding.siteName}. {t.footer_rights}
           </p>
-          <div className="flex items-center gap-4">
-            <span className="text-gray-600 text-xs">{t.footer_made_with}</span>
-            <Link href="/instalar" className="text-xs text-gray-400 hover:text-white border border-[#1E1E2A] rounded-lg px-3 py-1.5 font-medium">{lang === "pt" ? "Instalar aplicação web" : "Install web app"}</Link>
+          <div className="flex flex-col items-center gap-3 sm:flex-row sm:gap-4">
+            <span className="text-gray-500 text-xs">{t.footer_made_with}</span>
+            <Link
+              href="/instalar"
+              className="inline-flex min-h-[44px] items-center whitespace-nowrap rounded-xl border border-[#2A2A38] px-4 text-xs font-medium text-gray-300 transition-colors hover:border-white/30 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-400"
+            >
+              {lang === "pt" ? "Instalar aplicação web" : "Install web app"}
+            </Link>
           </div>
         </div>
       </div>
