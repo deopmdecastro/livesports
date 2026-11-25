@@ -6,6 +6,7 @@ import {
   Plus, Edit2, Shield, Globe, Link as LinkIcon, Image, Search,
   ToggleLeft, ToggleRight, ChevronRight,
 } from "lucide-react";
+import AdminFormWizard from "@/components/admin/AdminFormWizard";
 import toast from "react-hot-toast";
 import { apiRequest, type ApiListResponse } from "@/lib/api";
 
@@ -450,14 +451,30 @@ export default function AdminCreatorsPage() {
       )}
 
       {/* ── Application Review Modal ── */}
-      {selected && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 p-0 backdrop-blur-sm sm:items-center sm:p-4">
-          <div className="w-full max-w-md rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] shadow-2xl">
-            <div className="flex items-center justify-between border-b border-[#1E1E2A] p-4">
-              <h3 className="font-black text-white">Analisar Candidatura</h3>
-              <button onClick={() => setSelected(null)} className="p-2 text-gray-400 hover:text-white rounded-xl hover:bg-white/5"><X className="h-4 w-4" /></button>
-            </div>
-            <div className="p-4 space-y-3">
+      <AdminFormWizard
+        open={Boolean(selected)}
+        title="Analisar Candidatura"
+        subtitle="Aprovar ou rejeitar pedido de creator"
+        icon={Shield}
+        tone="edit"
+        onClose={() => setSelected(null)}
+        primaryLabel="Aprovar"
+        onPrimary={() => void handleReview("approved")}
+        primaryLoading={processing}
+        showStepNav={false}
+        maxWidthClass="max-w-md"
+        footerLeft={
+          <button
+            type="button"
+            onClick={() => void handleReview("rejected")}
+            className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs font-bold text-red-300 hover:bg-red-500/20"
+          >
+            Rejeitar
+          </button>
+        }
+      >
+            <div className="space-y-3">
+
               <div className="rounded-lg bg-[#1A1A2A] p-3 border border-white/5">
                 <p className="text-[10px] text-gray-500 mb-1.5 uppercase tracking-wider font-bold">Utilizador</p>
                 <div className="flex items-center gap-2.5">
@@ -485,35 +502,25 @@ export default function AdminCreatorsPage() {
                   placeholder="Feedback para o criador..." />
               </div>
             </div>
-            <div className="flex gap-2 border-t border-[#1E1E2A] p-4">
-              <button onClick={() => handleReview("rejected")} disabled={processing}
-                className="flex-1 flex items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 py-2.5 text-sm font-bold text-red-400 hover:bg-red-500/20 disabled:opacity-60 transition-colors">
-                <X className="h-4 w-4" /> Rejeitar
-              </button>
-              <button onClick={() => handleReview("approved")} disabled={processing}
-                className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-2.5 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-60 transition-colors">
-                {processing ? <div className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /> : <Check className="h-4 w-4" />}
-                Aprovar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      </AdminFormWizard>
+
 
       {/* ── Create Channel Modal ── */}
-      {showCreateChannel && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 p-0 backdrop-blur-sm sm:items-center sm:p-4">
-          <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] shadow-2xl">
-            <div className="flex items-center justify-between border-b border-[#1E1E2A] p-4 sticky top-0 bg-[#0E0E16] z-10">
-              <div>
-                <h3 className="font-black text-white flex items-center gap-2"><Plus className="h-4 w-4 text-[#E50914]" /> Criar Canal</h3>
-                <p className="text-[10px] text-gray-500 mt-0.5">Cria um perfil de canal para um utilizador existente</p>
-              </div>
-              <button onClick={() => { setShowCreateChannel(false); setChannelForm(emptyChannelForm); setUserSearch(""); setUserOptions([]); }}
-                className="p-2 text-gray-400 hover:text-white rounded-xl hover:bg-white/5"><X className="h-4 w-4" /></button>
-            </div>
+      <AdminFormWizard
+        open={showCreateChannel}
+        title="Criar Canal"
+        subtitle="Perfil de canal para um utilizador existente"
+        icon={Plus}
+        tone="create"
+        onClose={() => { setShowCreateChannel(false); setChannelForm(emptyChannelForm); setUserSearch(""); setUserOptions([]); }}
+        primaryLabel="Criar Canal"
+        onPrimary={() => void createChannel()}
+        primaryLoading={savingChannel}
+        showStepNav={false}
+        maxWidthClass="max-w-lg"
+      >
+            <div className="space-y-4">
 
-            <div className="p-4 space-y-4">
               {/* User selection */}
               <div>
                 <label className="block text-xs font-bold text-gray-300 mb-2 uppercase tracking-wider">Utilizador *</label>
@@ -685,39 +692,25 @@ export default function AdminCreatorsPage() {
                 </div>
               </div>
             </div>
+      </AdminFormWizard>
 
-            <div className="flex gap-2 border-t border-[#1E1E2A] p-4 sticky bottom-0 bg-[#0E0E16]">
-              <button
-                onClick={() => { setShowCreateChannel(false); setChannelForm(emptyChannelForm); setUserSearch(""); setUserOptions([]); }}
-                className="flex-1 py-2.5 rounded-xl border border-[#2A2A2A] text-sm font-semibold text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={createChannel} disabled={savingChannel}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#E50914] text-white text-sm font-bold hover:bg-[#B00000] disabled:opacity-60 transition-colors"
-              >
-                {savingChannel ? <div className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /> : <Plus className="h-4 w-4" />}
-                Criar Canal
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ── Edit Channel Modal ── */}
-      {editingChannel && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 p-0 backdrop-blur-sm sm:items-center sm:p-4">
-          <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] shadow-2xl">
-            <div className="flex items-center justify-between border-b border-[#1E1E2A] p-4 sticky top-0 bg-[#0E0E16] z-10">
-              <div>
-                <h3 className="font-black text-white flex items-center gap-2"><Edit2 className="h-4 w-4 text-red-400" /> Editar Canal</h3>
-                <p className="text-[10px] text-gray-500 mt-0.5">{editingChannel.name}</p>
-              </div>
-              <button onClick={() => setEditingChannel(null)} className="p-2 text-gray-400 hover:text-white rounded-xl hover:bg-white/5"><X className="h-4 w-4" /></button>
-            </div>
+      <AdminFormWizard
+        open={Boolean(editingChannel)}
+        title="Editar Canal"
+        subtitle={editingChannel?.name || "Atualizar dados do canal"}
+        icon={Edit2}
+        tone="edit"
+        onClose={() => setEditingChannel(null)}
+        primaryLabel="Guardar"
+        onPrimary={() => void saveEditChannel()}
+        primaryLoading={savingEdit}
+        showStepNav={false}
+        maxWidthClass="max-w-lg"
+      >
+            <div className="space-y-4">
 
-            <div className="p-4 space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-gray-300 mb-1.5 uppercase tracking-wider">Nome *</label>
@@ -795,21 +788,8 @@ export default function AdminCreatorsPage() {
                 </div>
               )}
             </div>
+      </AdminFormWizard>
 
-            <div className="flex gap-2 border-t border-[#1E1E2A] p-4 sticky bottom-0 bg-[#0E0E16]">
-              <button onClick={() => setEditingChannel(null)}
-                className="flex-1 py-2.5 rounded-xl border border-[#2A2A2A] text-sm font-semibold text-gray-400 hover:text-white hover:bg-white/5 transition-colors">
-                Cancelar
-              </button>
-              <button onClick={saveEditChannel} disabled={savingEdit}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-600 text-white text-sm font-bold hover:bg-red-700 disabled:opacity-60 transition-colors">
-                {savingEdit ? <div className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /> : <Check className="h-4 w-4" />}
-                Guardar Alterações
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

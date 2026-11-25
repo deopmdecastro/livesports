@@ -20,6 +20,7 @@ import {
   UserX,
   X,
 } from "lucide-react";
+import AdminFormWizard from "@/components/admin/AdminFormWizard";
 import { cn, formatRelativeTime } from "@/utils";
 import type { User, UserRole, UserStatus } from "@/types";
 import toast from "react-hot-toast";
@@ -98,6 +99,7 @@ export default function UsersPage() {
   const [roleFilter, setRoleFilter] = useState("all");
   const [selected, setSelected] = useState<string[]>([]);
   const [modalMode, setModalMode] = useState<"create" | "edit" | "view" | null>(null);
+  const [saving, setSaving] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [form, setForm] = useState(emptyForm);
 
@@ -149,6 +151,7 @@ export default function UsersPage() {
       toast.error("Informe nome e email.");
       return;
     }
+    setSaving(true);
 
     const payload = {
       name: form.name,
@@ -186,6 +189,8 @@ export default function UsersPage() {
       setModalMode(null);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Não foi possível guardar o utilizador.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -357,17 +362,22 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {modalMode && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
-          <div className="max-h-[92dvh] w-full max-w-2xl overflow-y-auto rounded-t-2xl border border-white/10 bg-[#171717] shadow-2xl sm:rounded-xl">
-            <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.02] p-5">
-              <div>
-                <h3 className="text-lg font-bold text-white">{modalMode === "create" ? "Novo Utilizador" : modalMode === "edit" ? "Editar Utilizador" : "Visualizar Utilizador"}</h3>
-                <p className="text-xs text-gray-500">Dados de perfil, acesso e seguranca da conta.</p>
-              </div>
-              <button onClick={() => setModalMode(null)} className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-white/10 hover:text-white"><X className="h-4 w-4" /></button>
-            </div>
-            <div className="space-y-4 p-5">
+      <AdminFormWizard
+        open={Boolean(modalMode)}
+        title={modalMode === "create" ? "Novo Utilizador" : modalMode === "edit" ? "Editar Utilizador" : "Visualizar Utilizador"}
+        subtitle="Dados de perfil, acesso e segurança da conta"
+        icon={modalMode === "view" ? Eye : modalMode === "edit" ? Edit2 : Plus}
+        tone={modalMode === "create" ? "create" : modalMode === "edit" ? "edit" : "view"}
+        onClose={() => setModalMode(null)}
+        primaryLabel={modalMode === "edit" ? "Guardar" : "Criar Utilizador"}
+        onPrimary={() => { if (!(modalMode === "view")) void saveUser(); }}
+        primaryLoading={saving}
+        hidePrimary={modalMode === "view"}
+        secondaryLabel={modalMode === "view" ? "Fechar" : "Cancelar"}
+        showStepNav={false}
+        maxWidthClass="max-w-2xl"
+      >
+            <div className="space-y-4">
               {editingUser && (
                 <div className="flex items-center gap-3 rounded-lg border border-white/10 bg-white/[0.03] p-3">
                   <img src={editingUser.avatar || `https://i.pravatar.cc/40?u=${encodeURIComponent(editingUser.email)}`} alt="" className="h-12 w-12 rounded-full border border-white/10 object-cover" />
@@ -423,13 +433,8 @@ export default function UsersPage() {
                 <div><label className="mb-1.5 block text-xs font-medium text-gray-300">Email verificado</label><AdminSelect disabled={modalMode === "view"} value={form.emailVerified} onChange={(value) => setForm({ ...form, emailVerified: value })} options={booleanOptions} /></div>
               </div>
             </div>
-            <div className="flex justify-end gap-3 border-t border-white/10 p-5">
-              <button onClick={() => setModalMode(null)} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-gray-300 transition-colors hover:bg-white/10 hover:text-white">Fechar</button>
-              {modalMode !== "view" && <button onClick={saveUser} className="rounded-lg bg-[#E50914] px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-[#B00000]">Salvar</button>}
-            </div>
-          </div>
-        </div>
-      )}
+      </AdminFormWizard>
+
     </div>
   );
 }

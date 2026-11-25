@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Edit2, Eye, Plus, Rss, Search, Trash2, X } from "lucide-react";
+import AdminFormWizard from "@/components/admin/AdminFormWizard";
 import { formatDate, slugify } from "@/utils";
 import type { NewsArticle, SportCategory } from "@/types";
 import AdminSelect from "@/components/admin/AdminSelect";
@@ -308,14 +309,22 @@ export default function NewsPage() {
         </div>
       )}
 
-      {modalMode && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 p-0 backdrop-blur-sm sm:items-center sm:p-4">
-          <div className="max-h-[92dvh] w-full max-w-3xl overflow-y-auto rounded-t-2xl border border-[#2A2A2A] bg-[#1A1A1A] sm:rounded-xl">
-            <div className="flex items-center justify-between border-b border-[#2A2A2A] p-5">
-              <h3 className="font-bold text-white">{modalMode === "create" ? "Nova Noticia" : modalMode === "edit" ? "Editar Noticia" : "Visualizar Noticia"}</h3>
-              <button onClick={() => setModalMode(null)} className="text-gray-400 hover:text-white"><X className="h-4 w-4" /></button>
-            </div>
-            <div className="space-y-4 p-5">
+      <AdminFormWizard
+        open={Boolean(modalMode)}
+        title={modalMode === "create" ? "Nova Notícia" : modalMode === "edit" ? "Editar Notícia" : "Visualizar Notícia"}
+        subtitle={modalMode === "view" ? "Modo leitura" : "Artigo, capa, tags e publicação"}
+        icon={modalMode === "view" ? Eye : modalMode === "edit" ? Edit2 : Plus}
+        tone={modalMode === "create" ? "create" : modalMode === "edit" ? "edit" : "view"}
+        onClose={() => setModalMode(null)}
+        primaryLabel={modalMode === "edit" ? "Guardar" : "Criar Notícia"}
+        onPrimary={() => { if (modalMode !== "view") void saveArticle(); }}
+        primaryLoading={saving}
+        hidePrimary={modalMode === "view"}
+        secondaryLabel={modalMode === "view" ? "Fechar" : "Cancelar"}
+        showStepNav={false}
+      >
+            <div className="space-y-4">
+
               <div><label className="mb-1.5 block text-xs font-medium text-gray-300">Titulo *</label><input disabled={modalMode === "view"} value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value, slug: slugify(event.target.value) })} className="input-dark w-full px-3 py-2.5 text-sm" /></div>
               <div>
                 <AdminImageField
@@ -338,17 +347,8 @@ export default function NewsPage() {
               <div><label className="mb-1.5 block text-xs font-medium text-gray-300">Conteudo</label><textarea disabled={modalMode === "view"} value={form.content} onChange={(event) => setForm({ ...form, content: event.target.value })} rows={6} className="input-dark w-full resize-none px-3 py-2.5 text-sm" /></div>
               <div><label className="mb-1.5 block text-xs font-medium text-gray-300">Tags</label><input disabled={modalMode === "view"} value={form.tags} onChange={(event) => setForm({ ...form, tags: event.target.value })} className="input-dark w-full px-3 py-2.5 text-sm" placeholder="futebol, liga, destaque" /></div>
             </div>
-            <div className="flex justify-end gap-3 border-t border-[#2A2A2A] p-5">
-              <button onClick={() => setModalMode(null)} className="rounded-lg bg-[#2A2A2A] px-4 py-2 text-sm text-gray-300 hover:bg-[#3A3A3A]">Fechar</button>
-              {modalMode !== "view" && (
-                <button onClick={saveArticle} disabled={saving} className="rounded-lg bg-[#E50914] px-4 py-2 text-sm font-bold text-white hover:bg-[#B00000] disabled:opacity-50">
-                  {saving ? "A guardar..." : "Salvar"}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      </AdminFormWizard>
+
 
       {importOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 p-0 backdrop-blur-sm sm:items-center sm:p-4">
