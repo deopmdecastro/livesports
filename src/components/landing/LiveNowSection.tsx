@@ -85,7 +85,7 @@ function LiveCard({ event, live }: { event: Event; live?: Live }) {
           : <span className={`badge text-[10px] px-2 py-0.5 ${isFinished ? "badge-green" : "badge-blue"}`}>{statusLabel}</span>}
       </div>
 
-      <div className="pointer-events-none absolute inset-0 -z-10"><EventCover sport={event.sport} className="h-full" /></div>
+      <div className="pointer-events-none absolute inset-0 -z-10"><EventCover src={live?.banner || live?.thumbnail || event.thumbnail} leagueLogo={event.leagueLogo} sport={event.sport} className="h-full" /></div>
 
       <div className="relative p-5 flex flex-col justify-between flex-1">
         <Link href={statsHref} className="block">

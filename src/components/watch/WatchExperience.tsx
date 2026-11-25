@@ -63,7 +63,7 @@ function isAdActive(ad: Ad) {
 }
 
 function pickActiveAd(ads: Ad[], position: Ad["position"]) {
-  return ads.find((ad) => ad.position === position && isAdActive(ad));
+  return ads.find((ad) => ad.position === position && isAdActive(ad) && ((ad.format === "video" && isImageValue(ad.videoUrl)) || (ad.format === "banner" && isImageValue(ad.imageUrl))));
 }
 
 function TeamCrestSmall({ logo, name, code }: { logo?: string; name?: string; code?: string }) {
@@ -76,22 +76,30 @@ function TeamCrestSmall({ logo, name, code }: { logo?: string; name?: string; co
 
 // ─── Pre-roll Ad Overlay ──────────────────────────────────────────────────────
 function PrerollAd({ ad, onComplete }: { ad: Ad; onComplete: () => void }) {
-  const duration = ad.format === "video" ? 15 : 8;
-  const [timeLeft, setTimeLeft] = useState(duration);
-  const [canSkip, setCanSkip] = useState(false);
+  const isVideo = ad.format === "video" && !!ad.videoUrl;
+  const [elapsed, setElapsed] = useState(0);
+  const completeRef = useRef(onComplete);
+  completeRef.current = onComplete;
   const SKIP_AFTER = 5;
+  const duration = isVideo ? 60 : 8; // video ends naturally; cap stalls at 60s
+  const timeLeft = Math.max(0, duration - elapsed);
+  const canSkip = elapsed >= SKIP_AFTER;
 
   useEffect(() => {
-    const t = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) { clearInterval(t); onComplete(); return 0; }
-        if (prev === duration - SKIP_AFTER) setCanSkip(true);
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(t);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    const startedAt = Date.now();
+    const impression = `/api/ads/${encodeURIComponent(ad.id)}/impression`;
+    void fetch(impression, { method: "POST", keepalive: true }).catch(() => undefined);
+    const timer = window.setInterval(() => {
+      const seconds = Math.floor((Date.now() - startedAt) / 1000);
+      setElapsed(seconds);
+      if (seconds >= duration) { clearInterval(timer); completeRef.current(); }
+    }, 250);
+    return () => clearInterval(timer);
+  }, [ad.id, duration]);
+
+  const trackClick = () => {
+    void fetch(`/api/ads/${encodeURIComponent(ad.id)}/click`, { method: "POST", keepalive: true }).catch(() => undefined);
+  };
 
   return (
     <div className="absolute inset-0 z-30 bg-black flex flex-col">
@@ -103,11 +111,14 @@ function PrerollAd({ ad, onComplete }: { ad: Ad; onComplete: () => void }) {
             className="w-full h-full object-contain"
             autoPlay muted playsInline
             onEnded={onComplete}
+            onError={onComplete}
           />
         ) : ad.imageUrl ? (
-          <a href={ad.clickUrl || "#"} target="_blank" rel="noreferrer" className="block w-full h-full">
-            <img src={ad.imageUrl} alt={ad.title} className="w-full h-full object-contain" />
-          </a>
+          ad.clickUrl ? (
+            <a href={ad.clickUrl} target="_blank" rel="noopener noreferrer" onClick={trackClick} className="block w-full h-full">
+              <img src={ad.imageUrl} alt={ad.title} onError={onComplete} className="w-full h-full object-contain" />
+            </a>
+          ) : <img src={ad.imageUrl} alt={ad.title} onError={onComplete} className="w-full h-full object-contain" />
         ) : null}
 
         {/* Ad label */}
@@ -122,7 +133,8 @@ function PrerollAd({ ad, onComplete }: { ad: Ad; onComplete: () => void }) {
           <a
             href={ad.clickUrl}
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
+            onClick={trackClick}
             className="absolute top-3 right-3 px-3 py-1.5 text-xs font-bold bg-white/10 hover:bg-white/20 text-white rounded-lg border border-white/20 backdrop-blur-sm transition-all"
           >
             Visitar →
@@ -135,7 +147,7 @@ function PrerollAd({ ad, onComplete }: { ad: Ad; onComplete: () => void }) {
         <div className="flex items-center gap-2">
           <Info className="h-3.5 w-3.5 text-gray-500" />
           <span className="text-xs text-gray-500">Anúncio</span>
-          {timeLeft > 0 && (
+          {!isVideo && timeLeft > 0 && (
             <span className="text-xs text-gray-400">{timeLeft}s</span>
           )}
         </div>
@@ -145,11 +157,11 @@ function PrerollAd({ ad, onComplete }: { ad: Ad; onComplete: () => void }) {
             className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-white text-black text-xs font-black hover:bg-gray-200 transition-all"
           >
             <SkipForward className="h-3.5 w-3.5" />
-            Pular anúncio
+            Saltar anúncio
           </button>
         ) : (
           <span className="text-xs text-gray-500">
-            Pular em {Math.max(0, SKIP_AFTER - (duration - timeLeft))}s...
+            Saltar em {Math.max(0, SKIP_AFTER - elapsed)}s...
           </span>
         )}
       </div>
@@ -395,24 +407,38 @@ export default function WatchExperience({ live, liveId }: WatchExperienceProps) 
       .catch(() => setChat([]));
 
     // Pre-roll ad separated from display ads: live_preroll first, player as legacy fallback.
+    let cancelled = false;
+    setAdsChecked(false);
+    setAdDone(false);
+    setPrerollAd(null);
     void (async () => {
+      let timeout: ReturnType<typeof setTimeout> | undefined;
       try {
-        const prerollAds = await publicApiRequest<Ad[]>("/ads?position=live_preroll");
-        let ad = pickActiveAd(prerollAds, "live_preroll");
-
-        if (!ad) {
-          const legacyPlayerAds = await publicApiRequest<Ad[]>("/ads?position=player");
-          ad = pickActiveAd(legacyPlayerAds, "player");
+        const lookup = async () => {
+          const prerollAds = await publicApiRequest<Ad[]>("/ads?position=live_preroll");
+          let ad = pickActiveAd(prerollAds, "live_preroll");
+          if (!ad) {
+            const legacyPlayerAds = await publicApiRequest<Ad[]>("/ads?position=player");
+            ad = pickActiveAd(legacyPlayerAds, "player");
+          }
+          return ad;
+        };
+        const ad = await Promise.race([
+          lookup(),
+          new Promise<undefined>((resolve) => { timeout = setTimeout(() => resolve(undefined), 5000); }),
+        ]);
+        if (!cancelled) {
+          if (ad) setPrerollAd(ad);
+          else setAdDone(true);
         }
-
-        if (ad) setPrerollAd(ad);
-        else setAdDone(true);
       } catch {
-        setAdDone(true);
+        if (!cancelled) setAdDone(true);
       } finally {
-        setAdsChecked(true);
+        if (timeout) clearTimeout(timeout);
+        if (!cancelled) setAdsChecked(true);
       }
     })();
+    return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import type { Live, LiveStreamServer } from "@/types";
 import { cn, formatNumber } from "@/utils";
+import { getSportCover } from "@/components/ui/EventCover";
 
 type AdOverlayMode = "checking" | "preroll" | "midroll" | null;
 
@@ -25,7 +26,6 @@ interface LivePlayerProps {
   autoPlayMuted?: boolean;
 }
 
-const FALLBACK_STREAM_URL = "https://95cedebd.wurl.com/master/f36d25e7e52f1ba8d7e56eb859c636563214f541/Vml6aW9fRklGQVBsdXNFbmdsaXNoX0hMUw/playlist.m3u8";
 
 function formatTime(seconds: number) {
   if (!Number.isFinite(seconds) || seconds < 0) return "00:00";
@@ -86,22 +86,29 @@ export default function LivePlayer({ live, adOverlay = null, autoPlayMuted = fal
 
     if (customServers.length > 0) return customServers;
 
-    const primaryUrl = live.hlsUrl || live.m3u8Url || live.streamUrl || FALLBACK_STREAM_URL;
-    return [
-      { id: "auto", name: "Servidor Auto", quality: "Auto HD", latency: "Baixa", url: primaryUrl },
-      { id: "backup", name: "Backup HLS", quality: "HD", latency: "Media", url: FALLBACK_STREAM_URL },
-      { id: "mobile", name: "Mobile", quality: "Adaptavel", latency: "Estavel", url: primaryUrl },
-    ];
+    const primaryUrl = live.hlsUrl || live.m3u8Url || live.streamUrl;
+    return primaryUrl ? [{ id: "auto", name: "Servidor Auto", quality: "Auto", latency: "Normal", url: primaryUrl }] : [];
   }, [live.hlsUrl, live.m3u8Url, live.streamServers, live.streamUrl]);
 
-  const [serverId, setServerId] = useState(servers[0].id);
+  const [serverId, setServerId] = useState(servers[0]?.id || "");
   const activeServer = servers.find((s) => s.id === serverId) || servers[0];
+  const waitingForAd = adOverlay === "checking" || adOverlay === "preroll";
   const progress = duration > 0 && Number.isFinite(duration) ? (currentTime / duration) * 100 : 100;
 
   // ── Load / switch stream ─────────────────────────────────────────────
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
+    if (waitingForAd) {
+      video.pause();
+      setBuffering(false);
+      return;
+    }
+    if (!activeServer?.url) {
+      setBuffering(false);
+      setError(hasYoutubeEmbed ? "Selecione YouTube para assistir." : "Transmissão ainda indisponível.");
+      return;
+    }
 
     setBuffering(true);
     setError("");
@@ -166,7 +173,7 @@ export default function LivePlayer({ live, adOverlay = null, autoPlayMuted = fal
       hlsRef.current?.destroy();
       hlsRef.current = null;
     };
-  }, [activeServer.url]);
+  }, [activeServer?.url, waitingForAd, hasYoutubeEmbed]);
 
   // ── Auto-play when stream is ready (only if user hasn't explicitly paused) ──
   useEffect(() => {
@@ -175,9 +182,8 @@ export default function LivePlayer({ live, adOverlay = null, autoPlayMuted = fal
 
     // Ad overlay handling
     if (adOverlay === "preroll" || adOverlay === "checking") {
-      video.volume = volume;
-      video.muted = true;
-      void video.play().then(() => { setPlaying(true); setError(""); }).catch(() => undefined);
+      video.pause();
+      setPlaying(false);
       return;
     }
     if (adOverlay === "midroll") {
@@ -193,8 +199,13 @@ export default function LivePlayer({ live, adOverlay = null, autoPlayMuted = fal
       void video.play()
         .then(() => { setPlaying(true); setError(""); })
         .catch(() => {
-          // Browser blocked autoplay — show play button, don't show error
-          setPlaying(false);
+          // Browsers often block autoplay with sound; try muted before asking for a tap.
+          video.muted = true;
+          void video.play().then(() => {
+            setMuted(true);
+            setPlaying(true);
+            setError("");
+          }).catch(() => setPlaying(false));
         });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -211,7 +222,7 @@ export default function LivePlayer({ live, adOverlay = null, autoPlayMuted = fal
   // ── Play / Pause toggle ───────────────────────────────────────────────
   const togglePlayback = async () => {
     const video = videoRef.current;
-    if (!video) return;
+    if (!video || adOverlay) return;
 
     if (video.paused) {
       userPausedRef.current = false;
@@ -235,6 +246,7 @@ export default function LivePlayer({ live, adOverlay = null, autoPlayMuted = fal
       const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
       if (tag === "input" || tag === "textarea" || tag === "select" || (e.target as HTMLElement)?.isContentEditable) return;
 
+      if (adOverlay) return;
       if (e.code === "Space") { e.preventDefault(); togglePlayback(); }
       if (e.key.toLowerCase() === "m") setMuted((v) => !v);
       if (e.key.toLowerCase() === "f") toggleFullscreen();
@@ -272,7 +284,7 @@ export default function LivePlayer({ live, adOverlay = null, autoPlayMuted = fal
   const canToggleMode = hasYoutubeEmbed && servers.some(s => s.url);
 
   // If YouTube mode is enabled and we have embed URL, render YouTube iframe
-  if (showYoutubeMode && youtubeEmbedUrl) {
+  if ((showYoutubeMode || servers.length === 0) && youtubeEmbedUrl && !adOverlay) {
     return (
       <div ref={playerRef} className="relative flex h-full min-h-0 flex-col overflow-hidden bg-black">
         {/* Top bar for switching back */}
@@ -280,7 +292,7 @@ export default function LivePlayer({ live, adOverlay = null, autoPlayMuted = fal
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E50914] px-3 py-1 text-xs font-black text-white shadow-lg">
               <span className="h-2 w-2 rounded-full bg-white live-badge" />
-              AO VIVO
+              {live.status === "live" ? "AO VIVO" : live.status === "scheduled" ? "AGENDADO" : "ENCERRADO"}
             </span>
             <span className="hidden rounded-full bg-black/60 px-3 py-1 text-xs font-semibold text-gray-200 backdrop-blur-sm sm:inline">
               YouTube
@@ -318,7 +330,7 @@ export default function LivePlayer({ live, adOverlay = null, autoPlayMuted = fal
           className="h-full w-full bg-black object-contain"
           playsInline
           muted={muted}
-          poster={live.banner || live.thumbnail}
+          poster={live.banner || (live.thumbnail && live.thumbnail !== live.leagueLogo ? live.thumbnail : undefined) || getSportCover(live.sport)}
           onPlay={() => { setPlaying(true); setError(""); }}
           onPause={() => setPlaying(false)}
           onWaiting={() => setBuffering(true)}
@@ -331,7 +343,7 @@ export default function LivePlayer({ live, adOverlay = null, autoPlayMuted = fal
         <div className="pointer-events-none absolute left-4 top-4 flex items-center gap-2">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E50914] px-3 py-1 text-xs font-black text-white shadow-lg">
             <span className="h-2 w-2 rounded-full bg-white live-badge" />
-            AO VIVO
+            {live.status === "live" ? "AO VIVO" : live.status === "scheduled" ? "AGENDADO" : "ENCERRADO"}
           </span>
           <span className="hidden rounded-full bg-black/60 px-3 py-1 text-xs font-semibold text-gray-200 backdrop-blur-sm sm:inline">
             {activeServer.name}
@@ -351,10 +363,10 @@ export default function LivePlayer({ live, adOverlay = null, autoPlayMuted = fal
               A carregar transmissão…
             </div>
           )}
-          {error && !playing && (
+          {error && !playing && !adOverlay && (
             <div className="max-w-sm rounded-xl border border-red-500/30 bg-red-950/80 px-5 py-4 text-center text-sm font-semibold text-red-100 backdrop-blur-sm">
               {error}
-              <p className="mt-2 text-xs text-red-300 opacity-75">Tente selecionar outro servidor abaixo</p>
+              {servers.length > 1 && <p className="mt-2 text-xs text-red-300 opacity-75">Tente selecionar outro servidor abaixo</p>}
             </div>
           )}
           {autoPlayMuted && muted && playing && (

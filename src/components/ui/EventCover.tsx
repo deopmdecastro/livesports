@@ -9,6 +9,8 @@ const SPORT_COVERS: Record<string, string> = {
   volleyball: "/images/volleyball-cover.jpg", baseball: "/images/baseball-cover.jpg",
 };
 
+export function getSportCover(sport?: string | null) { return SPORT_COVERS[sport || ""] || DEFAULT_COVER; }
+
 /** Decorative cover: event artwork when available, never stretch a league badge. */
 export default function EventCover({ src, leagueLogo, sport, className = "" }: {
   src?: string | null;
@@ -16,7 +18,7 @@ export default function EventCover({ src, leagueLogo, sport, className = "" }: {
   sport?: string | null;
   className?: string;
 }) {
-  const fallback = SPORT_COVERS[sport || ""] || DEFAULT_COVER;
+  const fallback = getSportCover(sport);
   const usable = src && src !== leagueLogo && /^(https?:\/\/|\/)/i.test(src) ? src : fallback;
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const image = failedSrc === usable ? fallback : usable;
