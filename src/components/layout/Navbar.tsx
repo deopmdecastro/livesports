@@ -54,6 +54,7 @@ const MORE_LINKS: Array<{ href: string; label: string; hot?: boolean }> = [
   { href: "/tenis", label: "Ténis" },
   { href: "/ufc", label: "UFC" },
   { href: "/f1", label: "Fórmula 1" },
+  { href: "/instalar", label: "Instalar aplicação" },
 ];
 
 export default function Navbar() {

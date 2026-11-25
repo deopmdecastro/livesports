@@ -641,7 +641,7 @@ export default function WatchExperience({ live, liveId }: WatchExperienceProps) 
         : null;
 
   return (
-    <div className="h-screen overflow-hidden bg-[#060609] text-white flex flex-col">
+    <div className="h-screen h-[100dvh] overflow-hidden bg-[#060609] text-white flex flex-col">
       {/* Top bar */}
       <header className="flex h-12 flex-shrink-0 items-center gap-3 border-b border-[#1E1E2A] bg-[#0A0A10] px-3 z-10">
         <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-gray-400 transition-colors hover:text-white flex-shrink-0">

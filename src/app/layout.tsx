@@ -3,6 +3,7 @@ import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import { LangProvider } from "@/lib/lang";
 import BrandingRuntime from "@/components/branding/BrandingRuntime";
+import InstallProvider from "@/components/install/InstallProvider";
 
 // ─── Site-wide metadata ────────────────────────────────────────────────────────
 
@@ -65,7 +66,7 @@ export const metadata: Metadata = {
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon-16x16.svg",
-    apple: "/favicon.svg",
+    apple: "/apple-touch-icon.png",
   },
   manifest: "/site.webmanifest",
   category: "sports",
@@ -141,8 +142,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Saltar para o conteúdo
         </a>
         <LangProvider>
-          <BrandingRuntime />
-          <div id="main-content">{children}</div>
+          <InstallProvider>
+            <BrandingRuntime />
+            <div id="main-content">{children}</div>
+          </InstallProvider>
           <Toaster
             position="top-right"
             toastOptions={{
