@@ -419,6 +419,7 @@ export default function WorldCupSection({
           setSelectedSlug(featured.slug);
         }
       })
+      .catch(() => { if (!cancelled) setCompetitions([]); })
       .finally(() => {
         if (!cancelled) setLoadingCompetitions(false);
       });
@@ -502,6 +503,8 @@ export default function WorldCupSection({
         ]
       : []),
   ];
+
+  if (!slug && !initialData && !loading && !loadingCompetitions && !pageData && competitions.length === 0) return null;
 
   return (
     <section

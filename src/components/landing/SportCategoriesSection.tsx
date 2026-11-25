@@ -54,7 +54,7 @@ export default function SportCategoriesSection() {
           </div>
         </div>
 
-        <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-8 gap-3">
+        <div className="grid grid-cols-2 min-[420px]:grid-cols-4 md:grid-cols-4 lg:grid-cols-8 gap-3">
           {sportCategories.map((sport) => {
             const meta = sportMeta[sport.id] || {
               pt: sport.label, en: sport.label,
@@ -68,7 +68,7 @@ export default function SportCategoriesSection() {
               <Link
                 key={sport.id}
                 href={href}
-                className="group relative league-badge flex flex-col items-center gap-2.5 p-4 rounded-2xl transition-all duration-300 cursor-pointer overflow-hidden"
+                className="group relative league-badge flex min-h-[112px] flex-col items-center justify-center gap-3 p-4 rounded-2xl transition-all duration-300 cursor-pointer overflow-hidden focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-400"
                 style={{
                   background: "rgba(14,14,22,0.8)",
                   border: "1px solid #1E1E2A",
@@ -96,7 +96,7 @@ export default function SportCategoriesSection() {
                 >
                   <SportIcon sport={sport.id} className="h-6 w-6" style={{ color: meta.bg }} />
                 </div>
-                <span className="relative text-xs font-semibold text-gray-400 group-hover:text-white text-center leading-tight transition-colors duration-200">
+                <span className="relative text-sm font-semibold text-gray-300 group-hover:text-white text-center leading-tight transition-colors duration-200">
                   {label}
                 </span>
               </Link>

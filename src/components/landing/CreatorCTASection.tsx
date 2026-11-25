@@ -1,108 +1,18 @@
 "use client";
-
 import Link from "next/link";
-import { Tv2, Radio, BarChart3, Users, ArrowRight, CheckCircle } from "lucide-react";
-import { usePlatformStats, formatCompactPlus } from "@/hooks/usePlatformStats";
-
-const benefits = [
-  "Dashboard de analíticas em tempo real",
-  "Chat ao vivo com os teus espectadores",
-  "Sondagens interativas durante as transmissões",
-  "Estatísticas de crescimento do canal",
-];
-
-const steps = [
-  { icon: Users, label: "Cria conta", desc: "Regista-te na plataforma" },
-  { icon: Tv2, label: "Cria canal", desc: "Configura o teu canal" },
-  { icon: Radio, label: "Transmite", desc: "Prepara a tua transmissão" },
-  { icon: BarChart3, label: "Cresce", desc: "Analisa e melhora" },
-];
+import { ArrowRight, BarChart3, MessageCircle, Radio, Tv2 } from "lucide-react";
+import { useLang } from "@/lib/lang";
 
 export default function CreatorCTASection() {
-  const platform = usePlatformStats();
-
-  const platformStats = [
-    { label: "Transmissões", value: platform ? formatCompactPlus(platform.totalLives) : "—" },
-    { label: "Espectadores", value: platform ? formatCompactPlus(platform.totalViews) : "—" },
-    { label: "Online agora", value: platform ? formatCompactPlus(platform.onlineViewers) : "—" },
-  ];
-
-  return (
-    <section className="relative overflow-hidden py-20">
-      <div className="absolute inset-0 bg-gradient-to-br from-[#E50914]/8 via-transparent to-transparent" />
-      <div className="absolute top-0 right-0 w-96 h-96 bg-[#E50914]/5 rounded-full blur-3xl" />
-
-      <div className="relative max-w-[1400px] mx-auto px-4 lg:px-6">
-        <div className="grid gap-12 lg:grid-cols-2 items-center">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#E50914]/30 bg-[#E50914]/10 px-3 py-1.5 text-xs font-bold text-[#E50914] mb-6">
-              <Tv2 className="h-3.5 w-3.5" /> CREATOR STUDIO
-            </div>
-            <h2 className="text-3xl font-black text-white leading-tight mb-4">
-              Transmite o teu conteúdo<br />
-              <span className="gradient-text-red">para o mundo inteiro</span>
-            </h2>
-            <p className="text-gray-400 text-base leading-relaxed mb-8">
-              Partilha conteúdo desportivo e acompanha a tua comunidade com ferramentas para criadores.
-            </p>
-
-            <ul className="space-y-2.5 mb-8">
-              {benefits.map((b) => (
-                <li key={b} className="flex items-center gap-3 text-sm text-gray-300">
-                  <CheckCircle className="h-4 w-4 text-emerald-400 flex-shrink-0" />
-                  {b}
-                </li>
-              ))}
-            </ul>
-
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Link href="/creator"
-                className="group inline-flex items-center justify-center gap-2 rounded-xl bg-[#E50914] px-6 py-3 text-sm font-bold text-white hover:bg-[#B00000] transition-all shadow-[0_0_20px_rgba(229,9,20,0.3)] hover:shadow-[0_0_30px_rgba(229,9,20,0.5)]">
-                <Tv2 className="h-4 w-4" />
-                Começar a transmitir
-                <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-              </Link>
-              <Link href="/creator/analytics"
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#2A2A2A] bg-[#111118] px-6 py-3 text-sm font-semibold text-gray-300 hover:text-white hover:border-[#E50914]/30 transition-all">
-                <BarChart3 className="h-4 w-4" />
-                Ver analíticas
-              </Link>
-            </div>
-          </div>
-
-          <div>
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              {steps.map(({ icon: Icon, label, desc }, i) => (
-                <div key={label} className="rounded-xl border border-[#1E1E2A] bg-[#0E0E16] p-4 relative overflow-hidden group hover:border-[#E50914]/20 transition-all">
-                  <div className="absolute top-3 right-3 text-[#1E1E2A] font-black text-3xl select-none group-hover:text-[#E50914]/10 transition-colors">
-                    {i + 1}
-                  </div>
-                  <div className="w-9 h-9 rounded-xl bg-[#E50914]/10 flex items-center justify-center mb-3">
-                    <Icon className="h-4 w-4 text-[#E50914]" />
-                  </div>
-                  <p className="text-sm font-bold text-white">{label}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{desc}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="rounded-xl border border-[#1E1E2A] bg-[#0E0E16] p-5">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-xs font-bold text-emerald-400">PLATAFORMA ATIVA</span>
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                {platformStats.map(({ label, value }) => (
-                  <div key={label} className="text-center">
-                    <p className="text-xl font-black text-white">{value}</p>
-                    <p className="text-[10px] text-gray-500">{label}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
+ const {lang}=useLang(); const pt=lang==='pt';
+ const items=pt ? [
+  {icon:Radio,title:'Transmissões',desc:'Organiza o teu conteúdo num só lugar.'},
+  {icon:MessageCircle,title:'Comunidade',desc:'Interage com os espectadores durante as lives.'},
+  {icon:BarChart3,title:'Análises',desc:'Acompanha o desempenho do teu canal.'},
+ ] : [
+  {icon:Radio,title:'Streams',desc:'Organise your content in one place.'},
+  {icon:MessageCircle,title:'Community',desc:'Interact with viewers during streams.'},
+  {icon:BarChart3,title:'Analytics',desc:'Follow your channel performance.'},
+ ];
+ return <section className="mx-auto max-w-[1400px] px-4 py-10 sm:px-6 lg:px-8 lg:py-16"><div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-[#111116] p-6 sm:p-10 lg:p-12"><div aria-hidden="true" className="pointer-events-none absolute -right-24 -top-32 h-80 w-80 rounded-full bg-red-600/10 blur-3xl"/><div className="relative grid gap-10 lg:grid-cols-[1fr_1.1fr] lg:items-center lg:gap-16"><div><p className="mb-4 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[.2em] text-red-400"><Tv2 className="h-4 w-4"/>Creator Studio</p><h2 className="max-w-lg text-3xl font-black leading-tight tracking-tight text-white sm:text-4xl">{pt?'A tua paixão. A tua comunidade.':'Your passion. Your community.'}</h2><p className="mt-4 max-w-lg text-sm leading-7 text-gray-300 sm:text-base">{pt?'Partilha conteúdo desportivo e aproxima-te de quem vive o jogo contigo.':'Share sports content and connect with people who love the game.'}</p><Link href="/creator" className="mt-6 inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-red-600 px-5 text-sm font-bold text-white transition hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400">{pt?'Explorar o Creator Studio':'Explore Creator Studio'}<ArrowRight className="h-4 w-4"/></Link></div><div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">{items.map(({icon:Icon,title,desc})=><div key={title} className="rounded-2xl border border-white/[.08] bg-white/[.035] p-5"><span className="mb-5 flex h-10 w-10 items-center justify-center rounded-xl bg-red-500/10 text-red-400"><Icon className="h-5 w-5"/></span><h3 className="font-bold text-white">{title}</h3><p className="mt-2 text-sm leading-6 text-gray-400">{desc}</p></div>)}</div></div></div></section>;
 }

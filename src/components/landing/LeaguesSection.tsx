@@ -25,18 +25,15 @@ interface ImportedLeaguesResponse {
 }
 
 async function fetchImportedLeagues(): Promise<ImportedLeague[]> {
-  try {
-    const payload = await publicApiRequest<ImportedLeaguesResponse>("/stats/imported-leagues", { cacheTtl: 60_000 });
-    return payload?.leagues || [];
-  } catch {
-    return [];
-  }
+  const payload = await publicApiRequest<ImportedLeaguesResponse>("/stats/imported-leagues", { cacheTtl: 60_000 });
+  return payload?.leagues || [];
 }
 
 export default function LeaguesSection() {
   const { lang } = useLang();
   const [leagues, setLeagues] = useState<ImportedLeague[]>([]);
   const [loading, setLoading] = useState(true);
+  const [unavailable, setUnavailable] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -44,7 +41,7 @@ export default function LeaguesSection() {
       if (!active) return;
       setLeagues(data);
       setLoading(false);
-    });
+    }).catch(() => { if (active) { setUnavailable(true); setLoading(false); } });
     return () => {
       active = false;
     };
@@ -77,8 +74,8 @@ export default function LeaguesSection() {
               </h2>
               <p className="text-xs text-gray-500 mt-0.5">
                 {lang === "pt"
-                  ? "Classificações oficiais, fases de grupos e transmissão ao vivo das maiores competições"
-                  : "Live standings, group tables and streaming of global competitions"}
+                  ? "Explora competições, jogos e classificações disponíveis"
+                  : "Explore available competitions, fixtures and standings"}
               </p>
               {leagues.length > 0 && (
                 <p className="text-[10px] text-gray-600 mt-1">
@@ -113,9 +110,7 @@ export default function LeaguesSection() {
           </div>
         ) : displayLeagues.length === 0 ? (
           <div className="rounded-[28px] border border-white/10 bg-[#0E0E16] p-10 text-center text-sm text-gray-400">
-            {lang === "pt"
-              ? "Ainda não há competições importadas para mostrar. Assim que eventos ou lives forem adicionados, elas aparecem aqui."
-              : "No competitions have been imported yet. Once events or lives are added, they will show up here."}
+            {unavailable ? (lang === "pt" ? "Não foi possível carregar as competições. Tenta novamente mais tarde." : "Competitions could not be loaded. Please try again later.") : (lang === "pt" ? "Ainda não há competições disponíveis." : "No competitions are available yet.")}
           </div>
         ) : (
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-6 xl:grid-cols-12 gap-3">

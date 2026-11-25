@@ -164,42 +164,22 @@ export default function Navbar() {
     setUserMenuOpen(false);
   }, []);
 
-  const tickerItems = liveCount > 0
-    ? [
-        `${liveCount} jogos ao vivo agora`,
-        "Placar instantâneo e estatísticas em tempo real",
-        "Streaming premium para todos os dispositivos",
-        "Competições globais com cobertura contínua",
-      ]
-    : [
-        "LiveSports — a melhor plataforma de streaming desportivo",
-        "Futebol, Basquete, Tênis, UFC e F1 com experiência premium",
-      ];
-
   const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname?.startsWith(href));
 
   return (
     <>
-      <div className="fixed inset-x-0 top-0 z-[70] h-[22px] overflow-hidden border-b border-white/5 bg-[#c80812]">
-        <div className="ticker-track h-full items-center gap-12 px-4">
-          {[...tickerItems, ...tickerItems].map((item, index) => (
-            <span
-              key={`${item}-${index}`}
-              className="whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.18em] text-white/92"
-            >
-              <span className="mr-2 inline-block h-1.5 w-1.5 rounded-full bg-white" />
-              {item}
-            </span>
-          ))}
+      <div className="fixed inset-x-0 top-0 z-[70] h-[22px] border-b border-white/[.06] bg-[#131015]">
+        <div className="mx-auto flex h-full max-w-[1400px] items-center justify-between px-4 text-[10px] font-semibold tracking-wide text-white/60 lg:px-6">
+          <span>{lang === "pt" ? "O desporto, mais perto de ti" : "Sport, closer to you"}</span>
+          <Link href="/ao-vivo" className="flex items-center gap-1.5 text-white/75 hover:text-white"><span className="h-1.5 w-1.5 rounded-full bg-red-500" />{liveCount > 0 ? `${liveCount} ${lang === "pt" ? "em direto" : "live"}` : (lang === "pt" ? "Explorar transmissões" : "Explore streams")}</Link>
         </div>
       </div>
-
       <header className="fixed inset-x-0 top-[22px] z-[65] px-3 pt-2 lg:px-5">
         <div
-          className={`mx-auto max-w-[1400px] rounded-[24px] border transition-all duration-300 ${
+          className={`mx-auto max-w-[1400px] rounded-[18px] border transition-all duration-300 ${
             scrolled
               ? "border-white/10 bg-[rgba(7,8,13,0.88)] shadow-[0_24px_80px_rgba(0,0,0,0.42)] backdrop-blur-2xl"
-              : "border-white/8 bg-[rgba(7,8,13,0.72)] backdrop-blur-xl"
+              : "border-white/10 bg-[rgba(10,11,16,0.9)] shadow-[0_12px_40px_rgba(0,0,0,0.25)] backdrop-blur-xl"
           }`}
         >
           <div className="flex h-[56px] items-center justify-between gap-2 px-3 sm:gap-3 sm:px-5 lg:px-6">
@@ -214,7 +194,7 @@ export default function Navbar() {
                     key={link.href}
                     href={link.href}
                     className={`relative rounded-full px-3 py-2 text-[13px] font-semibold transition-colors ${
-                      isActive(link.href) ? "text-white" : "text-white/56 hover:text-white"
+                      isActive(link.href) ? "text-white" : "text-white/70 hover:text-white"
                     }`}
                   >
                     {link.label}
@@ -272,7 +252,7 @@ export default function Navbar() {
                       setSearchQuery(event.target.value);
                       setSearchOpen(true);
                     }}
-                    className="w-[140px] bg-transparent text-[13px] text-white placeholder-white/35 outline-none lg:w-[200px]"
+                    className="w-[140px] bg-transparent text-[13px] text-white placeholder-white/35 outline-none lg:w-[120px] xl:w-[170px]"
                   />
                   {searchLoading ? <div className="h-3 w-3 rounded-full border-2 border-[#E50914]/30 border-t-[#E50914] animate-spin" /> : null}
                 </div>
