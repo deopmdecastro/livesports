@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { authenticateToken, requireEditor } from '../middleware/auth.middleware';
 import { prisma } from '../lib/prisma';
 import { syncAllCompetitions } from '../lib/competition-sync';
+import { getSportsWatcherStatus, runSportsWatcherCycle } from '../lib/sports-watcher';
 
 const router = Router();
 
@@ -97,7 +98,12 @@ const EVENT_PUBLIC_SELECT = `
 
 const COMPETITION_PUBLIC_LIST_SELECT = `
   id, name, slug, season, format::text, sport::text,
-  hero_badge, hero_badge_icon, host_countries, section_title, thumbnail, theme_color, is_featured_card
+  hero_badge, hero_badge_icon, host_countries, section_title, thumbnail, theme_color, is_featured_card,
+  stat_teams, stat_games, updated_at,
+  CASE
+    WHEN groups_data IS NOT NULL AND jsonb_typeof(groups_data) = 'array' THEN jsonb_array_length(groups_data)
+    ELSE 0
+  END AS groups_count
 `;
 
 function mapPublicCompetitionSummary(row: any) {
@@ -115,8 +121,34 @@ function mapPublicCompetitionSummary(row: any) {
     thumbnail: row.thumbnail,
     themeColor: row.theme_color,
     isFeaturedCard: Boolean(row.is_featured_card),
+    statTeams: row.stat_teams != null ? Number(row.stat_teams) : 0,
+    statGames: row.stat_games != null ? Number(row.stat_games) : 0,
+    groupsCount: row.groups_count != null ? Number(row.groups_count) : 0,
+    updatedAt: row.updated_at,
   };
 }
+
+router.get('/watcher/status', (_req, res) => {
+  res.json({ success: true, data: getSportsWatcherStatus() });
+});
+
+router.post('/watcher/trigger', async (req, res, next) => {
+  try {
+    const status = getSportsWatcherStatus();
+    if (status.running && status.lastCycle) {
+      res.json({ success: true, data: status.lastCycle, alreadyRunning: true });
+      return;
+    }
+    const slugs = Array.isArray(req.body?.slugs) ? req.body.slugs : undefined;
+    const summary = await runSportsWatcherCycle({
+      slugFilter: slugs,
+      includeLiveChannelsAndNews: false,
+    });
+    res.json({ success: true, data: summary });
+  } catch (error) {
+    next(error);
+  }
+});
 
 router.get('/public', async (_req, res, next) => {
   try {
@@ -126,7 +158,8 @@ router.get('/public', async (_req, res, next) => {
       WHERE status = 'active'::competition_status AND COALESCE(archived, FALSE) = FALSE
       ORDER BY
         is_featured_card DESC,
-        host_countries ASC NULLS LAST,
+        (CASE WHEN groups_data IS NOT NULL AND jsonb_typeof(groups_data) = 'array' AND jsonb_array_length(groups_data) > 0 THEN 0 ELSE 1 END) ASC,
+        COALESCE(stat_games, 0) DESC,
         name ASC
     `);
 

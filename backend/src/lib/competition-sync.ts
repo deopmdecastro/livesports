@@ -8,6 +8,7 @@ import {
   type CalendarLeague,
 } from './thesportsdb';
 import { resolveTeamFlagUrl } from './flags';
+import { runSportsWatcherCycle } from './sports-watcher';
 
 type CompetitionFormat = 'groups' | 'league' | 'knockout';
 type SportCategory = 'football' | 'basketball' | 'tennis' | 'ufc' | 'f1' | 'volleyball' | 'baseball' | 'other';
@@ -801,6 +802,18 @@ export async function syncAllCompetitions(options: SyncOptions = {}): Promise<Co
   const existing = await existingCompetitionSlugs();
 
   for (const syncer of [
+    async (): Promise<CompetitionSyncSourceResult> => {
+      const cycle = await runSportsWatcherCycle({ includeLiveChannelsAndNews: false });
+      return {
+        source: 'ESPN v2 Standings + Multi-Sport Watcher',
+        status: 'synced',
+        message: `${cycle.competitionsSynced} competicoes; ${cycle.standingsUpdated} tabelas (${cycle.totalGroups} grupos, ${cycle.totalTeamsRanked} equipas); ${cycle.eventsUpserted} jogos.`,
+        competitionsCreated: 0,
+        competitionsUpdated: cycle.competitionsSynced,
+        eventsUpserted: cycle.eventsUpserted,
+        standingsUpdated: cycle.standingsUpdated,
+      };
+    },
     () => syncTheSportsDb(normalized, existing),
     () => syncApiFootball(normalized, existing),
     () => syncFootballData(normalized, existing),
