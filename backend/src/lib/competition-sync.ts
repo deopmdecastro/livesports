@@ -870,3 +870,48 @@ export async function syncGirabolaApiFootball(competitionId: string): Promise<Co
   result.message = `Girabola ${seasonYear}: ${result.eventsUpserted} jogos sincronizados.`;
   return result;
 }
+
+/** BetsAPI basketball fixture feed: known league IDs, token stays server-side. */
+export async function syncAngolanBasketballBetsApi(competitionId: string, leagueId: string, competitionName: string): Promise<CompetitionSyncSourceResult> {
+  const token = process.env.BETSAPI_TOKEN?.trim();
+  if (!token || token.startsWith('your-')) return emptySource('BetsAPI', 'skipped', 'Configure BETSAPI_TOKEN para sincronizar o basquetebol angolano.');
+  const result = emptySource('BetsAPI', 'synced');
+  const matches = new Map<string, any>();
+  let successfulRequests = 0;
+  for (const endpoint of ['upcoming', 'ended', 'inplay']) {
+    try {
+      const response = await axios.get<any>(`https://api.b365api.com/v3/events/${endpoint}`, {
+        params: { token, sport_id: 18, league_id: leagueId, page: 1 }, timeout: 15000,
+      });
+      if (response.data?.success !== 1 || !Array.isArray(response.data?.results)) throw new Error('Resposta inválida ou sem permissão');
+      successfulRequests++;
+      for (const event of response.data.results) {
+        if (String(event?.league?.id) === leagueId && String(event?.sport_id) === '18' && event?.id) matches.set(String(event.id), event);
+      }
+    } catch {
+      // Never log request URLs: the provider authenticates using a query parameter.
+      console.warn(`[BetsAPI] Falha ao consultar ${endpoint} para ${competitionName}; verifique acesso e quota.`);
+    }
+  }
+  if (!successfulRequests) return emptySource('BetsAPI', 'error', `Sem acesso aos dados de ${competitionName}.`);
+  for (const [id, match] of matches) {
+    const epoch = Number(match.time);
+    const date = new Date(epoch * 1000);
+    const statusCode = String(match.time_status);
+    if (!Number.isFinite(epoch) || epoch <= 0 || !Number.isFinite(date.getTime()) || !match.home?.name || !match.away?.name || !['0','1','3','4','5','6','8','9','10','11','12'].includes(statusCode)) continue;
+    const score = typeof match.ss === 'string' ? match.ss.match(/^\s*(\d+)\s*[-:]\s*(\d+)\s*$/) : null;
+    const status: EventStatus = statusCode === '0' ? 'upcoming' : statusCode === '1' ? 'live' : statusCode === '3' ? 'finished' : 'cancelled';
+    await upsertEvent({
+      id: `betsapi-basketball-${id}`, title: `${match.home.name} vs ${match.away.name}`,
+      description: `${competitionName} · BetsAPI`, sport: 'basketball', competitionId,
+      league: competitionName, teamA: match.home.name, teamB: match.away.name,
+      scoreA: status === 'upcoming' || !score ? null : Number(score[1]),
+      scoreB: status === 'upcoming' || !score ? null : Number(score[2]),
+      matchTime: status === 'live' ? 'Em direto' : status === 'finished' ? 'Terminado' : status === 'cancelled' ? 'Interrompido / cancelado' : 'Agendado',
+      scheduledAt: date.toISOString(), status,
+    });
+    result.eventsUpserted++;
+  }
+  result.message = `${competitionName}: ${result.eventsUpserted} jogos obtidos (até 50 por consulta).`;
+  return result;
+}

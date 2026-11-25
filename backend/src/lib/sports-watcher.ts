@@ -1139,6 +1139,8 @@ async function linkMatchingLeagueEvents(
 // Limit authenticated supplier calls; keep the normal ESPN cycle independent.
 let girabolaLastAttempt = 0;
 let girabolaSyncInFlight = false;
+const betsApiLastAttempt = new Map<string, number>();
+const betsApiInFlight = new Set<string>();
 
 // ─── Main Poll Cycle Execution ───────────────────────────────────────────────
 
@@ -1217,6 +1219,23 @@ export async function runSportsWatcherCycle(options?: {
                 console.warn('[Girabola] Não foi possível sincronizar API-Football:', error instanceof Error ? error.message : 'erro desconhecido');
               } finally {
                 girabolaSyncInFlight = false;
+              }
+            }
+
+            const basketballLeagues: Record<string, string> = { 'unitel-basket': '39580', 'taca-angola-basquetebol': '43944' };
+            const betsLeagueId = basketballLeagues[target.slug];
+            if (betsLeagueId && !betsApiInFlight.has(target.slug) && Date.now() - (betsApiLastAttempt.get(target.slug) || 0) > 60 * 60 * 1000) {
+              betsApiLastAttempt.set(target.slug, Date.now());
+              betsApiInFlight.add(target.slug);
+              try {
+                const { syncAngolanBasketballBetsApi } = await import('./competition-sync');
+                const result = await syncAngolanBasketballBetsApi(competitionId, betsLeagueId, target.name);
+                additionalEvents += result.eventsUpserted;
+                if (result.message) console.log(`[BetsAPI] ${result.message}`);
+              } catch {
+                console.warn(`[BetsAPI] Não foi possível sincronizar ${target.name}.`);
+              } finally {
+                betsApiInFlight.delete(target.slug);
               }
             }
 
