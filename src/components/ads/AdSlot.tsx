@@ -14,6 +14,8 @@ interface AdSlotProps {
   position: AdPosition;
   className?: string;
   variant?: "horizontal" | "box" | "popup" | "overlay" | "lateral" | "embedded";
+  /** Hide empty state instead of showing "Publicidade" placeholder */
+  hideWhenEmpty?: boolean;
   /** Callback fired after the ad impression is tracked */
   onImpression?: (adId: string) => void;
   /** Callback fired when the user clicks the ad */
@@ -163,6 +165,7 @@ function AdSlotInner({
   position,
   className = "",
   variant = "horizontal",
+  hideWhenEmpty = false,
   onImpression,
   onClick,
 }: AdSlotProps) {
@@ -223,6 +226,8 @@ function AdSlotInner({
 
   // ── Placeholder (loaded but no matching ad) ───────────────────────────────
   if (loaded && !ad) {
+    // Header/popup empty states should not leave a dead "Publicidade" strip
+    if (hideWhenEmpty || position === "header" || variant === "popup") return null;
     return <AdPlaceholder variant={variant} />;
   }
 

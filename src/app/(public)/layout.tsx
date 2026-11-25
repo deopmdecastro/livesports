@@ -18,8 +18,8 @@ export default function PublicLayout({
       <Navbar />
       {/* ticker 22 + gap 8 + bar 56 ≈ 86; keep slight buffer */}
       <main id="main-content" className="flex-1 pt-[92px]">
-        <div className="px-4 pt-2 lg:px-6">
-          <AdSlot position="header" />
+        <div className="px-4 pt-1 lg:px-6">
+          <AdSlot position="header" hideWhenEmpty className="mb-0" />
         </div>
         {children}
         <div className="px-4 pb-8 lg:px-6">

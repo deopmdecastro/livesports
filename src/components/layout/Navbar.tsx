@@ -205,14 +205,6 @@ export default function Navbar() {
                 <BrandIdentity mode="navbar" />
               </Link>
 
-              <Link
-                href="/competicao"
-                className="hidden xl:inline-flex items-center gap-2 rounded-full border border-[#ffd56a]/18 bg-[#ffd56a]/[0.06] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[#ffd56a] transition-colors hover:bg-[#ffd56a]/[0.1]"
-              >
-                <Trophy className="h-3.5 w-3.5" />
-                Competições
-              </Link>
-
               <nav className="hidden lg:flex items-center gap-1">
                 {NAV_LINKS.map((link) => (
                   <Link
@@ -266,7 +258,7 @@ export default function Navbar() {
 
             <div className="flex items-center gap-2">
               <div ref={searchRef} className="relative hidden md:block">
-                <div className="flex items-center gap-2 rounded-full border border-white/8 bg-black/25 pl-4 pr-3 py-2 transition-all focus-within:border-white/16 focus-within:bg-white/[0.04]">
+                <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] pl-3.5 pr-3 py-2 transition-all focus-within:border-[#E50914]/35 focus-within:bg-white/[0.06] focus-within:ring-2 focus-within:ring-[#E50914]/15">
                   <Search className="h-3.5 w-3.5 text-white/28" />
                   <input
                     type="search"
@@ -277,7 +269,7 @@ export default function Navbar() {
                       setSearchQuery(event.target.value);
                       setSearchOpen(true);
                     }}
-                    className="w-[150px] bg-transparent text-[13px] text-white placeholder-white/25 outline-none lg:w-[210px]"
+                    className="w-[140px] bg-transparent text-[13px] text-white placeholder-white/35 outline-none lg:w-[200px]"
                   />
                   {searchLoading ? <div className="h-3 w-3 rounded-full border-2 border-[#E50914]/30 border-t-[#E50914] animate-spin" /> : null}
                 </div>
