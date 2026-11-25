@@ -53,8 +53,9 @@ function LiveCard({ event, live }: { event: Event; live?: Live }) {
     <Link href={href}
       className="group relative flex-shrink-0 w-[260px] sm:w-[280px] overflow-hidden rounded-2xl
         bg-gradient-to-br from-[#0F111C] to-[#0A0C14] border border-white/[0.04]
-        hover:border-[#E50914]/20 hover:shadow-[0_12px_40px_rgba(0,0,0,0.5),0_0_24px_rgba(229,9,20,0.08)]
-        transition-all duration-300 hover:-translate-y-1">
+        hover:border-[#E50914]/25 hover:shadow-[0_12px_40px_rgba(0,0,0,0.5),0_0_28px_rgba(229,9,20,0.12)]
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E50914] focus-visible:ring-offset-2 focus-visible:ring-offset-[#06070D]
+        active:scale-[0.98] transition-all duration-300 hover:-translate-y-1">
 
       {/* Top accent for live */}
       {isLive && <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-[#E50914] to-transparent" />}

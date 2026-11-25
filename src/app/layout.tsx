@@ -145,9 +145,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="bg-[#060609] text-white antialiased" suppressHydrationWarning>
+        {/* Skip to content — keyboard / screen-reader accessibility */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:rounded-xl focus:bg-[#E50914] focus:px-4 focus:py-2.5 focus:text-sm focus:font-bold focus:text-white focus:shadow-lg focus:outline-none"
+        >
+          Saltar para o conteúdo
+        </a>
         <LangProvider>
           <BrandingRuntime />
-          {children}
+          <div id="main-content">{children}</div>
           <Toaster
             position="top-right"
             toastOptions={{
