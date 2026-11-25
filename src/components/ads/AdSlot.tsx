@@ -140,7 +140,10 @@ function AdContent({ ad }: { ad: Ad }) {
     return <SandboxedAdFrame html={ad.content} />;
   }
   if (ad.format === "html" && ad.content) {
-    const safeHtml = DOMPurify.sanitize(ad.content, SANITIZE_OPTIONS);
+    const safeHtml =
+      typeof window !== "undefined" && typeof DOMPurify?.sanitize === "function"
+        ? DOMPurify.sanitize(ad.content, SANITIZE_OPTIONS)
+        : ad.content.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "");
     return <div className="h-full w-full" dangerouslySetInnerHTML={{ __html: safeHtml }} />;
   }
   if (ad.imageUrl) {
