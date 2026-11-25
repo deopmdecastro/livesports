@@ -523,7 +523,7 @@ export interface WatcherSourceReport {
   name: string;
   sport: SportCategory;
   format: CompetitionFormat;
-  standingsSource: 'espn-v2' | 'thesportsdb' | 'none';
+  standingsSource: 'espn-v2' | 'thesportsdb' | 'api-football' | 'none';
   groupsCount: number;
   teamsCount: number;
   eventsUpserted: number;
@@ -1136,6 +1136,10 @@ async function linkMatchingLeagueEvents(
   return Number(countRow?.[0]?.cnt || 0);
 }
 
+// Limit authenticated supplier calls; keep the normal ESPN cycle independent.
+let girabolaLastAttempt = 0;
+let girabolaSyncInFlight = false;
+
 // ─── Main Poll Cycle Execution ───────────────────────────────────────────────
 
 export async function runSportsWatcherCycle(options?: {
@@ -1199,6 +1203,23 @@ export async function runSportsWatcherCycle(options?: {
               await upsertCompetitionFixture(fx, competitionId);
             }
 
+            let additionalEvents = 0;
+            if (target.slug === 'girabola' && !girabolaSyncInFlight && Date.now() - girabolaLastAttempt > 60 * 60 * 1000) {
+              girabolaLastAttempt = Date.now();
+              girabolaSyncInFlight = true;
+              try {
+                const { syncGirabolaApiFootball } = await import('./competition-sync');
+                const result = await syncGirabolaApiFootball(competitionId);
+                additionalEvents = result.eventsUpserted;
+                if (result.standingsUpdated) standingsSource = 'api-football';
+                if (result.message) console.log(`[Girabola] ${result.message}`);
+              } catch (error) {
+                console.warn('[Girabola] Não foi possível sincronizar API-Football:', error instanceof Error ? error.message : 'erro desconhecido');
+              } finally {
+                girabolaSyncInFlight = false;
+              }
+            }
+
             const linked = await linkMatchingLeagueEvents(competitionId, target);
             const totalEventsRow = await prisma.$queryRawUnsafe<Array<{ cnt: number }>>(
               `SELECT COUNT(*)::int AS cnt FROM "events" WHERE "competition_id" = $1`,
@@ -1221,7 +1242,7 @@ export async function runSportsWatcherCycle(options?: {
               standingsSource,
               groupsCount: groups.length,
               teamsCount: groups.reduce((s, g) => s + g.teams.length, 0),
-              eventsUpserted: fixtures.length + linked,
+              eventsUpserted: fixtures.length + linked + additionalEvents,
               updatedAt: new Date().toISOString(),
             };
           } catch (err: any) {

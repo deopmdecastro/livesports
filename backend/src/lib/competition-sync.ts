@@ -830,3 +830,43 @@ export async function syncAllCompetitions(options: SyncOptions = {}): Promise<Co
 
   return mergeTotals(sources, startedAt);
 }
+
+/** Targeted, authenticated Girabola sync. Never guesses the league ID or season. */
+export async function syncGirabolaApiFootball(competitionId: string): Promise<CompetitionSyncSourceResult> {
+  const token = process.env.API_FOOTBALL_KEY?.trim();
+  if (isMissingApiKey(token)) return emptySource('API-Football', 'skipped', 'Configure API_FOOTBALL_KEY para sincronizar o Girabola.');
+  const result = emptySource('API-Football', 'synced');
+  const payload = await apiFootballGet<any>(token!, 'leagues', { country: 'Angola', name: 'Girabola' });
+  const league = (payload.response || []).find((entry: any) =>
+    String(entry?.league?.name || '').toLowerCase() === 'girabola' &&
+    String(entry?.country?.name || '').toLowerCase() === 'angola');
+  const season = league?.seasons?.find((entry: any) => entry.current === true);
+  if (!league?.league?.id || !season?.year) {
+    return emptySource('API-Football', 'skipped', 'Girabola ou época atual não disponível no fornecedor.');
+  }
+  const leagueId = league.league.id;
+  const seasonYear = season.year;
+  if (season.coverage?.standings) {
+    try {
+      const standings = await apiFootballGet<any>(token!, 'standings', { league: leagueId, season: seasonYear });
+      const groups = mapApiFootballStandings(standings);
+      if (groups?.length) {
+        await prisma.$executeRawUnsafe(
+          'UPDATE "competitions" SET "groups_data" = $2::jsonb, "stat_teams" = $3, "season" = $4, "updated_at" = NOW() WHERE "id" = $1',
+          competitionId, JSON.stringify(groups), (groups as any[]).reduce((n, g) => n + g.teams.length, 0), String(seasonYear),
+        );
+        result.standingsUpdated = 1;
+      }
+    } catch (error) {
+      console.warn('[Girabola] Classificação indisponível:', error instanceof Error ? error.message : 'erro desconhecido');
+    }
+  }
+  const fixturePayload = await apiFootballGet<any>(token!, 'fixtures', { league: leagueId, season: seasonYear });
+  for (const match of fixturePayload.response || []) {
+    if (!match.fixture?.id || !match.fixture?.date || !match.teams?.home?.name || !match.teams?.away?.name) continue;
+    await upsertEvent(mapApiFootballFixture(match, competitionId));
+    result.eventsUpserted++;
+  }
+  result.message = `Girabola ${seasonYear}: ${result.eventsUpserted} jogos sincronizados.`;
+  return result;
+}
