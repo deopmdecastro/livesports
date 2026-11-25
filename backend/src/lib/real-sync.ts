@@ -2,6 +2,7 @@ import { prisma } from './prisma';
 import {
   fetchEspnScoreboardEvents,
   fetchRealSportsNews,
+  FREE_SPORTS_TV_CHANNELS,
   REAL_HLS_CHANNELS,
   type RealSportEvent,
 } from './real-sports-feed';
@@ -447,7 +448,94 @@ async function syncRealEventsAndLives() {
     }
   }
 
-  return { syncedEvents, syncedLives };
+  // Seed & keep active 22 Free 24/7 Sports TV Channels (status = 'live')
+  let syncedChannels = 0;
+  for (let cIdx = 0; cIdx < FREE_SPORTS_TV_CHANNELS.length; cIdx++) {
+    const ch = FREE_SPORTS_TV_CHANNELS[cIdx];
+    const allServers = [
+      {
+        id: 'srv-main',
+        name: `${ch.name} (${ch.quality})`,
+        url: ch.streamUrl,
+        quality: ch.quality,
+        latency: 'Direto 24/7',
+      },
+      ...ch.backupServers
+        .filter((b) => b.url !== ch.streamUrl)
+        .slice(0, 3)
+        .map((b, idx) => ({
+          id: `srv-alt-${idx + 1}`,
+          name: b.name,
+          url: b.url,
+          quality: b.quality,
+          latency: b.latency,
+        })),
+    ];
+
+    try {
+      await prisma.$executeRawUnsafe(
+        `
+          INSERT INTO "lives" (
+            "id", "title", "description", "thumbnail", "banner", "sport",
+            "league", "league_logo", "team_a", "team_a_logo", "team_b", "team_b_logo",
+            "stream_url", "hls_url", "m3u8_url", "stream_servers",
+            "status", "featured", "viewer_count", "total_views", "like_count", "share_count",
+            "match_time", "scheduled_at", "started_at",
+            "import_source", "import_date", "origin_quality", "origin_language"
+          )
+          VALUES (
+            $1, $2, $3, $4, $4, $5::sport_category,
+            $6, $7, $8, $7, NULL, NULL,
+            $9, $9, $9, $10::jsonb,
+            'live'::live_status, $11, $12, $13, $14, $15,
+            $16, NOW(), NOW(),
+            'free-tv-channel', NOW(), $17, $18
+          )
+          ON CONFLICT ("id") DO UPDATE SET
+            "title" = EXCLUDED."title",
+            "description" = EXCLUDED."description",
+            "thumbnail" = EXCLUDED."thumbnail",
+            "banner" = EXCLUDED."banner",
+            "sport" = EXCLUDED."sport",
+            "league" = EXCLUDED."league",
+            "league_logo" = EXCLUDED."league_logo",
+            "stream_url" = EXCLUDED."stream_url",
+            "hls_url" = EXCLUDED."hls_url",
+            "m3u8_url" = EXCLUDED."m3u8_url",
+            "stream_servers" = EXCLUDED."stream_servers",
+            "status" = 'live'::live_status,
+            "featured" = EXCLUDED."featured",
+            "match_time" = EXCLUDED."match_time",
+            "origin_quality" = EXCLUDED."origin_quality",
+            "origin_language" = EXCLUDED."origin_language",
+            "updated_at" = NOW()
+        `,
+        ch.id,
+        `${ch.name} — ${ch.tagline}`,
+        ch.description,
+        ch.banner,
+        ch.sport,
+        ch.league,
+        ch.logo,
+        ch.name,
+        ch.streamUrl,
+        JSON.stringify(allServers),
+        ch.featured,
+        ch.viewerBase,
+        ch.viewerBase * 6,
+        Math.round(ch.viewerBase * 0.28),
+        Math.round(ch.viewerBase * 0.07),
+        `24/7 GRÁTIS · ${ch.language}`,
+        ch.quality,
+        ch.language.toLowerCase(),
+      );
+      syncedChannels++;
+    } catch {
+      // ignore individual channel error
+    }
+  }
+
+  return { syncedEvents, syncedLives, syncedChannels };
 }
 
 async function syncRealNewsArticles() {
@@ -749,13 +837,14 @@ export async function runRealContentSync(force = false) {
   ]);
 
   console.log(
-    `✅ [RealContentSync] events=${eventsAndLives.syncedEvents}, lives=${eventsAndLives.syncedLives}, news=${newsCount}, ads=${promos.adsCount}, banners=${promos.bannersCount}`,
+    `✅ [RealContentSync] events=${eventsAndLives.syncedEvents}, lives=${eventsAndLives.syncedLives}, freeChannels=${eventsAndLives.syncedChannels}, news=${newsCount}, ads=${promos.adsCount}, banners=${promos.bannersCount}`,
   );
 
   return {
     skipped: false,
     syncedEvents: eventsAndLives.syncedEvents,
     syncedLives: eventsAndLives.syncedLives,
+    syncedChannels: eventsAndLives.syncedChannels,
     syncedNews: newsCount,
     syncedAds: promos.adsCount,
     syncedBanners: promos.bannersCount,

@@ -41,14 +41,15 @@ function useDebounce<T>(value: T, delay: number): T {
 
 const NAV_LINKS: Array<{ href: string; label: string; hot?: boolean }> = [
   { href: "/", label: "Início", hot: false },
-  { href: "/ao-vivo", label: "Em Direto", hot: true },
+  { href: "/canais", label: "Canais Grátis", hot: true },
+  { href: "/ao-vivo", label: "Em Direto" },
   { href: "/calendario", label: "Calendário" },
   { href: "/blog", label: "Notícias" },
   { href: "/competicao", label: "Competições" },
-  { href: "/futebol", label: "Futebol" },
 ];
 
 const MORE_LINKS: Array<{ href: string; label: string; hot?: boolean }> = [
+  { href: "/futebol", label: "Futebol" },
   { href: "/basquete", label: "Basquete" },
   { href: "/tenis", label: "Ténis" },
   { href: "/ufc", label: "UFC" },

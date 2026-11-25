@@ -4,6 +4,7 @@ import { authenticateToken, requireAdmin } from '../middleware/auth.middleware';
 import { prisma } from '../lib/prisma';
 import { DEV_CALENDAR_EVENTS, fetchEventsByDay, shouldUseDevCalendar } from '../lib/thesportsdb';
 import { runRealContentSync } from '../lib/real-sync';
+import { FREE_SPORTS_TV_CHANNELS } from '../lib/real-sports-feed';
 
 const router = Router();
 
@@ -725,6 +726,38 @@ router.post('/rapidapi/all-live-stream', authenticateToken, requireAdmin, async 
         skippedCount: 0,
         items: mapped,
         notice: 'Streams importados e sincronizados via RapidAPI.',
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Public Free 24/7 Sports TV Channels Directory
+router.get('/free-channels', async (req, res, next) => {
+  try {
+    const sport = typeof req.query.sport === 'string' ? req.query.sport.trim() : '';
+    const search = typeof req.query.q === 'string' ? req.query.q.trim().toLowerCase() : '';
+
+    let items = FREE_SPORTS_TV_CHANNELS;
+    if (sport && sport !== 'all') {
+      items = items.filter((ch) => ch.sport === sport);
+    }
+    if (search) {
+      items = items.filter(
+        (ch) =>
+          ch.name.toLowerCase().includes(search) ||
+          ch.tagline.toLowerCase().includes(search) ||
+          ch.league.toLowerCase().includes(search) ||
+          ch.country.toLowerCase().includes(search),
+      );
+    }
+
+    res.json({
+      success: true,
+      data: {
+        total: items.length,
+        items,
       },
     });
   } catch (error) {
