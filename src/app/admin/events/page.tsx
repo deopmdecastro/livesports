@@ -399,7 +399,7 @@ export default function EventsPage() {
       )}
 
       {modalMode && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 p-0 backdrop-blur-sm sm:items-center sm:p-4">
           <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] shadow-2xl">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-[#1E1E2A] px-5 py-4 bg-gradient-to-r from-[#0C0C14] to-[#111118]">

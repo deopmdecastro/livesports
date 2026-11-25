@@ -257,11 +257,11 @@ export default function NewsPage() {
     <div className="space-y-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-lg font-bold text-white">Noticias</h2>
+          <h2 className="text-lg font-bold text-white">Notícias</h2>
           <p className="text-xs text-gray-400">{loading ? "A carregar noticias..." : `${news.length} artigos cadastrados`}</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={openImportPanel} className="inline-flex items-center gap-2 rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-4 py-2 text-sm font-bold text-gray-200 hover:border-red-500/30 hover:text-white"><Rss className="h-4 w-4" />Importar Noticias</button>
+          <button onClick={openImportPanel} className="inline-flex items-center gap-2 rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-4 py-2 text-sm font-bold text-gray-200 hover:border-red-500/30 hover:text-white"><Rss className="h-4 w-4" />Importar Notícias</button>
           <button onClick={openCreate} className="inline-flex items-center gap-2 rounded-lg bg-[#E50914] px-4 py-2 text-sm font-bold text-white hover:bg-[#B00000]"><Plus className="h-4 w-4" />Nova Noticia</button>
         </div>
       </div>
@@ -309,8 +309,8 @@ export default function NewsPage() {
       )}
 
       {modalMode && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-xl border border-[#2A2A2A] bg-[#1A1A1A]">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+          <div className="max-h-[92dvh] w-full max-w-3xl overflow-y-auto rounded-t-2xl border border-[#2A2A2A] bg-[#1A1A1A] sm:rounded-xl">
             <div className="flex items-center justify-between border-b border-[#2A2A2A] p-5">
               <h3 className="font-bold text-white">{modalMode === "create" ? "Nova Noticia" : modalMode === "edit" ? "Editar Noticia" : "Visualizar Noticia"}</h3>
               <button onClick={() => setModalMode(null)} className="text-gray-400 hover:text-white"><X className="h-4 w-4" /></button>
@@ -351,16 +351,16 @@ export default function NewsPage() {
       )}
 
       {importOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-[#2A2A2A] bg-[#1A1A1A]">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+          <div className="flex max-h-[92dvh] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-[#2A2A2A] bg-[#1A1A1A]">
             <div className="flex items-center justify-between border-b border-[#2A2A2A] p-5">
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-red-500/20 bg-red-500/10">
                   <Rss className="h-4 w-4 text-red-400" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-white">Importar Noticias (NewsData.io)</h3>
-                  <p className="text-[11px] text-gray-500">Noticias de desporto em Portugues e Ingles, prontas a rever e publicar</p>
+                  <h3 className="font-bold text-white">Importar Notícias (NewsData.io)</h3>
+                  <p className="text-[11px] text-gray-500">Notícias de desporto em Portugues e Ingles, prontas a rever e publicar</p>
                 </div>
               </div>
               <button onClick={() => setImportOpen(false)} className="text-gray-400 hover:text-white"><X className="h-4 w-4" /></button>

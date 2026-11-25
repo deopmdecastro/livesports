@@ -451,7 +451,7 @@ export default function AdminCreatorsPage() {
 
       {/* ── Application Review Modal ── */}
       {selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 p-0 backdrop-blur-sm sm:items-center sm:p-4">
           <div className="w-full max-w-md rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] shadow-2xl">
             <div className="flex items-center justify-between border-b border-[#1E1E2A] p-4">
               <h3 className="font-black text-white">Analisar Candidatura</h3>
@@ -502,7 +502,7 @@ export default function AdminCreatorsPage() {
 
       {/* ── Create Channel Modal ── */}
       {showCreateChannel && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 p-0 backdrop-blur-sm sm:items-center sm:p-4">
           <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] shadow-2xl">
             <div className="flex items-center justify-between border-b border-[#1E1E2A] p-4 sticky top-0 bg-[#0E0E16] z-10">
               <div>
@@ -707,7 +707,7 @@ export default function AdminCreatorsPage() {
 
       {/* ── Edit Channel Modal ── */}
       {editingChannel && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 p-0 backdrop-blur-sm sm:items-center sm:p-4">
           <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] shadow-2xl">
             <div className="flex items-center justify-between border-b border-[#1E1E2A] p-4 sticky top-0 bg-[#0E0E16] z-10">
               <div>

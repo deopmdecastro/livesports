@@ -19,29 +19,30 @@ interface AdminContentPageProps {
   description: string;
   icon: ElementType;
   primaryAction?: string;
+  onPrimaryAction?: () => void;
   metrics: AdminMetric[];
   rows: AdminRow[];
 }
 
 const toneClasses: Record<NonNullable<AdminMetric["tone"]>, string> = {
   red: "bg-[#E50914]/10 text-[#E50914]",
-  green: "bg-green-500/10 text-green-400",
-  blue: "bg-red-500/10 text-red-400",
-  yellow: "bg-yellow-500/10 text-yellow-400",
+  green: "bg-emerald-500/10 text-emerald-400",
+  blue: "bg-sky-500/10 text-sky-400",
+  yellow: "bg-amber-500/10 text-amber-400",
 };
 
 function statusClass(status: string) {
   const normalized = status.toLowerCase();
   if (["ativo", "online", "resolvido", "publicado", "aprovado"].includes(normalized)) {
-    return "bg-green-500/15 text-green-400";
+    return "bg-emerald-500/15 text-emerald-400 border-emerald-500/20";
   }
-  if (["pendente", "rascunho", "em analise", "aberto"].includes(normalized)) {
-    return "bg-yellow-500/15 text-yellow-400";
+  if (["pendente", "rascunho", "em analise", "em análise", "aberto"].includes(normalized)) {
+    return "bg-amber-500/15 text-amber-400 border-amber-500/20";
   }
   if (["pausado", "arquivado", "bloqueado"].includes(normalized)) {
-    return "bg-gray-500/15 text-gray-300";
+    return "bg-gray-500/15 text-gray-300 border-white/10";
   }
-  return "bg-red-500/15 text-red-400";
+  return "bg-red-500/15 text-red-400 border-red-500/20";
 }
 
 export default function AdminContentPage({
@@ -49,59 +50,90 @@ export default function AdminContentPage({
   description,
   icon: Icon,
   primaryAction,
+  onPrimaryAction,
   metrics,
   rows,
 }: AdminContentPageProps) {
   return (
     <div className="space-y-5">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#E50914]/10 text-[#E50914]">
-            <Icon className="h-5 w-5" />
-          </div>
-          <div>
-            <h2 className="text-lg font-bold text-white">{title}</h2>
-            <p className="mt-1 max-w-2xl text-sm text-gray-400">{description}</p>
-          </div>
-        </div>
-        {primaryAction && (
-          <button className="rounded-lg bg-[#E50914] px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-[#B00000]">
-            {primaryAction}
-          </button>
-        )}
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {metrics.map((metric) => (
-          <div key={metric.label} className="rounded-xl border border-[#2A2A2A] bg-[#1A1A1A] p-4">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{metric.label}</p>
-              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${toneClasses[metric.tone || "red"]}`}>
-                {metric.helper}
-              </span>
-            </div>
-            <p className="mt-3 text-2xl font-black text-white">{metric.value}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="overflow-hidden rounded-xl border border-[#2A2A2A] bg-[#1A1A1A]">
-        <div className="border-b border-[#2A2A2A] px-4 py-3">
-          <h3 className="text-sm font-semibold text-white">Itens recentes</h3>
-        </div>
-        <div className="divide-y divide-[#2A2A2A]">
-          {rows.map((row) => (
-            <div key={`${row.title}-${row.subtitle}`} className="grid gap-3 px-4 py-3 md:grid-cols-[1fr_auto_auto] md:items-center">
-              <div>
-                <p className="text-sm font-semibold text-white">{row.title}</p>
-                <p className="mt-1 text-xs text-gray-400">{row.subtitle}</p>
+      <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#121218]">
+        <div className="border-b border-white/10 bg-gradient-to-r from-[#211112] via-[#15151c] to-[#111827] p-4 sm:p-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#E50914]/10 text-[#E50914] ring-1 ring-[#E50914]/20">
+                <Icon className="h-5 w-5" />
               </div>
-              <span className={`w-fit rounded-full px-2 py-1 text-[10px] font-bold uppercase ${statusClass(row.status)}`}>
-                {row.status}
-              </span>
-              <p className="text-xs text-gray-500 md:text-right">{row.meta}</p>
+              <div className="min-w-0">
+                <h2 className="text-lg font-black tracking-tight text-white sm:text-xl">{title}</h2>
+                <p className="mt-1 max-w-2xl text-sm text-gray-400">{description}</p>
+              </div>
             </div>
-          ))}
+            {primaryAction ? (
+              <button
+                type="button"
+                onClick={onPrimaryAction}
+                className="inline-flex h-11 items-center justify-center rounded-xl bg-[#E50914] px-4 text-sm font-bold text-white shadow-lg shadow-red-950/30 transition-colors hover:bg-[#B00000]"
+              >
+                {primaryAction}
+              </button>
+            ) : null}
+          </div>
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {metrics.map((metric) => (
+              <div
+                key={metric.label}
+                className="rounded-xl border border-white/10 bg-black/25 p-4 transition-colors hover:border-white/15"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                      {metric.label}
+                    </p>
+                    <p className="mt-1 text-xl font-black text-white">{metric.value}</p>
+                    <p className="mt-0.5 text-[11px] text-gray-500">{metric.helper}</p>
+                  </div>
+                  {metric.tone ? (
+                    <span
+                      className={`rounded-lg px-2 py-1 text-[10px] font-bold uppercase ${toneClasses[metric.tone]}`}
+                    >
+                      KPI
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="divide-y divide-white/[0.06]">
+          {rows.length > 0 ? (
+            rows.map((row) => (
+              <div
+                key={`${row.title}-${row.meta}`}
+                className="flex flex-col gap-3 p-4 transition-colors hover:bg-white/[0.02] sm:flex-row sm:items-center sm:justify-between sm:px-5"
+              >
+                <div className="min-w-0">
+                  <p className="truncate font-semibold text-white">{row.title}</p>
+                  <p className="mt-0.5 truncate text-sm text-gray-500">{row.subtitle}</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                  <span
+                    className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-bold ${statusClass(
+                      row.status
+                    )}`}
+                  >
+                    {row.status}
+                  </span>
+                  <span className="text-xs text-gray-500">{row.meta}</span>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="px-5 py-12 text-center text-sm text-gray-500">
+              Nenhum registo para mostrar.
+            </div>
+          )}
         </div>
       </div>
     </div>

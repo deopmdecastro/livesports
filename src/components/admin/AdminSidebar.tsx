@@ -28,6 +28,7 @@ import {
   UserCheck,
   Tv2,
   ChevronRight,
+  X,
 } from "lucide-react";
 import { cn } from "@/utils";
 import { useEffect, useState } from "react";
@@ -99,7 +100,13 @@ const navGroups: { title: string; items: NavItem[] }[] = [
   },
 ];
 
-export default function AdminSidebar() {
+interface AdminSidebarProps {
+  onNavigate?: () => void;
+  onClose?: () => void;
+  showClose?: boolean;
+}
+
+export default function AdminSidebar({ onNavigate, onClose, showClose }: AdminSidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState<string[]>([]);
   const [stats, setStats] = useState<SidebarStats | null>(null);
@@ -138,17 +145,25 @@ export default function AdminSidebar() {
     group.items.some((item) => item.href && (pathname === item.href || pathname.startsWith(item.href + "/")));
 
   return (
-    <aside className="w-60 h-screen bg-[#06060C] border-r border-[#0E0E16] flex flex-col overflow-hidden relative">
-      {/* Subtle top glow */}
-      <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-red-500/[0.02] to-transparent pointer-events-none" />
+    <aside className="relative flex h-full w-60 flex-col overflow-hidden border-r border-[#12121A] bg-[#06060C]">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-red-500/[0.03] to-transparent" />
 
       {/* Logo */}
-      <div className="relative p-4 border-b border-[#0E0E16] bg-gradient-to-b from-[#0A0A12] to-[#06060C]">
-        <Link href="/admin/dashboard" className="block">
+      <div className="relative flex items-center gap-2 border-b border-[#0E0E16] bg-gradient-to-b from-[#0A0A12] to-[#06060C] p-4">
+        <Link href="/admin/dashboard" className="min-w-0 flex-1 block" onClick={onNavigate}>
           <BrandIdentity mode="sidebar" subtitle="Admin Panel" />
         </Link>
-        {/* Online dot */}
-        <span className="absolute top-3.5 right-3.5 w-2.5 h-2.5 rounded-full bg-[#22C55E] border-2 border-[#06060C] shadow-[0_0_6px_rgba(34,197,94,0.4)]" />
+        <span className="h-2.5 w-2.5 shrink-0 rounded-full border-2 border-[#06060C] bg-[#22C55E] shadow-[0_0_6px_rgba(34,197,94,0.4)]" title="Sistema online" />
+        {showClose ? (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Fechar menu"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/10 text-gray-400 transition-colors hover:bg-white/5 hover:text-white lg:hidden"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        ) : null}
       </div>
 
       {/* Quick stats */}
@@ -209,10 +224,11 @@ export default function AdminSidebar() {
                         <Link
                           key={item.label}
                           href={item.href || "#"}
+                          onClick={onNavigate}
                           onMouseEnter={() => setHoveredItem(item.label)}
                           onMouseLeave={() => setHoveredItem(null)}
                           className={cn(
-                            "group relative flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm font-medium transition-all duration-200",
+                            "group relative flex min-h-[40px] items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-all duration-200",
                             isActive
                               ? "bg-red-500/10 text-red-400"
                               : "text-gray-400 hover:text-white hover:bg-[#0D0D15]"
@@ -275,10 +291,11 @@ export default function AdminSidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="relative p-3 border-t border-[#0E0E16] bg-gradient-to-t from-[#08080E] to-transparent">
+      <div className="relative border-t border-[#0E0E16] bg-gradient-to-t from-[#08080E] to-transparent p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <div className="space-y-0.5">
           <Link
             href="/"
+            onClick={onNavigate}
             className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium text-gray-500 hover:text-red-400 hover:bg-red-500/5 transition-all group"
           >
             <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-white/[0.03] group-hover:bg-red-500/10 transition-colors">
@@ -289,6 +306,7 @@ export default function AdminSidebar() {
           </Link>
           <Link
             href="/login"
+            onClick={onNavigate}
             className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium text-gray-500 hover:text-red-400 hover:bg-red-500/5 transition-all group"
           >
             <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-white/[0.03] group-hover:bg-red-500/10 transition-colors">

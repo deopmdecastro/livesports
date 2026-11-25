@@ -507,8 +507,8 @@ export default function AdsPage() {
       </div>
 
       {modalMode && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-[#2A2A2A] bg-[#1A1A1A]">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+          <div className="max-h-[92dvh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-[#2A2A2A] bg-[#1A1A1A]">
             <div className="flex items-center justify-between border-b border-[#2A2A2A] p-5">
               <h3 className="font-bold text-white">{modalMode === "create" ? "Novo Anuncio" : modalMode === "edit" ? "Editar Anuncio" : "Visualizar Anuncio"}</h3>
               <button onClick={() => setModalMode(null)} className="text-gray-400 hover:text-white"><X className="h-4 w-4" /></button>

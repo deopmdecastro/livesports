@@ -894,3 +894,19 @@ body {
   }
   html { scroll-behavior: auto; }
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   Admin panel
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.admin-main {
+  -webkit-overflow-scrolling: touch;
+}
+.table-row-hover:hover {
+  background: rgba(255, 255, 255, 0.025);
+}
+@media (max-width: 1023px) {
+  .admin-main {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+}

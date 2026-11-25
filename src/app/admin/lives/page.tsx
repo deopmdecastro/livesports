@@ -489,7 +489,7 @@ export default function LivesPage() {
                 <Signal className="h-3.5 w-3.5" />
                 Centro de transmissao
               </div>
-              <h2 className="text-2xl font-black tracking-tight text-white">Gestao de Lives</h2>
+              <h2 className="text-2xl font-black tracking-tight text-white">Gestão de Lives</h2>
               <p className="mt-1 text-sm text-gray-400">
                 Acompanhe lives em curso, prepare eventos agendados e mantenha os destaques prontos para a homepage.
               </p>
@@ -733,7 +733,7 @@ export default function LivesPage() {
       )}
 
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 p-0 backdrop-blur-sm sm:items-center sm:p-4">
           <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] shadow-2xl">
 
             {/* Header */}
