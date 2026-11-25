@@ -114,11 +114,11 @@ export default function LeaguesSection() {
           </div>
         ) : (
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-6 xl:grid-cols-12 gap-3">
-            {displayLeagues.slice(0, 24).map((league) => (
+            {displayLeagues.slice(0, 24).map((league, index) => (
               <Link
                 key={league.key}
                 href={`/futebol?league=${league.key}`}
-                className="group flex flex-col items-center gap-2.5 p-3 rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] hover:border-[#E50914]/30 hover:bg-[#111118] transition-all duration-300 cursor-pointer"
+                className={`${index >= 6 ? "hidden sm:flex" : "flex"} group flex-col items-center gap-2.5 p-3 rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] hover:border-[#E50914]/30 hover:bg-[#111118] transition-all duration-300 cursor-pointer`}
               >
                 <div className="relative w-12 h-12 flex items-center justify-center rounded-lg bg-[#1A1A24] p-1.5">
                   <ResilientLogo

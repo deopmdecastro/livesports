@@ -476,10 +476,7 @@ export default function HeroSection() {
                     <Users className="h-5 w-5" />
                     {t.hero_create_account}
                   </Link>
-                  <Link href="/futebol" className="hidden btn btn-ghost btn-lg w-full justify-center rounded-full px-5 text-white/70 hover:text-white sm:w-auto">
-                    <Trophy className="h-5 w-5" />
-                    Explorar desportos
-                  </Link>
+
                 </div>
               </div>
 
@@ -574,17 +571,15 @@ export default function HeroSection() {
                 </button>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="hidden items-center gap-1 sm:flex">
                 {slides.map((item, index) => (
                   <button
                     key={item.id}
                     onClick={() => setCurrent(index)}
                     aria-label={`Ir para o slide ${index + 1} de ${slides.length}`}
                     aria-current={index === current}
-                    className={`rounded-full transition-all duration-300 ${
-                      index === current ? "h-2 w-10 bg-gradient-to-r from-[#E50914] to-[#ff6b73]" : "h-2 w-2 bg-white/18 hover:bg-white/35"
-                    }`}
-                  />
+                    className="flex h-11 w-8 items-center justify-center rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-400"
+                  ><span className={`h-2 rounded-full transition-all ${index === current ? "w-6 bg-red-500" : "w-2 bg-white/30"}`} /></button>
                 ))}
               </div>
 

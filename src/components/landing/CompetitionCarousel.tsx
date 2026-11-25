@@ -57,14 +57,16 @@ export default function CompetitionCarousel({ competitions, selectedSlug, onSele
     if (!scrollRef.current || !selectedSlug) return;
     const active = scrollRef.current.querySelector(`[data-slug="${selectedSlug}"]`);
     if (active instanceof HTMLElement) {
-      active.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+      const container = scrollRef.current;
+      const offset = active.getBoundingClientRect().left - container.getBoundingClientRect().left;
+      container.scrollTo({ left: container.scrollLeft + offset - (container.clientWidth - active.offsetWidth) / 2, behavior: "auto" });
     }
   }, [selectedSlug, competitions.length]);
 
   // Continuous auto-scroll (marquee-style) while not paused
   useEffect(() => {
     const el = scrollRef.current;
-    if (!el || competitions.length < 3) return;
+    if (!el || competitions.length < 3 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     let last = performance.now();
     const speed = 28; // px per second

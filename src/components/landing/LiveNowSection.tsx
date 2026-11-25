@@ -278,7 +278,7 @@ export default function LiveNowSection() {
             </h2>
             <p className="section-header-sub">
               {liveEvents.length > 0
-                ? `${liveEvents.length} transmissão(ões) ao vivo agora`
+                ? `${liveEvents.length} evento(s) a decorrer agora`
                 : "Os próximos jogos na plataforma"}
             </p>
           </div>
