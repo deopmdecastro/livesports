@@ -32,6 +32,7 @@ export default function Footer() {
 
   const footerLinks = {
     sports: [
+      { label: "📺 Canais Grátis 24/7", href: "/canais" },
       { label: t.nav_football,    href: "/futebol" },
       { label: t.nav_basketball,  href: "/basquete" },
       { label: t.nav_tennis,      href: "/tenis" },

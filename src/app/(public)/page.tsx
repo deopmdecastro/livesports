@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import HeroSection from "@/components/landing/HeroSection";
 import SportQuickStrip from "@/components/landing/SportQuickStrip";
 import LiveNowSection from "@/components/landing/LiveNowSection";
+import FreeChannelsSection from "@/components/landing/FreeChannelsSection";
 import LatestNewsSection from "@/components/landing/LatestNewsSection";
 import SportCategoriesSection from "@/components/landing/SportCategoriesSection";
 import BenefitsSection from "@/components/landing/BenefitsSection";
@@ -23,6 +24,7 @@ export default function HomePage() {
       <HeroSection />
       <SportQuickStrip />
       <LiveNowSection />
+      <FreeChannelsSection />
 
       {/* Publicidade Oficial & Banner Promocional */}
       <section className="mx-auto grid max-w-[1400px] gap-4 px-4 py-4 lg:grid-cols-[1fr_320px] lg:px-8">
