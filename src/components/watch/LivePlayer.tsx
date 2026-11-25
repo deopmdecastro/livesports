@@ -346,7 +346,7 @@ export default function LivePlayer({ live, adOverlay = null, autoPlayMuted = fal
             {live.status === "live" ? "AO VIVO" : live.status === "scheduled" ? "AGENDADO" : "ENCERRADO"}
           </span>
           <span className="hidden rounded-full bg-black/60 px-3 py-1 text-xs font-semibold text-gray-200 backdrop-blur-sm sm:inline">
-            {activeServer.name}
+            {activeServer?.name || "Sem servidor"}
           </span>
         </div>
 

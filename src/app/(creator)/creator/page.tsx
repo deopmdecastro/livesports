@@ -122,6 +122,7 @@ export default function CreatorDashboard() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Link href="/creator/polls" className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2 text-sm font-semibold text-white/80 hover:text-white"><BarChart3 className="h-4 w-4" />Enquetes</Link>
           <Link
             href="/creator/lives"
             className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2 text-sm font-semibold text-white/80 transition-colors hover:bg-white/[0.06] hover:text-white"

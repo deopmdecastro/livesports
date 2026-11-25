@@ -12,6 +12,8 @@ import { Server } from 'socket.io';
 import authRoutes from './routes/auth.routes';
 import liveRoutes from './routes/live.routes';
 import eventRoutes from './routes/event.routes';
+import eventCommunityRoutes from './routes/event-community.routes';
+import { ensureEventPollSchema } from './lib/event-poll-schema';
 import competitionRoutes from './routes/competition.routes';
 
 import userRoutes from './routes/user.routes';
@@ -303,6 +305,7 @@ app.use('/api/', (req, res, next) => {
 
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/lives', liveRoutes);
+app.use('/api/events', eventCommunityRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/competitions', competitionRoutes);
 
@@ -481,6 +484,7 @@ ensureRuntimeSchema()
   .then(async () => {
     console.log('✅ Database schema verified');
     await ensurePushSchema();
+    await ensureEventPollSchema();
     startNotificationWatcher();
     await runRealContentSync(true).catch((syncErr: any) => {
       console.warn('[RealContentSync] Initial sync warning:', syncErr?.message || String(syncErr));

@@ -1,215 +1,26 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { authenticateToken, requireAdmin, requireEditor, AuthRequest } from '../middleware/auth.middleware';
+import { authenticateToken, authenticateTokenOptional, requireAdmin, requireRole, AuthRequest } from '../middleware/auth.middleware';
 import { prisma } from '../lib/prisma';
-import { notifyAdmins, createNotification } from './notifications.routes';
-
-const router = Router();
-
-const pollSchema = z.object({
-  live_id: z.string().optional().nullable(),
-  question: z.string().trim().min(3).max(500),
-  options: z.array(z.string().trim().min(1).max(200)).min(2).max(6),
-  duration_sec: z.number().int().min(10).max(3600).default(60),
-});
-
-function mapPoll(poll: any, options: any[]) {
-  const totalVotes = options.reduce((sum, o) => sum + Number(o.vote_count || 0), 0);
-  return {
-    id: poll.id,
-    liveId: poll.live_id,
-    question: poll.question,
-    status: poll.status,
-    durationSec: poll.duration_sec,
-    endsAt: poll.ends_at,
-    createdAt: poll.created_at,
-    createdBy: poll.created_by,
-    totalVotes,
-    options: options
-      .sort((a, b) => a.order_index - b.order_index)
-      .map((o) => ({
-        id: o.id,
-        label: o.label,
-        voteCount: Number(o.vote_count || 0),
-        percentage: totalVotes > 0 ? Math.round((Number(o.vote_count || 0) / totalVotes) * 100) : 0,
-      })),
-  };
-}
-
-// ── GET /api/polls/:liveId — get active poll for a live
-router.get('/:liveId', async (req, res, next) => {
-  try {
-    const polls = await prisma.$queryRawUnsafe<any[]>(
-      `SELECT * FROM live_polls WHERE live_id = $1 AND status = 'active' ORDER BY created_at DESC LIMIT 1`,
-      req.params.liveId
-    );
-    if (!polls[0]) {
-      res.json({ success: true, data: null });
-      return;
-    }
-    const options = await prisma.$queryRawUnsafe<any[]>(
-      `SELECT * FROM poll_options WHERE poll_id = $1 ORDER BY order_index ASC`,
-      polls[0].id
-    );
-    res.json({ success: true, data: mapPoll(polls[0], options) });
-  } catch (error) { next(error); }
-});
-
-// ── GET /api/polls/admin/all — admin: list all polls
-router.get('/admin/all', authenticateToken, requireEditor, async (req, res, next) => {
-  try {
-    const { live_id } = req.query;
-    const polls = await prisma.$queryRawUnsafe<any[]>(
-      live_id
-        ? `SELECT * FROM live_polls WHERE live_id = $1 ORDER BY created_at DESC LIMIT 50`
-        : `SELECT * FROM live_polls ORDER BY created_at DESC LIMIT 50`,
-      ...(live_id ? [live_id] : [])
-    );
-    const result = await Promise.all(polls.map(async (p) => {
-      const options = await prisma.$queryRawUnsafe<any[]>(
-        `SELECT * FROM poll_options WHERE poll_id = $1 ORDER BY order_index ASC`, p.id
-      );
-      return mapPoll(p, options);
-    }));
-    res.json({ success: true, data: result });
-  } catch (error) { next(error); }
-});
-
-// ── POST /api/polls — admin: create poll
-router.post('/', authenticateToken, requireEditor, async (req: AuthRequest, res, next) => {
-  try {
-    const parsed = pollSchema.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({ success: false, error: parsed.error.errors[0].message });
-      return;
-    }
-    const d = parsed.data;
-    const endsAt = new Date(Date.now() + d.duration_sec * 1000);
-
-    // Close any existing active polls for this live
-    if (d.live_id) {
-      await prisma.$executeRawUnsafe(
-        `UPDATE live_polls SET status='closed', updated_at=NOW() WHERE live_id=$1 AND status='active'`,
-        d.live_id
-      );
-    }
-
-    const polls = await prisma.$queryRawUnsafe<any[]>(
-      `INSERT INTO live_polls (live_id, created_by, question, duration_sec, ends_at)
-       VALUES ($1,$2,$3,$4,$5) RETURNING *`,
-      d.live_id || null, req.user!.id, d.question, d.duration_sec, endsAt
-    );
-    const poll = polls[0];
-
-    // Insert options
-    const options: any[] = [];
-    for (let i = 0; i < d.options.length; i++) {
-      const opts = await prisma.$queryRawUnsafe<any[]>(
-        `INSERT INTO poll_options (poll_id, label, order_index) VALUES ($1,$2,$3) RETURNING *`,
-        poll.id, d.options[i], i
-      );
-      options.push(opts[0]);
-    }
-
-    res.status(201).json({ success: true, data: mapPoll(poll, options) });
-  } catch (error) { next(error); }
-});
-
-// ── POST /api/polls/:id/vote — vote on poll
-router.post('/:id/vote', async (req, res, next) => {
-  try {
-    const { option_id, client_id } = req.body;
-    if (!option_id) {
-      res.status(400).json({ success: false, error: 'option_id obrigatório' });
-      return;
-    }
-
-    // Check poll is still active
-    const polls = await prisma.$queryRawUnsafe<any[]>(
-      `SELECT * FROM live_polls WHERE id=$1 AND status='active' LIMIT 1`, req.params.id
-    );
-    if (!polls[0]) {
-      res.status(400).json({ success: false, error: 'Sondagem não está ativa.' });
-      return;
-    }
-    if (polls[0].ends_at && new Date(polls[0].ends_at) < new Date()) {
-      await prisma.$executeRawUnsafe(`UPDATE live_polls SET status='closed' WHERE id=$1`, req.params.id);
-      res.status(400).json({ success: false, error: 'Sondagem já terminou.' });
-      return;
-    }
-
-    // Check duplicate vote
-    const identifier = client_id || 'anon';
-    try {
-      await prisma.$executeRawUnsafe(
-        `INSERT INTO poll_votes (poll_id, option_id, client_id)
-         VALUES ($1,$2,$3)`,
-        req.params.id, option_id, identifier
-      );
-    } catch {
-      res.status(409).json({ success: false, error: 'Já votaste nesta sondagem.' });
-      return;
-    }
-
-    // Increment vote count
-    await prisma.$executeRawUnsafe(
-      `UPDATE poll_options SET vote_count = vote_count + 1 WHERE id=$1 AND poll_id=$2`,
-      option_id, req.params.id
-    );
-
-    const options = await prisma.$queryRawUnsafe<any[]>(
-      `SELECT * FROM poll_options WHERE poll_id=$1 ORDER BY order_index ASC`, req.params.id
-    );
-    const updatedPoll = mapPoll(polls[0], options);
-
-    // Fire-and-forget: notify on vote milestones (10, 50, 100, 500, 1000)
-    const MILESTONES = [10, 50, 100, 500, 1000];
-    const total = updatedPoll.totalVotes;
-    if (MILESTONES.includes(total)) {
-      notifyAdmins({
-        type: 'poll_milestone',
-        title: `📊 Sondagem atingiu ${total} votos!`,
-        message: `"${updatedPoll.question}" — ${total} votos registados`,
-        link: `/admin/polls`,
-        meta: { pollId: req.params.id, totalVotes: total },
-      }).catch(() => {});
-      // Also notify the poll creator (if tracked)
-      if (polls[0].created_by) {
-        createNotification({
-          userId: polls[0].created_by,
-          type: 'poll_milestone',
-          title: `📊 A tua sondagem chegou a ${total} votos!`,
-          message: `"${updatedPoll.question}"`,
-          link: `/creator/polls`,
-          meta: { pollId: req.params.id, totalVotes: total },
-        }).catch(() => {});
-      }
-    }
-
-    res.json({ success: true, data: updatedPoll });
-  } catch (error) { next(error); }
-});
-
-// ── PATCH /api/polls/:id/close — admin: close poll
-router.patch('/:id/close', authenticateToken, requireEditor, async (_req, res, next) => {
-  try {
-    const polls = await prisma.$queryRawUnsafe<any[]>(
-      `UPDATE live_polls SET status='closed', updated_at=NOW() WHERE id=$1 RETURNING *`, _req.params.id
-    );
-    if (!polls[0]) { res.status(404).json({ success: false, error: 'Sondagem não encontrada.' }); return; }
-    const options = await prisma.$queryRawUnsafe<any[]>(
-      `SELECT * FROM poll_options WHERE poll_id=$1 ORDER BY order_index ASC`, _req.params.id
-    );
-    res.json({ success: true, data: mapPoll(polls[0], options) });
-  } catch (error) { next(error); }
-});
-
-// ── DELETE /api/polls/:id — admin: delete poll
-router.delete('/:id', authenticateToken, requireAdmin, async (_req, res, next) => {
-  try {
-    await prisma.$executeRawUnsafe(`DELETE FROM live_polls WHERE id=$1`, _req.params.id);
-    res.json({ success: true });
-  } catch (error) { next(error); }
-});
-
+import { getIo } from '../lib/socket';
+const router=Router();
+const editors=requireRole('admin','super_admin','moderator','editor','creator');
+const staff=new Set(['admin','super_admin','moderator','editor']);
+const schema=z.object({live_id:z.string().trim().min(1).max(150),question:z.string().trim().min(3).max(300),options:z.array(z.string().trim().min(1).max(120)).min(2).max(6),duration_sec:z.number().int().min(10).max(3600).default(60)});
+async function canManage(user:NonNullable<AuthRequest['user']>,liveId:string){if(staff.has(user.role))return true;if(user.role!=='creator')return false;const rows=await prisma.$queryRawUnsafe<any[]>('SELECT 1 FROM live_poll_managers WHERE live_id=$1 AND user_id=$2',liveId,user.id);return rows.length>0;}
+function mapPoll(p:any,opts:any[],votedOptionId:string|null=null){const total=opts.reduce((n,o)=>n+Number(o.vote_count||0),0);return {id:p.id,liveId:p.live_id,question:p.question,status:p.status==='active'&&p.ends_at&&new Date(p.ends_at).getTime()<=Date.now()?'closed':p.status,durationSec:p.duration_sec,endsAt:p.ends_at,createdAt:p.created_at,createdBy:p.created_by,totalVotes:total,votedOptionId,options:opts.map(o=>({id:o.id,label:o.label,voteCount:Number(o.vote_count||0),percentage:total?Math.round(Number(o.vote_count||0)*100/total):0}))};}
+async function readPoll(p:any,userId?:string){const options=await prisma.$queryRawUnsafe<any[]>('SELECT * FROM poll_options WHERE poll_id=$1 ORDER BY order_index',p.id);const votes=userId?await prisma.$queryRawUnsafe<any[]>('SELECT option_id FROM poll_votes WHERE poll_id=$1 AND user_id=$2',p.id,userId):[];return mapPoll(p,options,votes[0]?.option_id||null);}
+function announce(liveId:string){try{getIo().to(`live-${liveId}`).emit('poll-update',{liveId})}catch{}}
+// Specific routes must precede /:liveId.
+router.get('/admin/all',authenticateToken,editors,async(req:AuthRequest,res,next)=>{try{const id=String(req.query.live_id||'');if(req.user!.role==='creator'&&(!id||!await canManage(req.user!,id))){res.status(403).json({success:false,error:'Sem permissão para esta live.'});return;}const rows=await prisma.$queryRawUnsafe<any[]>(id?'SELECT * FROM live_polls WHERE live_id=$1 ORDER BY created_at DESC LIMIT 50':'SELECT * FROM live_polls ORDER BY created_at DESC LIMIT 50',...(id?[id]:[]));res.json({success:true,data:await Promise.all(rows.map(p=>readPoll(p)))});}catch(e){next(e)}});
+router.get('/creator/lives',authenticateToken,editors,async(req:AuthRequest,res,next)=>{try{const rows=await prisma.$queryRawUnsafe<any[]>(`SELECT l.id,l.title,l.status::text,l.scheduled_at FROM lives l JOIN live_poll_managers m ON m.live_id=l.id WHERE m.user_id=$1 AND l.status IN ('live','scheduled') ORDER BY l.scheduled_at DESC LIMIT 100`,req.user!.id);res.json({success:true,data:rows.map(r=>({id:r.id,title:r.title,status:r.status,scheduledAt:r.scheduled_at}))});}catch(e){next(e)}});
+router.get('/:liveId/managers',authenticateToken,requireAdmin,async(req,res,next)=>{try{const rows=await prisma.$queryRawUnsafe<any[]>(`SELECT u.id,u.name,u.email FROM live_poll_managers m JOIN users u ON u.id=m.user_id WHERE m.live_id=$1 ORDER BY u.name`,req.params.liveId);res.json({success:true,data:rows});}catch(e){next(e)}});
+router.post('/:liveId/managers',authenticateToken,requireAdmin,async(req,res,next)=>{try{const email=z.string().trim().email().max(254).safeParse(req.body?.email);if(!email.success){res.status(400).json({success:false,error:'Indique um email válido.'});return;}const users=await prisma.$queryRawUnsafe<any[]>(`SELECT id,name,email FROM users WHERE lower(email)=lower($1) AND role='creator' AND status='active' LIMIT 1`,email.data);if(!users.length){res.status(404).json({success:false,error:'Criador ativo não encontrado.'});return;}const lives=await prisma.$queryRawUnsafe<any[]>('SELECT id FROM lives WHERE id=$1',req.params.liveId);if(!lives.length){res.status(404).json({success:false,error:'Live não encontrada.'});return;}await prisma.$executeRawUnsafe('INSERT INTO live_poll_managers(live_id,user_id) VALUES($1,$2) ON CONFLICT DO NOTHING',req.params.liveId,users[0].id);res.status(201).json({success:true,data:users[0]});}catch(e){next(e)}});
+router.delete('/:liveId/managers/:userId',authenticateToken,requireAdmin,async(req,res,next)=>{try{await prisma.$executeRawUnsafe('DELETE FROM live_poll_managers WHERE live_id=$1 AND user_id=$2',req.params.liveId,req.params.userId);res.json({success:true});}catch(e){next(e)}});
+router.get('/:liveId',authenticateTokenOptional,async(req:AuthRequest,res,next)=>{try{const rows=await prisma.$queryRawUnsafe<any[]>(`SELECT * FROM live_polls WHERE live_id=$1 ORDER BY created_at DESC LIMIT 1`,req.params.liveId);res.json({success:true,data:rows.length?await readPoll(rows[0],req.user?.id):null});}catch(e){next(e)}});
+router.post('/',authenticateToken,editors,async(req:AuthRequest,res,next)=>{try{const p=schema.safeParse(req.body);if(!p.success){res.status(400).json({success:false,error:'Indique uma live, uma pergunta e 2 a 6 opções válidas.'});return;}const d=p.data;if(new Set(d.options.map(x=>x.toLocaleLowerCase())).size!==d.options.length){res.status(400).json({success:false,error:'As opções devem ser diferentes.'});return;}if(!await canManage(req.user!,d.live_id)){res.status(403).json({success:false,error:'Sem permissão para criar enquetes nesta live.'});return;}
+const poll=await prisma.$transaction(async tx=>{const lives=await tx.$queryRawUnsafe<any[]>('SELECT id,status::text FROM lives WHERE id=$1 FOR UPDATE',d.live_id);if(!lives.length||!['live','scheduled'].includes(lives[0].status))return null;await tx.$executeRawUnsafe(`UPDATE live_polls SET status='closed',updated_at=now() WHERE live_id=$1 AND status='active'`,d.live_id);const [created]=await tx.$queryRawUnsafe<any[]>(`INSERT INTO live_polls(live_id,created_by,question,duration_sec,ends_at) VALUES($1,$2,$3,$4,now()+($4 * interval '1 second')) RETURNING *`,d.live_id,req.user!.id,d.question,d.duration_sec);for(let i=0;i<d.options.length;i++)await tx.$executeRawUnsafe('INSERT INTO poll_options(poll_id,label,order_index) VALUES($1,$2,$3)',created.id,d.options[i],i);return created;});if(!poll){res.status(404).json({success:false,error:'Live ativa ou agendada não encontrada.'});return;}announce(d.live_id);res.status(201).json({success:true,data:await readPoll(poll)});}catch(e){next(e)}});
+router.post('/:id/vote',authenticateToken,async(req:AuthRequest,res,next)=>{try{const option=z.string().min(1).max(150).safeParse(req.body?.option_id);if(!option.success){res.status(400).json({success:false,error:'Selecione uma opção.'});return;}const result=await prisma.$transaction(async tx=>{const [poll]=await tx.$queryRawUnsafe<any[]>(`SELECT * FROM live_polls WHERE id=$1 FOR UPDATE`,req.params.id);if(!poll||poll.status!=='active'||(poll.ends_at&&new Date(poll.ends_at).getTime()<=Date.now()))return {error:'Enquete terminada.',status:400};const [opt]=await tx.$queryRawUnsafe<any[]>('SELECT id FROM poll_options WHERE id=$1 AND poll_id=$2',option.data,poll.id);if(!opt)return {error:'Opção inválida.',status:400};const inserted=await tx.$queryRawUnsafe<any[]>(`INSERT INTO poll_votes(poll_id,option_id,user_id,client_id) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING RETURNING id`,poll.id,opt.id,req.user!.id,`user:${req.user!.id}`);if(!inserted.length)return {error:'Já votou nesta enquete.',status:409};await tx.$executeRawUnsafe('UPDATE poll_options SET vote_count=vote_count+1 WHERE id=$1 AND poll_id=$2',opt.id,poll.id);return {poll};});if(!result.poll){res.status(result.status||400).json({success:false,error:result.error});return;}announce(result.poll.live_id);res.json({success:true,data:await readPoll(result.poll,req.user!.id)});}catch(e){next(e)}});
+router.patch('/:id/close',authenticateToken,editors,async(req:AuthRequest,res,next)=>{try{const rows=await prisma.$queryRawUnsafe<any[]>('SELECT * FROM live_polls WHERE id=$1',req.params.id);const p=rows[0];if(!p){res.status(404).json({success:false,error:'Enquete não encontrada.'});return;}if(!await canManage(req.user!,p.live_id)){res.status(403).json({success:false,error:'Sem permissão.'});return;}const [updated]=await prisma.$queryRawUnsafe<any[]>(`UPDATE live_polls SET status='closed',updated_at=now() WHERE id=$1 RETURNING *`,p.id);announce(p.live_id);res.json({success:true,data:await readPoll(updated)});}catch(e){next(e)}});
+router.delete('/:id',authenticateToken,requireAdmin,async(req,res,next)=>{try{const rows=await prisma.$queryRawUnsafe<any[]>('DELETE FROM live_polls WHERE id=$1 RETURNING live_id',req.params.id);if(rows.length)announce(rows[0].live_id);res.json({success:true});}catch(e){next(e)}});
 export default router;

@@ -12,6 +12,7 @@ import type { Live, LiveComment, LiveEngagement, Ad } from "@/types";
 import { cn, formatNumber } from "@/utils";
 import ResilientLogo from "@/components/ui/ResilientLogo";
 import LivePlayer from "@/components/watch/LivePlayer";
+import LivePoll from "@/components/watch/LivePoll";
 import AdSlot from "@/components/ads/AdSlot";
 import { apiRequest, publicApiRequest } from "@/lib/api";
 import { useViewerCount } from "@/hooks/useViewerCount";
@@ -918,6 +919,7 @@ export default function WatchExperience({ live, liveId }: WatchExperienceProps) 
             </span>
           </div>
 
+          <LivePoll liveId={id} />
           {/* Messages */}
           <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-3">
             {chat.length === 0 && (
@@ -1016,6 +1018,7 @@ export default function WatchExperience({ live, liveId }: WatchExperienceProps) 
                 <X className="h-4 w-4" />
               </button>
             </div>
+            <div className="overflow-y-auto"><LivePoll liveId={id} /></div>
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">
               {chat.length === 0 ? (
                 <p className="py-8 text-center text-xs text-gray-600">Seja o primeiro a comentar!</p>

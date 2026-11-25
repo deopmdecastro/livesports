@@ -1,0 +1,12 @@
+import { prisma } from './prisma';
+export async function ensureEventPollSchema() {
+ await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS event_highlights (event_id TEXT PRIMARY KEY REFERENCES events(id) ON DELETE CASCADE, youtube_id TEXT NOT NULL, title TEXT NOT NULL DEFAULT 'Melhores momentos', updated_by TEXT REFERENCES users(id) ON DELETE SET NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT now())`);
+ await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS event_comments (id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text, event_id TEXT NOT NULL REFERENCES events(id) ON DELETE CASCADE, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, message TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now())`);
+ await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS event_comments_event_idx ON event_comments(event_id, created_at DESC)`);
+ await prisma.$executeRawUnsafe(`DO $$ BEGIN CREATE TYPE poll_status AS ENUM ('active','closed','draft'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`);
+ await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS live_polls (id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text, live_id TEXT REFERENCES lives(id) ON DELETE CASCADE, created_by TEXT REFERENCES users(id) ON DELETE SET NULL, question VARCHAR(500) NOT NULL, status poll_status DEFAULT 'active', duration_sec INTEGER DEFAULT 60, ends_at TIMESTAMPTZ, created_at TIMESTAMPTZ DEFAULT now(), updated_at TIMESTAMPTZ DEFAULT now())`);
+ await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS poll_options (id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text, poll_id TEXT NOT NULL REFERENCES live_polls(id) ON DELETE CASCADE, label VARCHAR(200) NOT NULL, vote_count INTEGER DEFAULT 0, order_index INTEGER DEFAULT 0)`);
+ await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS poll_votes (id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text, poll_id TEXT NOT NULL REFERENCES live_polls(id) ON DELETE CASCADE, option_id TEXT NOT NULL REFERENCES poll_options(id) ON DELETE CASCADE, client_id TEXT, user_id TEXT REFERENCES users(id) ON DELETE SET NULL, created_at TIMESTAMPTZ DEFAULT now(), UNIQUE(poll_id,client_id))`);
+ await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS live_poll_managers (live_id TEXT NOT NULL REFERENCES lives(id) ON DELETE CASCADE, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, PRIMARY KEY(live_id,user_id))`);
+ await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS poll_votes_user_once_idx ON poll_votes(poll_id,user_id) WHERE user_id IS NOT NULL`);
+}

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { notFound } from "next/navigation";
 import type { Event, MatchScorerSummary } from "@/types";
+import EventCommunity from "@/components/events/EventCommunity";
 import ResilientLogo from "@/components/ui/ResilientLogo";
 import { serverApiRequest } from "@/lib/server-api";
 import { getSportLabel } from "@/utils";
@@ -788,6 +789,7 @@ export default async function EventDetailPage({ params }: PageProps) {
         {/* Main Content Grid */}
         <section className="mt-6 grid gap-6 lg:grid-cols-[1fr_350px]">
           <div className="space-y-6">
+            {event.status === "finished" && <EventCommunity eventId={event.id} />}
             {/* Complete Match Statistics */}
             <div className="rounded-2xl border border-white/10 bg-[#0E101A] p-5 sm:p-6">
               <div className="mb-5 flex items-center justify-between gap-2">

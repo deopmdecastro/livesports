@@ -6,6 +6,7 @@ import {
   Users, Radio, ChevronDown, CheckCircle, Clock,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import PollManagers from "@/components/watch/PollManagers";
 import { apiRequest, type ApiListResponse } from "@/lib/api";
 import type { Live } from "@/types";
 
@@ -320,6 +321,7 @@ export default function AdminChatPage() {
             </>
           ) : (
             <div className="flex-1 overflow-y-auto p-3 space-y-3">
+              <PollManagers liveId={selectedLive.id} />
               <div className="flex items-center justify-between">
                 <p className="text-xs text-gray-400">{polls.length} sondagen(s)</p>
                 <button onClick={() => setShowPollForm(!showPollForm)}

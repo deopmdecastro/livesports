@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS event_highlights (event_id TEXT PRIMARY KEY REFERENCES events(id) ON DELETE CASCADE, youtube_id TEXT NOT NULL, title TEXT NOT NULL DEFAULT 'Melhores momentos', updated_by TEXT REFERENCES users(id) ON DELETE SET NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS event_comments (id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text, event_id TEXT NOT NULL REFERENCES events(id) ON DELETE CASCADE, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, message TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS event_comments_event_idx ON event_comments(event_id, created_at DESC);
+CREATE TABLE IF NOT EXISTS live_poll_managers (live_id TEXT NOT NULL REFERENCES lives(id) ON DELETE CASCADE, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, PRIMARY KEY(live_id,user_id));
+CREATE UNIQUE INDEX IF NOT EXISTS poll_votes_user_once_idx ON poll_votes(poll_id,user_id) WHERE user_id IS NOT NULL;
