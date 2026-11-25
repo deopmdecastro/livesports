@@ -65,28 +65,37 @@ export default function LeaguesSection() {
     <section className="py-12 lg:py-16 border-t border-[#1E1E2A] overflow-hidden">
       <div className="max-w-[1400px] mx-auto px-4 lg:px-6">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
-          <div className="h-10 w-1.5 bg-gradient-to-b from-[#E50914] to-[#B00000] rounded-full" />
-          <div>
-            <h2
-              className="text-xl lg:text-2xl font-black text-white"
-              style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
-            >
-              {lang === "pt" ? "Ligas & Competições" : "Leagues & Competitions"}
-            </h2>
-            <p className="text-xs text-gray-500 mt-0.5">
-              {lang === "pt"
-                ? "Transmissão ao vivo das maiores competições do mundo"
-                : "Live streaming of the biggest competitions in the world"}
-            </p>
-            {leagues.length > 0 && (
-              <p className="text-[10px] text-gray-600 mt-1">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+          <div className="flex items-center gap-4">
+            <div className="h-10 w-1.5 bg-gradient-to-b from-[#E50914] to-[#B00000] rounded-full" />
+            <div>
+              <h2
+                className="text-xl lg:text-2xl font-black text-white"
+                style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
+              >
+                {lang === "pt" ? "Ligas, Competições & Tabelas" : "Leagues, Competitions & Standings"}
+              </h2>
+              <p className="text-xs text-gray-500 mt-0.5">
                 {lang === "pt"
-                  ? `${leagues.length} ligas carregadas da base de dados`
-                  : `${leagues.length} leagues loaded from database`}
+                  ? "Classificações oficiais, fases de grupos e transmissão ao vivo das maiores competições"
+                  : "Live standings, group tables and streaming of global competitions"}
               </p>
-            )}
+              {leagues.length > 0 && (
+                <p className="text-[10px] text-gray-600 mt-1">
+                  {lang === "pt"
+                    ? `${leagues.length} competições sincronizadas na base de dados`
+                    : `${leagues.length} competitions synced in database`}
+                </p>
+              )}
+            </div>
           </div>
+
+          <Link
+            href="/competicao"
+            className="inline-flex items-center gap-2 self-start sm:self-auto rounded-full border border-[#E50914]/35 bg-[#E50914]/10 px-4 py-2 text-xs font-bold uppercase tracking-wider text-[#ff6b73] hover:bg-[#E50914]/20 transition-all"
+          >
+            {lang === "pt" ? "Ver Tabelas & Grupos →" : "View Tables & Groups →"}
+          </Link>
         </div>
 
         {/* Leagues Grid */}

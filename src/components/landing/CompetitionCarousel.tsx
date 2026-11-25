@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Trophy } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import ResilientLogo from "@/components/ui/ResilientLogo";
 import type { CompetitionFormat, PublicCompetitionSummary } from "@/types";
 import { useLang } from "@/lib/lang";
 import { getCompetitionTheme } from "@/lib/competition-theme";
@@ -22,32 +23,21 @@ interface Props {
 
 function CompetitionLogo({
   src,
-  active,
-  primary,
+  name,
 }: {
   src?: string;
-  active: boolean;
-  primary: string;
+  name: string;
 }) {
-  const [failed, setFailed] = useState(false);
-  const showImg = Boolean(src) && !failed;
-
-  if (showImg) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={src}
-        alt=""
-        loading="lazy"
-        referrerPolicy="no-referrer"
-        decoding="async"
-        className="max-h-full max-w-full object-contain"
-        onError={() => setFailed(true)}
-      />
-    );
-  }
-
-  return <Trophy className="h-5 w-5" style={{ color: active ? primary : "#6B7280" }} />;
+  return (
+    <ResilientLogo
+      src={src}
+      name={name}
+      kind="league"
+      size={44}
+      alt={name}
+      className="max-h-full max-w-full"
+    />
+  );
 }
 
 export default function CompetitionCarousel({ competitions, selectedSlug, onSelect, loading }: Props) {
@@ -211,7 +201,7 @@ export default function CompetitionCarousel({ competitions, selectedSlug, onSele
                   background: active ? theme.badgeBg : "#111118",
                 }}
               >
-                <CompetitionLogo src={item.thumbnail} active={active} primary={theme.primary} />
+                <CompetitionLogo src={item.thumbnail} name={item.sectionTitle || item.name} />
               </div>
 
               <div className="min-w-0 flex-1">

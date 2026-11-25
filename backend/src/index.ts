@@ -40,6 +40,7 @@ import { setIo } from './lib/socket';
 import { addViewer, removeViewer } from './lib/realtime';
 import { ensureRuntimeSchema, prisma } from './lib/prisma';
 import { runRealContentSync } from './lib/real-sync';
+import { startSportsWatcherDaemon } from './lib/sports-watcher';
 import { structuredLogger, slowRequestWarner } from './middleware/logger.middleware';
 import { writeLog } from './routes/logs.routes';
 
@@ -483,6 +484,8 @@ ensureRuntimeSchema()
     await runRealContentSync(true).catch((syncErr: any) => {
       console.warn('[RealContentSync] Initial sync warning:', syncErr?.message || String(syncErr));
     });
+    const pollMinutes = Math.max(1, Number(process.env.SPORTS_WATCHER_INTERVAL_MIN || 5));
+    startSportsWatcherDaemon(pollMinutes * 60 * 1000);
   })
   .catch((error: any) => {
     const msg = error?.message || String(error);

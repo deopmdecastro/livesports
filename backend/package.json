@@ -10,7 +10,9 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "ts-node prisma/seed.ts",
     "db:push": "prisma db push",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "sports:watch": "ts-node ./src/scripts/sports-watcher.ts",
+    "sports:sync": "ts-node ./src/scripts/sports-watcher.ts --once"
   },
   "dependencies": {
     "@prisma/client": "^5.7.1",

@@ -222,11 +222,12 @@ function LeagueTable({ teams, lang, accent }: { teams: WCTeam[]; lang: string; a
 }
 
 function GroupTable({ group, teams, accent }: { group: string; teams: WCTeam[]; accent: string }) {
+  const headerLabel = /^[A-Z0-9]{1,3}$/.test(group) ? `Grupo ${group}` : group;
   return (
     <div className="rounded-xl border border-[#1E1E2A] overflow-hidden bg-[#0E0E16]/80">
       <div className="flex items-center gap-2 px-3 py-2 bg-[#111118] border-b border-[#1E1E2A]">
         <Trophy className="h-3.5 w-3.5" style={{ color: accent }} />
-        <span className="text-xs font-black text-white uppercase tracking-widest">Grupo {group}</span>
+        <span className="text-xs font-black text-white uppercase tracking-widest">{headerLabel}</span>
       </div>
       <table className="w-full text-xs">
         <thead>
@@ -365,13 +366,25 @@ export default function WorldCupSection({
     setSelectedSlug(nextSlug);
   };
 
+  useEffect(() => {
+    if (!pageData) return;
+    const hasEvents = (pageData.events || []).length > 0;
+    const hasGroups = Array.isArray(pageData.groups) && pageData.groups.length > 0;
+    if (!hasEvents && hasGroups) {
+      setActiveTab("standings");
+    } else if (hasEvents && !hasGroups && activeTab === "standings") {
+      setActiveTab("matches");
+    }
+  }, [pageData, activeTab]);
+
   const competition = pageData?.competition;
   const format = competition?.format || "groups";
   const hero = competition ? getCompetitionHero(competition) : null;
   const matches = (pageData?.events || []).map(mapPublicEventToMatch);
   const groups = normalizeGroups(pageData?.groups as CompetitionGroup[]);
   const leagueTeams = groups.flatMap((g) => g.teams);
-  const showStandingsTab = format === "groups" || format === "league";
+  const showStandingsTab =
+    format === "groups" || format === "league" || groups.length > 0;
 
   const theme = getCompetitionTheme(competition);
 

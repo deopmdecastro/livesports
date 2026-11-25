@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "sports:watch": "npm --prefix backend run sports:watch",
+    "sports:sync": "npm --prefix backend run sports:sync"
   },
   "dependencies": {
     "@types/dompurify": "^3.0.5",

@@ -190,6 +190,10 @@ export interface PublicCompetitionSummary {
   thumbnail?: string;
   themeColor?: string;
   isFeaturedCard?: boolean;
+  statTeams?: number;
+  statGames?: number;
+  groupsCount?: number;
+  updatedAt?: string;
 }
 
 // ==================== EVENT TYPES ====================
