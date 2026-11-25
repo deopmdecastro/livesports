@@ -332,7 +332,7 @@ export default function HeroSection() {
 
   return (
     <section
-      className="relative overflow-hidden bg-[#05060a] px-4 pb-24 pt-[112px] lg:px-6 lg:pb-28 lg:pt-[118px]"
+      className="relative overflow-hidden bg-[#05060a] px-3 pb-16 pt-[104px] sm:px-4 sm:pb-24 sm:pt-[112px] lg:px-6 lg:pb-28 lg:pt-[118px]"
       role="region"
       aria-roledescription="carousel"
       aria-label="Destaques ao vivo"
@@ -366,7 +366,7 @@ export default function HeroSection() {
           <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(229,9,20,0.10)_0%,transparent_24%,transparent_78%,rgba(3,4,9,0.92)_100%)]" />
           <div className="absolute inset-0 border border-white/[0.03] [mask-image:linear-gradient(180deg,white,transparent)]" />
 
-          <div className="relative z-10 grid min-h-[560px] gap-8 px-6 py-8 sm:px-8 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-end lg:px-10 lg:py-10 xl:min-h-[600px] xl:px-12 xl:py-12">
+          <div className="relative z-10 grid min-h-[420px] gap-6 px-4 py-6 sm:min-h-[520px] sm:gap-8 sm:px-8 sm:py-8 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-end lg:min-h-[560px] lg:px-10 lg:py-10 xl:min-h-[600px] xl:px-12 xl:py-12">
             <div className="flex max-w-[720px] flex-col justify-between gap-8">
               <div className="space-y-6">
                 <div className="flex flex-wrap items-center gap-3">
@@ -393,7 +393,7 @@ export default function HeroSection() {
                 </div>
 
                 <div className="space-y-4">
-                  <h1 className="max-w-[11ch] text-display text-[60px] leading-[0.92] text-white sm:text-[76px] lg:text-[88px] xl:text-[104px]">
+                  <h1 className="max-w-[11ch] text-display text-[42px] leading-[0.94] text-white sm:text-[60px] md:text-[76px] lg:text-[88px] xl:text-[104px]">
                     {headlineParts ? (
                       <>
                         <span>{headlineParts[0]}</span>
@@ -431,19 +431,19 @@ export default function HeroSection() {
                   </div>
                 ) : null}
 
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
                   {slide.kind === "live" ? (
-                    <Link href={`/watch/${slide.live!.id}`} className="btn btn-primary btn-lg rounded-full px-7 shadow-[0_0_36px_rgba(229,9,20,0.24)]">
+                    <Link href={`/watch/${slide.live!.id}`} className="btn btn-primary btn-lg w-full justify-center rounded-full px-7 shadow-[0_0_36px_rgba(229,9,20,0.24)] sm:w-auto">
                       <Play className="h-5 w-5 fill-current" />
                       {slide.isLive ? "Ver detalhes" : t.hero_watch}
                     </Link>
                   ) : slide.ad?.clickUrl ? (
-                    <a href={slide.ad.clickUrl} target="_blank" rel="noreferrer" className="btn btn-primary btn-lg rounded-full px-7">
+                    <a href={slide.ad.clickUrl} target="_blank" rel="noreferrer" className="btn btn-primary btn-lg w-full justify-center rounded-full px-7 sm:w-auto">
                       <Play className="h-5 w-5 fill-current" />
                       Explorar
                     </a>
                   ) : null}
-                  <Link href="/register" className="btn btn-secondary btn-lg rounded-full border-white/12 bg-black/20 px-7 text-white hover:bg-white/[0.06]">
+                  <Link href="/register" className="btn btn-secondary btn-lg w-full justify-center rounded-full border-white/12 bg-black/20 px-7 text-white hover:bg-white/[0.06] sm:w-auto">
                     <Users className="h-5 w-5" />
                     {t.hero_create_account}
                   </Link>
@@ -503,7 +503,7 @@ export default function HeroSection() {
           </div>
 
           {slides.length > 1 ? (
-            <div className="relative z-10 flex flex-wrap items-center justify-between gap-4 border-t border-white/[0.06] px-6 py-4 sm:px-8 lg:px-10 xl:px-12">
+            <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] px-4 py-3 sm:gap-4 sm:px-8 sm:py-4 lg:px-10 xl:px-12">
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setCurrent((value) => (value - 1 + slides.length) % slides.length)}

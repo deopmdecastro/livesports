@@ -70,14 +70,14 @@ export default function SportQuickStrip() {
 
   return (
     <section
-      className="relative z-20 -mt-16 px-4 lg:-mt-14 lg:px-6"
+      className="relative z-20 -mt-10 px-3 sm:-mt-16 sm:px-4 lg:-mt-14 lg:px-6"
       aria-label={lang === "pt" ? "Acesso rápido por categoria" : "Quick category access"}
     >
       <div className="mx-auto max-w-[1400px]">
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
           <Link
             href="/calendario?status=live"
-            className="group flex min-h-[112px] flex-col justify-between rounded-[24px] border border-[#E50914]/35 bg-[linear-gradient(180deg,rgba(229,9,20,0.16),rgba(10,12,18,0.92))] p-4 shadow-[0_18px_50px_rgba(229,9,20,0.12)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-[#E50914]/60"
+            className="group flex min-h-[96px] sm:min-h-[112px] flex-col justify-between rounded-[24px] border border-[#E50914]/35 bg-[linear-gradient(180deg,rgba(229,9,20,0.16),rgba(10,12,18,0.92))] p-4 shadow-[0_18px_50px_rgba(229,9,20,0.12)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-[#E50914]/60"
           >
             <div className="flex items-center gap-3">
               <span className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-[#E50914]/30 bg-[#E50914]/14 text-[#ff6068]">
@@ -102,7 +102,7 @@ export default function SportQuickStrip() {
               <Link
                 key={sport.id}
                 href={sport.href}
-                className="group flex min-h-[112px] flex-col justify-between rounded-[24px] border border-white/[0.07] bg-[linear-gradient(180deg,rgba(16,18,26,0.96),rgba(8,9,14,0.92))] p-4 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-white/15 hover:bg-[linear-gradient(180deg,rgba(20,22,30,0.98),rgba(10,11,16,0.95))]"
+                className="group flex min-h-[96px] sm:min-h-[112px] flex-col justify-between rounded-[24px] border border-white/[0.07] bg-[linear-gradient(180deg,rgba(16,18,26,0.96),rgba(8,9,14,0.92))] p-4 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-white/15 hover:bg-[linear-gradient(180deg,rgba(20,22,30,0.98),rgba(10,11,16,0.95))]"
               >
                 <div className="flex items-center gap-3">
                   <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/8 bg-white/[0.04]">
@@ -123,7 +123,7 @@ export default function SportQuickStrip() {
 
           <Link
             href="/calendario"
-            className="group flex min-h-[112px] flex-col justify-between rounded-[24px] border border-white/[0.07] bg-[linear-gradient(180deg,rgba(16,18,26,0.96),rgba(8,9,14,0.92))] p-4 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-white/15"
+            className="group flex min-h-[96px] sm:min-h-[112px] flex-col justify-between rounded-[24px] border border-white/[0.07] bg-[linear-gradient(180deg,rgba(16,18,26,0.96),rgba(8,9,14,0.92))] p-4 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-white/15"
           >
             <div className="flex items-center gap-3">
               <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/8 bg-white/[0.04] text-white/70">

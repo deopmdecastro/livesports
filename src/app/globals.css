@@ -579,11 +579,18 @@ body {
    ═══════════════════════════════════════════════════════════════════════════════ */
 .live-scroll {
   display: flex;
-  gap: 14px;
+  gap: 12px;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: 8px;
+  padding-bottom: 10px;
+  padding-left: 2px;
+  padding-right: 2px;
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
+}
+@media (min-width: 640px) {
+  .live-scroll { gap: 14px; }
 }
 .live-scroll > * {
   scroll-snap-align: start;
@@ -793,6 +800,24 @@ body {
   overflow: visible;
   clip: auto;
   white-space: normal;
+}
+
+/* Safe area (notched phones / home indicator) */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.safe-area-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.pb-safe {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+}
+
+/* Mobile touch targets */
+@media (max-width: 767px) {
+  .btn, button:not(.no-touch-boost), a.btn {
+    min-height: 44px;
+  }
 }
 
 /* Line clamp */

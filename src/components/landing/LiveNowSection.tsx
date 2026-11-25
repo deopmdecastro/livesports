@@ -51,7 +51,7 @@ function LiveCard({ event, live }: { event: Event; live?: Live }) {
 
   return (
     <Link href={href}
-      className="group relative flex-shrink-0 w-[260px] sm:w-[280px] overflow-hidden rounded-2xl
+      className="group relative flex-shrink-0 w-[min(260px,78vw)] sm:w-[280px] overflow-hidden rounded-2xl
         bg-gradient-to-br from-[#0F111C] to-[#0A0C14] border border-white/[0.04]
         hover:border-[#E50914]/25 hover:shadow-[0_12px_40px_rgba(0,0,0,0.5),0_0_28px_rgba(229,9,20,0.12)]
         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E50914] focus-visible:ring-offset-2 focus-visible:ring-offset-[#06070D]
@@ -165,7 +165,7 @@ export default function LiveNowSection() {
   if (loading) {
     return (
       <section className="py-10">
-        <div className="max-w-[1400px] mx-auto px-5 lg:px-8">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-5 lg:px-8">
           <div className="section-header">
             <div className="section-header-bar" />
             <div>
@@ -186,8 +186,8 @@ export default function LiveNowSection() {
   if (displayEvents.length === 0) return null;
 
   return (
-    <section className="py-10 lg:py-14 border-t border-white/[0.03]">
-      <div className="max-w-[1400px] mx-auto px-5 lg:px-8">
+    <section className="py-8 sm:py-10 lg:py-14 border-t border-white/[0.03]">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-5 lg:px-8">
         <div className="section-header">
           <div className="section-header-bar" />
           <div>

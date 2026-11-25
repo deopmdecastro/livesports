@@ -62,7 +62,7 @@ export default function Footer() {
   };
 
   return (
-    <footer className="bg-[#060609] border-t border-[#1E1E2A] mt-auto relative overflow-hidden">
+    <footer className="bg-[#060609] border-t border-[#1E1E2A] mt-auto relative overflow-hidden pb-safe">
       {/* Decorative gradient */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[200px] bg-[#E50914]/3 blur-[80px] rounded-full pointer-events-none" />
 
