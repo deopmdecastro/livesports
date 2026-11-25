@@ -130,7 +130,7 @@ export default function CreatorSettingsPage() {
       </div>
 
       {/* ─── Perfil ─── */}
-      <div className="rounded-xl border border-[#1E1E2A] bg-[#0E0E16] p-6 space-y-5">
+      <div className="rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] p-6 space-y-5">
         <h2 className="flex items-center gap-2 text-sm font-bold text-white border-b border-[#1E1E2A] pb-3">
           <User className="h-4 w-4 text-gray-500" /> Perfil
         </h2>
@@ -185,7 +185,7 @@ export default function CreatorSettingsPage() {
       </div>
 
       {/* ─── Segurança ─── */}
-      <div className="rounded-xl border border-[#1E1E2A] bg-[#0E0E16] p-6 space-y-5">
+      <div className="rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] p-6 space-y-5">
         <h2 className="flex items-center gap-2 text-sm font-bold text-white border-b border-[#1E1E2A] pb-3">
           <Shield className="h-4 w-4 text-gray-500" /> Segurança
         </h2>
@@ -224,7 +224,7 @@ export default function CreatorSettingsPage() {
       </div>
 
       {/* ─── Conta ─── */}
-      <div className="rounded-xl border border-[#1E1E2A] bg-[#0E0E16] p-6 space-y-4">
+      <div className="rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] p-6 space-y-4">
         <h2 className="text-sm font-bold text-white border-b border-[#1E1E2A] pb-3">Conta</h2>
 
         <div className="grid grid-cols-2 gap-4 text-sm">

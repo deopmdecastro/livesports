@@ -1,11 +1,20 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  LayoutDashboard, Radio, BarChart3, Settings, LogOut,
-  Tv2, Users, HeadphonesIcon, ChevronLeft, Menu,
+  LayoutDashboard,
+  Radio,
+  BarChart3,
+  Settings,
+  LogOut,
+  Tv2,
+  HeadphonesIcon,
+  ChevronLeft,
+  Menu,
+  X,
+  ExternalLink,
 } from "lucide-react";
 import { cn } from "@/utils";
 import { getStoredUser, logout } from "@/lib/api";
@@ -20,6 +29,17 @@ const navItems = [
   { label: "Definições", href: "/creator/settings", icon: Settings },
 ];
 
+function pageTitle(pathname: string | null) {
+  if (!pathname) return "Creator Studio";
+  if (pathname === "/creator") return "Dashboard";
+  if (pathname.startsWith("/creator/lives")) return "As Minhas Lives";
+  if (pathname.startsWith("/creator/analytics")) return "Analíticas";
+  if (pathname.startsWith("/creator/channel")) return "Canal";
+  if (pathname.startsWith("/creator/support")) return "Suporte";
+  if (pathname.startsWith("/creator/settings")) return "Definições";
+  return "Creator Studio";
+}
+
 export default function CreatorLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -28,98 +48,166 @@ export default function CreatorLayout({ children }: { children: React.ReactNode 
 
   useEffect(() => {
     const u = getStoredUser();
-    if (!u) { router.replace("/login"); return; }
-    setUser(u as any);
+    if (!u) {
+      router.replace("/login");
+      return;
+    }
+    setUser(u as { name: string; email: string; avatar?: string });
   }, [router]);
+
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [sidebarOpen]);
 
   const handleLogout = async () => {
     await logout();
     router.replace("/login");
   };
 
-  const Sidebar = () => (
-    <aside className="w-60 h-screen bg-[#0A0A0F] border-r border-[#1A1A24] flex flex-col overflow-hidden">
-      <div className="p-4 border-b border-[#1A1A24]">
-        <Link href="/" className="flex items-center gap-3 group">
+  const Nav = ({ onNavigate }: { onNavigate?: () => void }) => (
+    <>
+      <div className="border-b border-[#1E1E2A] p-4">
+        <Link href="/" className="block" onClick={onNavigate}>
           <BrandIdentity mode="creator" subtitle="Creator Studio" />
         </Link>
       </div>
 
-      {user && (
-        <div className="p-4 border-b border-[#1A1A24]">
+      {user ? (
+        <div className="border-b border-[#1E1E2A] p-4">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#E50914] to-[#B00000] flex items-center justify-center text-sm font-black text-white flex-shrink-0">
-              {user.name?.slice(0, 1).toUpperCase()}
-            </div>
+            {user.avatar ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={user.avatar} alt="" className="h-10 w-10 rounded-full object-cover ring-2 ring-[#E50914]/20" />
+            ) : (
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#E50914] to-[#B00000] text-sm font-black text-white">
+                {(user.name || "?").slice(0, 1).toUpperCase()}
+              </div>
+            )}
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-white truncate">{user.name}</p>
-              <p className="text-[10px] text-gray-500 truncate">{user.email}</p>
+              <p className="truncate text-sm font-semibold text-white">{user.name}</p>
+              <p className="truncate text-[11px] text-gray-500">{user.email}</p>
             </div>
           </div>
         </div>
-      )}
+      ) : null}
 
-      <nav className="flex-1 overflow-y-auto py-3 px-2">
+      <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 py-3">
         {navItems.map((item) => {
-          const isActive = item.exact
-            ? pathname === item.href
-            : pathname.startsWith(item.href);
+          const active = item.exact ? pathname === item.href : pathname?.startsWith(item.href);
           return (
             <Link
               key={item.href}
               href={item.href}
-              onClick={() => setSidebarOpen(false)}
+              onClick={onNavigate}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all mb-0.5",
-                isActive
-                  ? "bg-gradient-to-r from-[#E50914]/15 to-transparent text-[#E50914] border-l-2 border-[#E50914] pl-[10px]"
-                  : "text-gray-400 hover:text-white hover:bg-[#111118]"
+                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all",
+                active
+                  ? "bg-[#E50914]/12 text-[#ff6b73] ring-1 ring-[#E50914]/25"
+                  : "text-gray-400 hover:bg-white/[0.04] hover:text-white"
               )}
             >
-              <item.icon className="w-4 h-4 flex-shrink-0" />
+              <item.icon className={cn("h-4 w-4 shrink-0", active ? "text-[#E50914]" : "text-gray-500")} />
               {item.label}
             </Link>
           );
         })}
       </nav>
 
-      <div className="p-3 border-t border-[#1A1A24] space-y-1">
-        <Link href="/" className="flex items-center gap-3 px-3 py-2 text-xs text-gray-500 hover:text-red-400 hover:bg-[#111118] rounded-lg transition-all">
-          <ChevronLeft className="w-4 h-4" /> Ver Site
+      <div className="space-y-1 border-t border-[#1E1E2A] p-3">
+        <Link
+          href="/"
+          onClick={onNavigate}
+          className="flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-medium text-gray-500 transition-colors hover:bg-white/[0.04] hover:text-white"
+        >
+          <ExternalLink className="h-3.5 w-3.5" />
+          Ver site público
         </Link>
-        <Link href="/admin/dashboard" className="flex items-center gap-3 px-3 py-2 text-xs text-gray-500 hover:text-yellow-400 hover:bg-[#111118] rounded-lg transition-all">
-          <Users className="w-4 h-4" /> Painel Admin
-        </Link>
-        <button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2 text-xs text-gray-500 hover:text-red-400 hover:bg-[#1A1A1A] rounded-lg transition-all">
-          <LogOut className="w-4 h-4" /> Sair
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-xs font-medium text-gray-500 transition-colors hover:bg-red-500/10 hover:text-red-300"
+        >
+          <LogOut className="h-3.5 w-3.5" />
+          Sair
         </button>
       </div>
-    </aside>
+    </>
   );
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#0A0A0A]">
-      <div className="hidden lg:flex lg:flex-shrink-0">
-        <Sidebar />
+    <div className="flex h-dvh overflow-hidden bg-[#060609]">
+      {/* Desktop sidebar */}
+      <aside className="hidden w-60 shrink-0 flex-col border-r border-[#1E1E2A] bg-[#0A0A10] lg:flex">
+        <Nav />
+      </aside>
+
+      {/* Mobile drawer */}
+      <div
+        className={cn(
+          "fixed inset-0 z-50 lg:hidden",
+          sidebarOpen ? "pointer-events-auto" : "pointer-events-none"
+        )}
+      >
+        <div
+          className={cn(
+            "absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity",
+            sidebarOpen ? "opacity-100" : "opacity-0"
+          )}
+          onClick={() => setSidebarOpen(false)}
+        />
+        <aside
+          className={cn(
+            "absolute left-0 top-0 flex h-full w-[min(18rem,88vw)] flex-col border-r border-[#1E1E2A] bg-[#0A0A10] shadow-2xl transition-transform duration-300",
+            sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          )}
+        >
+          <div className="flex items-center justify-end p-2">
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(false)}
+              className="rounded-xl p-2 text-gray-500 hover:bg-white/5 hover:text-white"
+              aria-label="Fechar menu"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <Nav onNavigate={() => setSidebarOpen(false)} />
+        </aside>
       </div>
 
-      {sidebarOpen && (
-        <div className="fixed inset-0 bg-black/70 z-40 lg:hidden" onClick={() => setSidebarOpen(false)}>
-          <div className="w-60 h-full" onClick={(e) => e.stopPropagation()}>
-            <Sidebar />
-          </div>
-        </div>
-      )}
-
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <div className="h-14 flex items-center gap-3 px-4 border-b border-[#1A1A24] bg-[#0A0A0F]">
-          <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-gray-400 hover:text-white">
-            <Menu className="w-5 h-5" />
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <header className="flex h-14 shrink-0 items-center gap-3 border-b border-[#1E1E2A] bg-[#0A0A10]/95 px-4 backdrop-blur-md">
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(true)}
+            className="rounded-xl p-2 text-gray-400 hover:bg-white/5 hover:text-white lg:hidden"
+            aria-label="Abrir menu"
+          >
+            <Menu className="h-5 w-5" />
           </button>
-          <span className="text-sm font-semibold text-white">Creator Studio</span>
-        </div>
-        <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
-          {children}
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-bold text-white">{pageTitle(pathname)}</p>
+            <p className="hidden text-[10px] text-gray-500 sm:block">Creator Studio · LiveSports</p>
+          </div>
+          <Link
+            href="/"
+            className="hidden items-center gap-1.5 rounded-full border border-white/10 px-3 py-1.5 text-[11px] font-semibold text-gray-400 transition-colors hover:border-white/20 hover:text-white sm:inline-flex"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+            Site
+          </Link>
+        </header>
+        <main className="flex-1 overflow-y-auto overscroll-contain p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-5 lg:p-6">
+          <div className="mx-auto max-w-5xl">{children}</div>
         </main>
       </div>
     </div>

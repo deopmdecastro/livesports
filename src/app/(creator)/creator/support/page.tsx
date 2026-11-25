@@ -74,7 +74,7 @@ export default function CreatorSupportPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-black text-white flex items-center gap-2">
+          <h1 className="text-xl font-black text-white sm:text-2xl">
             <HeadphonesIcon className="h-5 w-5 text-[#E50914]" /> Suporte
           </h1>
           <p className="text-xs text-gray-500 mt-0.5">Os teus pedidos de suporte</p>
@@ -99,7 +99,7 @@ export default function CreatorSupportPage() {
         <div className="space-y-2">
           {tickets.map((ticket) => (
             <div key={ticket.id} onClick={() => openTicket(ticket)}
-              className="flex items-center gap-4 rounded-xl border border-[#1E1E2A] bg-[#0E0E16] p-4 cursor-pointer hover:border-[#E50914]/20 transition-all">
+              className="flex items-center gap-4 rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] p-4 cursor-pointer hover:border-[#E50914]/20 transition-all">
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-white truncate">{ticket.subject}</p>
                 <p className="text-[11px] text-gray-500 mt-0.5">{new Date(ticket.createdAt).toLocaleDateString("pt-PT")}</p>
