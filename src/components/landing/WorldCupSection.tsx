@@ -437,37 +437,16 @@ export default function WorldCupSection({
         <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <div className="flex items-start gap-4">
             <div className="relative flex-shrink-0">
-              {competition?.thumbnail ? (
-                <div
-                  className="flex h-14 w-14 items-center justify-center rounded-2xl border p-2"
-                  style={{ borderColor: theme.border, background: theme.badgeBg }}
-                >
-                  <img
-                    src={competition.thumbnail}
-                    alt=""
-                    referrerPolicy="no-referrer"
-                    className="max-h-full max-w-full object-contain"
-                    onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).style.display = "none";
-                      const fallback = e.currentTarget.parentElement?.querySelector("[data-logo-fallback]");
-                      if (fallback instanceof HTMLElement) fallback.style.display = "flex";
-                    }}
-                  />
-                  <div data-logo-fallback className="hidden h-full w-full items-center justify-center">
-                    <Trophy className="h-7 w-7" style={{ color: theme.primary }} />
-                  </div>
-                </div>
-              ) : (
-                <div
-                  className="flex h-14 w-14 items-center justify-center rounded-2xl border"
-                  style={{
-                    borderColor: theme.border,
-                    background: `linear-gradient(135deg, ${theme.softBg}, transparent)`,
-                  }}
-                >
-                  <Trophy className="h-7 w-7" style={{ color: theme.primary }} />
-                </div>
-              )}
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/20 bg-white p-2 shadow-lg">
+                <ResilientLogo
+                  src={competition?.thumbnail}
+                  name={competition?.name || hero?.sectionTitle}
+                  kind="league"
+                  size={56}
+                  alt={competition?.name || ""}
+                  className="max-h-full max-w-full"
+                />
+              </div>
             </div>
             <div>
               <div className="mb-1 flex items-center gap-2">

@@ -195,11 +195,7 @@ export default function CompetitionCarousel({ competitions, selectedSlug, onSele
               }
             >
               <div
-                className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl border p-1.5"
-                style={{
-                  borderColor: active ? theme.border : "#1E1E2A",
-                  background: active ? theme.badgeBg : "#111118",
-                }}
+                className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl border border-white/15 bg-white/95 p-1.5 shadow-sm"
               >
                 <CompetitionLogo src={item.thumbnail} name={item.sectionTitle || item.name} />
               </div>
