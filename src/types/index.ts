@@ -187,6 +187,8 @@ export interface LiveMatchTag {
 export interface PublicCompetitionEvent {
   id: string;
   title: string;
+  thumbnail?: string | null;
+  leagueLogo?: string | null;
   teamA?: string;
   teamB?: string;
   teamACode?: string;

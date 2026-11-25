@@ -85,6 +85,8 @@ function mapPublicEvent(row: any) {
   return {
     id: row.id,
     title: row.title,
+    thumbnail: row.thumbnail,
+    leagueLogo: row.league_logo,
     teamA: row.team_a,
     teamB: row.team_b,
     teamACode: row.team_a_code,
@@ -105,7 +107,7 @@ function mapPublicEvent(row: any) {
 
 const EVENT_PUBLIC_SELECT = `
   SELECT
-    id, title, team_a, team_b, team_a_code, team_b_code,
+    id, title, thumbnail, league_logo, team_a, team_b, team_a_code, team_b_code,
     team_a_logo, team_b_logo, score_a, score_b, status::text,
     scheduled_at, stage, group_name, venue, match_time, match_details
   FROM "events"

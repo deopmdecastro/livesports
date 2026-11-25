@@ -19,6 +19,7 @@ import CompetitionCarousel from "@/components/landing/CompetitionCarousel";
 import { competitionThemeStyle, getCompetitionTheme } from "@/lib/competition-theme";
 import AdSlot from "@/components/ads/AdSlot";
 import ResilientLogo from "@/components/ui/ResilientLogo";
+import EventCover from "@/components/ui/EventCover";
 
 // Always use the relative /api path here — this runs in the browser, and
 // Next.js's rewrite (next.config.ts) proxies it server-side to the backend.
@@ -67,7 +68,7 @@ function formatDate(iso: string, lang: string) {
   });
 }
 
-function MatchCard({ match, lang }: { match: WCMatchView; lang: string; competitionSlug: string }) {
+function MatchCard({ match, lang, sport }: { match: WCMatchView; lang: string; competitionSlug: string; sport?: string }) {
   const isLive = match.status === "in_play";
   const statusLabels = lang === "pt" ? STATUS_LABEL_PT : STATUS_LABEL_EN;
   const scorers = match.matchDetails?.scorers || [];
@@ -102,6 +103,9 @@ function MatchCard({ match, lang }: { match: WCMatchView; lang: string; competit
       }`}
     >
       <div>
+        <Link href={`/evento/${encodeURIComponent(match.id)}`} aria-label={match.home_team.name + " vs " + match.away_team.name} className="block -mx-4 -mt-4 mb-3 overflow-hidden rounded-t-2xl">
+          <EventCover src={match.thumbnail} leagueLogo={match.leagueLogo} sport={sport} className="h-24" />
+        </Link>
         <div className="flex items-center justify-between gap-2 mb-3">
           <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500 truncate">
             {match.stage}
@@ -630,13 +634,13 @@ export default function WorldCupSection({
                 <section key={stage} className="mb-7">
                   <h3 className="mb-3 text-sm font-black uppercase tracking-wider text-white">{stage}</h3>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                    {games.map((match) => <MatchCard key={match.id} match={match} lang={lang} competitionSlug={selectedSlug} />)}
+                    {games.map((match) => <MatchCard key={match.id} match={match} lang={lang} competitionSlug={selectedSlug} sport={competition?.sport} />)}
                   </div>
                 </section>
               ))
             ) : (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {matches.map((match) => <MatchCard key={match.id} match={match} lang={lang} competitionSlug={selectedSlug} />)}
+                {matches.map((match) => <MatchCard key={match.id} match={match} lang={lang} competitionSlug={selectedSlug} sport={competition?.sport} />)}
               </div>
             )}
           </div>

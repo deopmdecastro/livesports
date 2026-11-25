@@ -6,6 +6,7 @@ import { BarChart3, Eye, Radio, Zap } from "lucide-react";
 import type { Event, Live } from "@/types";
 import type { ApiListResponse } from "@/lib/api";
 import ResilientLogo from "@/components/ui/ResilientLogo";
+import EventCover from "@/components/ui/EventCover";
 import { publicApiRequest } from "@/lib/api";
 import { useLang } from "@/lib/lang";
 
@@ -84,12 +85,9 @@ function LiveCard({ event, live }: { event: Event; live?: Live }) {
           : <span className={`badge text-[10px] px-2 py-0.5 ${isFinished ? "badge-green" : "badge-blue"}`}>{statusLabel}</span>}
       </div>
 
-      {/* Thumbnail bg */}
-      {event.thumbnail && (
-        <div className="absolute inset-0 opacity-[0.04] group-hover:opacity-[0.07] transition-opacity pointer-events-none">
-          <img loading="lazy" src={event.thumbnail} alt="" className="h-full w-full object-cover" />
-        </div>
-      )}
+      <Link href={statsHref} aria-label={event.title} className="block overflow-hidden">
+        <EventCover src={live?.banner || event.thumbnail} leagueLogo={event.leagueLogo} sport={event.sport} className="h-24" />
+      </Link>
 
       <div className="relative p-5 flex flex-col justify-between flex-1">
         <Link href={statsHref} className="block">

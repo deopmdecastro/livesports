@@ -10,6 +10,7 @@ import StaticPageClient from "@/components/static/StaticPageClient";
 import { getStaticPageContent, type StaticPageSlug } from "@/lib/static-pages-content";
 import AdSlot from "@/components/ads/AdSlot";
 import ResilientLogo from "@/components/ui/ResilientLogo";
+import EventCover from "@/components/ui/EventCover";
 
 export const dynamic = "force-dynamic";
 
@@ -69,15 +70,6 @@ const slugLabels: Record<string, string> = {
   dmca: "DMCA",
 };
 
-const SPORT_FALLBACK_THUMBS: Record<string, string> = {
-  football: "https://images.unsplash.com/photo-1522778119026-d647f0596c20?w=900&q=80",
-  basketball: "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=900&q=80",
-  tennis: "https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?w=900&q=80",
-  ufc: "https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?w=900&q=80",
-  f1: "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=900&q=80",
-  default: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=900&q=80",
-};
-
 function formatKickoff(value?: string) {
   if (!value) return "Em breve";
   try {
@@ -94,11 +86,6 @@ function formatKickoff(value?: string) {
 
 function StreamCard({ live }: { live: Live }) {
   const isLive = live.status === "live";
-  const thumb =
-    live.thumbnail ||
-    live.banner ||
-    SPORT_FALLBACK_THUMBS[live.sport] ||
-    SPORT_FALLBACK_THUMBS.default;
   const hasScore = typeof live.scoreA === "number" && typeof live.scoreB === "number";
 
   return (
@@ -107,12 +94,7 @@ function StreamCard({ live }: { live: Live }) {
       className="group flex flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-b from-[#11131F] to-[#0A0C14] transition-all duration-300 hover:-translate-y-1 hover:border-[#E50914]/50 hover:shadow-[0_18px_50px_rgba(229,9,20,0.16)]"
     >
       <div className="relative aspect-video overflow-hidden bg-[#161926]">
-        <img
-          src={thumb}
-          alt={live.title}
-          loading="lazy"
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-        />
+        <EventCover src={live.thumbnail || live.banner} leagueLogo={live.leagueLogo} sport={live.sport} className="h-full w-full" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#080910] via-[#080910]/35 to-transparent" />
 
         <div className="absolute left-3 top-3 flex items-center gap-2">
@@ -201,6 +183,9 @@ function MatchEventCard({ event }: { event: Event }) {
       className="group flex flex-col justify-between rounded-2xl border border-white/[0.07] bg-gradient-to-br from-[#0F111C] to-[#090B12] p-5 transition-all duration-300 hover:-translate-y-1 hover:border-[#E50914]/40"
     >
       <div>
+        <Link href={`/evento/${encodeURIComponent(event.id)}`} aria-label={event.title} className="block -mx-5 -mt-5 mb-4 overflow-hidden rounded-t-2xl">
+          <EventCover src={event.thumbnail} leagueLogo={event.leagueLogo} sport={event.sport} className="h-28" />
+        </Link>
         <div className="flex items-center justify-between gap-2 mb-4">
           <div className="flex items-center gap-2 min-w-0">
             {(event.leagueLogo || event.league) && (

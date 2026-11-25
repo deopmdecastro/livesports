@@ -18,6 +18,7 @@ import {
   Zap,
 } from "lucide-react";
 import ResilientLogo from "@/components/ui/ResilientLogo";
+import EventCover from "@/components/ui/EventCover";
 import AdSlot from "@/components/ads/AdSlot";
 import { publicApiRequest } from "@/lib/api";
 import { useLang } from "@/lib/lang";
@@ -611,6 +612,9 @@ export default function CompetitionsHubClient({
                             key={ev.id}
                             className="rounded-xl border border-white/[0.08] bg-[#10131F] p-3.5 transition-all hover:border-[#E50914]/45 flex flex-col justify-between gap-2.5"
                           >
+                            <Link href={`/evento/${encodeURIComponent(ev.id)}`} aria-label={ev.title} className="block -mx-3.5 -mt-3.5 overflow-hidden rounded-t-xl">
+                              <EventCover src={ev.thumbnail} leagueLogo={ev.leagueLogo} sport={detail.competition.sport} className="h-20" />
+                            </Link>
                             <div className="flex items-center justify-between gap-2">
                               <span className="text-[10px] font-bold uppercase tracking-wider text-white/45 truncate">
                                 {ev.stage || ev.matchTime || "Jogo"}

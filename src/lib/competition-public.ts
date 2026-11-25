@@ -72,6 +72,8 @@ export type WCMatchStatus = "scheduled" | "in_play" | "finished";
 
 export interface WCMatchView {
   id: string;
+  thumbnail?: string | null;
+  leagueLogo?: string | null;
   home_team: { name: string; code: string; flag?: string };
   away_team: { name: string; code: string; flag?: string };
   home_score?: number;
@@ -94,6 +96,8 @@ const STATUS_MAP: Record<PublicCompetitionEvent["status"], WCMatchStatus> = {
 export function mapPublicEventToMatch(event: PublicCompetitionEvent): WCMatchView {
   return {
     id: event.id,
+    thumbnail: event.thumbnail,
+    leagueLogo: event.leagueLogo,
     home_team: {
       name: event.teamA || "Time A",
       code: event.teamACode || "",
