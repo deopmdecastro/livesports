@@ -35,8 +35,12 @@ export default function LeaguesSection() {
   const [loading, setLoading] = useState(true);
   const [unavailable, setUnavailable] = useState(false);
 
+  const [attempt, setAttempt] = useState(0);
+
   useEffect(() => {
     let active = true;
+    setLoading(true);
+    setUnavailable(false);
     fetchImportedLeagues().then((data) => {
       if (!active) return;
       setLeagues(data);
@@ -45,7 +49,7 @@ export default function LeaguesSection() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [attempt]);
 
   // Only ever show leagues that are genuinely present in the database
   // (real events/lives imported from the sports APIs) — never a hardcoded list.
@@ -109,8 +113,19 @@ export default function LeaguesSection() {
             ))}
           </div>
         ) : displayLeagues.length === 0 ? (
-          <div className="rounded-[28px] border border-white/10 bg-[#0E0E16] p-10 text-center text-sm text-gray-400">
-            {unavailable ? (lang === "pt" ? "Não foi possível carregar as competições. Tenta novamente mais tarde." : "Competitions could not be loaded. Please try again later.") : (lang === "pt" ? "Ainda não há competições disponíveis." : "No competitions are available yet.")}
+          <div role={unavailable ? "alert" : undefined} className="flex flex-col items-center gap-4 rounded-[28px] border border-white/10 bg-[#0E0E16] p-8 sm:p-10 text-center text-sm text-gray-400">
+            <p>
+              {unavailable ? (lang === "pt" ? "Não foi possível carregar as competições. Tenta novamente mais tarde." : "Competitions could not be loaded. Please try again later.") : (lang === "pt" ? "Ainda não há competições disponíveis." : "No competitions are available yet.")}
+            </p>
+            {unavailable && (
+              <button
+                type="button"
+                onClick={() => setAttempt((n) => n + 1)}
+                className="inline-flex min-h-[44px] items-center rounded-full border border-[#E50914]/40 bg-[#E50914]/10 px-5 text-xs font-bold uppercase tracking-[0.14em] text-[#ff6b73] transition hover:bg-[#E50914]/20"
+              >
+                {lang === "pt" ? "Tentar novamente" : "Try again"}
+              </button>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-6 xl:grid-cols-12 gap-3">

@@ -51,3 +51,8 @@ logs/
 .secrets/
 .env
 backend/.env
+
+# Local secrets – never commit
+.env
+.env.*
+!.env.example
