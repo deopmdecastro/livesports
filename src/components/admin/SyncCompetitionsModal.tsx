@@ -7,6 +7,7 @@ import {
   Trophy, Zap, Globe, ChevronRight, Download,
   BarChart3, Shield, Loader2,
 } from "lucide-react";
+import AdminFormWizard from "@/components/admin/AdminFormWizard";
 import toast from "react-hot-toast";
 import { apiRequest } from "@/lib/api";
 
@@ -333,46 +334,99 @@ export default function SyncCompetitionsModal({
   const readyProviders = providers.filter((p) => p.status === "ready");
   const noKeyProviders = providers.filter((p) => p.status === "no_key");
 
+  const wizardSubtitle =
+    step === "select"
+      ? "Selecione os provedores e filtros"
+      : step === "configure"
+        ? "Configure as opções de importação"
+        : step === "syncing"
+          ? "A sincronizar com os provedores..."
+          : "Sincronização concluída!";
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-2xl max-h-[90vh] flex flex-col rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] shadow-2xl overflow-hidden">
+    <AdminFormWizard
+      open
+      title={title}
+      subtitle={wizardSubtitle}
+      icon={RefreshCw}
+      tone="create"
+      onClose={onClose}
+      showStepNav={false}
+      hidePrimary
+      maxWidthClass="max-w-2xl"
+      steps={
+        step === "syncing" || step === "done"
+          ? []
+          : [
+              { key: "select", label: "Provedores", icon: RefreshCw },
+              { key: "configure", label: "Opções", icon: RefreshCw },
+            ]
+      }
+      stepKey={step === "configure" ? "configure" : "select"}
+      onStepChange={(key) => {
+        if (key === "select" || key === "configure") setStep(key);
+      }}
+      customFooter={
+        <div className="flex w-full flex-wrap items-center justify-between gap-3">
 
-        {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-[#1E1E2A] flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#E50914]/10 border border-[#E50914]/20">
-              <RefreshCw className={`h-4 w-4 text-[#E50914] ${step === "syncing" ? "animate-spin" : ""}`} />
+          {step === "select" && (
+            <>
+              <button onClick={onClose} className="rounded-xl border border-[#1E1E2A] bg-[#111118] px-4 py-2.5 text-sm text-gray-300 hover:text-white transition-colors">
+                Cancelar
+              </button>
+              <button
+                onClick={() => setStep("configure")}
+                disabled={selectedProviders.length === 0}
+                className="rounded-xl bg-gradient-to-r from-[#E50914] to-[#B00000] px-5 py-2.5 text-sm font-bold text-white shadow-[0_4px_16px_rgba(229,9,20,0.3)] hover:from-[#FF1A24] hover:to-[#E50914] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Seguinte →
+              </button>
+            </>
+          )}
+          {step === "configure" && (
+            <>
+              <button onClick={() => setStep("select")} className="rounded-xl border border-[#1E1E2A] bg-[#111118] px-4 py-2.5 text-sm text-gray-300 hover:text-white transition-colors">
+                ← Voltar
+              </button>
+              <button
+                onClick={startSync}
+                disabled={selectedProviders.length === 0 || selectedSports.length === 0}
+                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#E50914] to-[#B00000] px-5 py-2.5 text-sm font-bold text-white shadow-[0_4px_16px_rgba(229,9,20,0.3)] hover:from-[#FF1A24] hover:to-[#E50914] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <RefreshCw className="h-4 w-4" /> Iniciar Sincronização
+              </button>
+            </>
+          )}
+          {step === "syncing" && (
+            <div className="flex-1 flex items-center gap-2 text-xs text-gray-500">
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-[#E50914]" />
+              Não feche esta janela durante a sincronização...
             </div>
-            <div>
-              <h3 className="font-black text-white">{title}</h3>
-              <p className="text-[11px] text-gray-500">
-                {step === "select" && "Selecione os provedores e filtros"}
-                {step === "configure" && "Configure as opções de importação"}
-                {step === "syncing" && "A sincronizar com os provedores..."}
-                {step === "done" && "Sincronização concluída!"}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            {/* Progress steps */}
-            {step !== "syncing" && step !== "done" && (
-              <div className="hidden sm:flex items-center gap-1 text-[10px] text-gray-500">
-                {(["select", "configure"] as Step[]).map((s, i) => (
-                  <span key={s} className="flex items-center gap-1">
-                    <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black border ${step === s ? "bg-[#E50914] border-[#E50914] text-white" : "border-[#2A2A38] text-gray-600"}`}>{i + 1}</span>
-                    {i < 1 && <ChevronRight className="h-3 w-3" />}
-                  </span>
-                ))}
-              </div>
-            )}
-            <button onClick={onClose} className="rounded-xl p-2 text-gray-400 hover:bg-white/5 hover:text-white">
-              <X className="h-4 w-4" />
-            </button>
-          </div>
+          )}
+          {step === "done" && (
+            <>
+              <button
+                onClick={() => {
+                  setStep("select");
+                  setLogs([]);
+                  setProgress(0);
+                  setResults([]);
+                }}
+                className="rounded-xl border border-[#1E1E2A] bg-[#111118] px-4 py-2.5 text-sm text-gray-300 hover:text-white transition-colors"
+              >
+                Nova Sincronização
+              </button>
+              <button
+                onClick={onClose}
+                className="rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 px-5 py-2.5 text-sm font-bold text-white hover:from-emerald-500 hover:to-emerald-600 transition-all"
+              >
+                Fechar
+              </button>
+            </>
+          )}
         </div>
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto">
+      }
+    >
 
           {/* ── STEP: SELECT PROVIDERS ── */}
           {step === "select" && (
@@ -569,67 +623,6 @@ export default function SyncCompetitionsModal({
               )}
             </div>
           )}
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-between gap-3 p-5 border-t border-[#1E1E2A] flex-shrink-0">
-          {step === "select" && (
-            <>
-              <button onClick={onClose} className="rounded-xl border border-[#1E1E2A] bg-[#111118] px-4 py-2.5 text-sm text-gray-300 hover:text-white transition-colors">
-                Cancelar
-              </button>
-              <button
-                onClick={() => setStep("configure")}
-                disabled={selectedProviders.length === 0}
-                className="rounded-xl bg-gradient-to-r from-[#E50914] to-[#B00000] px-5 py-2.5 text-sm font-bold text-white shadow-[0_4px_16px_rgba(229,9,20,0.3)] hover:from-[#FF1A24] hover:to-[#E50914] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Seguinte →
-              </button>
-            </>
-          )}
-          {step === "configure" && (
-            <>
-              <button onClick={() => setStep("select")} className="rounded-xl border border-[#1E1E2A] bg-[#111118] px-4 py-2.5 text-sm text-gray-300 hover:text-white transition-colors">
-                ← Voltar
-              </button>
-              <button
-                onClick={startSync}
-                disabled={selectedProviders.length === 0 || selectedSports.length === 0}
-                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#E50914] to-[#B00000] px-5 py-2.5 text-sm font-bold text-white shadow-[0_4px_16px_rgba(229,9,20,0.3)] hover:from-[#FF1A24] hover:to-[#E50914] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <RefreshCw className="h-4 w-4" /> Iniciar Sincronização
-              </button>
-            </>
-          )}
-          {step === "syncing" && (
-            <div className="flex-1 flex items-center gap-2 text-xs text-gray-500">
-              <Loader2 className="h-3.5 w-3.5 animate-spin text-[#E50914]" />
-              Não feche esta janela durante a sincronização...
-            </div>
-          )}
-          {step === "done" && (
-            <>
-              <button
-                onClick={() => {
-                  setStep("select");
-                  setLogs([]);
-                  setProgress(0);
-                  setResults([]);
-                }}
-                className="rounded-xl border border-[#1E1E2A] bg-[#111118] px-4 py-2.5 text-sm text-gray-300 hover:text-white transition-colors"
-              >
-                Nova Sincronização
-              </button>
-              <button
-                onClick={onClose}
-                className="rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 px-5 py-2.5 text-sm font-bold text-white hover:from-emerald-500 hover:to-emerald-600 transition-all"
-              >
-                Fechar
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
+    </AdminFormWizard>
   );
 }

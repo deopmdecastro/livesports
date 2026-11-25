@@ -6,6 +6,7 @@ import {
   CheckCircle, Info, Tv2, Trophy, BarChart3, Cloud, Zap,
   Shield,
 } from "lucide-react";
+import AdminFormWizard from "@/components/admin/AdminFormWizard";
 import toast from "react-hot-toast";
 import { apiRequest } from "@/lib/api";
 import Link from "next/link";
@@ -202,30 +203,30 @@ export default function ApiKeyRequiredModal({
 
   const filtered = PROVIDER_CATALOGUE.filter((p) => catFilter === "all" || p.category === catFilter);
 
+  const subtitle =
+    step === "info"
+      ? `Configure uma chave para ${context}`
+      : step === "provider"
+        ? "Escolha o provedor de API"
+        : `Configurar: ${selected?.label || ""}`;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] shadow-2xl flex flex-col">
-
-        {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-[#1E1E2A] flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10 border border-amber-500/20">
-              <Key className="h-4 w-4 text-amber-400" />
-            </div>
-            <div>
-              <h3 className="font-black text-white">API Key Necessária</h3>
-              <p className="text-[11px] text-gray-500">
-                {step === "info" && `Configure uma chave para ${context}`}
-                {step === "provider" && "Escolha o provedor de API"}
-                {step === "configure" && `Configurar: ${selected?.label}`}
-              </p>
-            </div>
-          </div>
-          <button onClick={onClose} className="rounded-xl p-2 text-gray-400 hover:bg-white/5 hover:text-white">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
+    <AdminFormWizard
+      open
+      title="API Key Necessária"
+      subtitle={subtitle}
+      icon={Key}
+      tone="edit"
+      onClose={onClose}
+      showStepNav={false}
+      hidePrimary={step !== "configure"}
+      primaryLabel={saving ? "A guardar…" : "Guardar e Continuar"}
+      onPrimary={() => void handleSave()}
+      primaryLoading={saving}
+      primaryDisabled={saving || !form.keyValue.trim()}
+      secondaryLabel="Cancelar"
+      maxWidthClass="max-w-lg"
+    >
         {/* ── STEP: INFO ── */}
         {step === "info" && (
           <div className="p-5 space-y-4">
@@ -405,23 +406,8 @@ export default function ApiKeyRequiredModal({
               </div>
             )}
 
-            <div className="flex gap-3 pt-2 border-t border-[#1E1E2A]">
-              <button onClick={onClose} className="rounded-xl border border-[#1E1E2A] bg-[#111118] px-4 py-2.5 text-sm text-gray-300 hover:text-white transition-colors">
-                Cancelar
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={saving || !form.keyValue.trim()}
-                className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#E50914] to-[#B00000] px-5 py-2.5 text-sm font-bold text-white shadow-[0_4px_16px_rgba(229,9,20,0.3)] hover:from-[#FF1A24] hover:to-[#E50914] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {saving ? "A guardar..." : (
-                  <><CheckCircle className="h-4 w-4" /> Guardar e Continuar</>
-                )}
-              </button>
-            </div>
           </div>
         )}
-      </div>
-    </div>
+    </AdminFormWizard>
   );
 }

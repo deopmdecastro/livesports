@@ -6,6 +6,7 @@ import {
   Globe, Info, ExternalLink, ArrowLeft, Wifi, WifiOff, Loader2,
   Trophy, Tv2, BarChart3, Cloud, Zap, Settings,
 } from "lucide-react";
+import AdminFormWizard from "@/components/admin/AdminFormWizard";
 import toast from "react-hot-toast";
 import { apiRequest } from "@/lib/api";
 
@@ -818,43 +819,32 @@ export default function ApiKeysPage() {
         </div>
       )}
 
-      {/* ── MODAL ── */}
-      {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] shadow-2xl flex flex-col">
-
-            {/* Modal header */}
-            <div className="flex items-center justify-between border-b border-[#1E1E2A] p-5 flex-shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#E50914]/10 border border-[#E50914]/20">
-                  <Key className="h-4 w-4 text-[#E50914]" />
-                </div>
-                <div>
-                  <h3 className="font-black text-white">
-                    {editKey ? "Editar API Key" : modalStep === "provider" ? "Selecionar Provedor" : `Configurar: ${selectedProvider?.label || form.provider}`}
-                  </h3>
-                  <p className="text-[11px] text-gray-500">
-                    {editKey ? "Atualize os dados da chave" : modalStep === "provider" ? "Escolha o tipo de API a integrar" : "Insira as credenciais do provedor"}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                {!editKey && (
-                  <div className="hidden sm:flex items-center gap-1 text-[10px] text-gray-500">
-                    {(["provider", "configure"] as ModalStep[]).map((s, i) => (
-                      <span key={s} className="flex items-center gap-1">
-                        <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black border ${modalStep === s ? "bg-[#E50914] border-[#E50914] text-white" : s === "configure" && modalStep === "configure" ? "bg-green-600 border-green-600 text-white" : "border-[#2A2A38] text-gray-600"}`}>
-                          {i + 1}
-                        </span>
-                        {i < 1 && <span className="text-gray-700">›</span>}
-                      </span>
-                    ))}
-                  </div>
-                )}
-                <button onClick={() => setModalOpen(false)} className="rounded-xl p-2 text-gray-400 hover:bg-white/5 hover:text-white">✕</button>
-              </div>
-            </div>
-
+      <AdminFormWizard
+        open={modalOpen}
+        title={editKey ? "Editar API Key" : modalStep === "provider" ? "Selecionar Provedor" : `Configurar: ${selectedProvider?.label || form.provider}`}
+        subtitle={editKey ? "Atualize os dados da chave" : modalStep === "provider" ? "Escolha o tipo de API a integrar" : "Insira as credenciais do provedor"}
+        icon={Key}
+        tone={editKey ? "edit" : "create"}
+        onClose={() => setModalOpen(false)}
+        primaryLabel={editKey ? "Guardar" : "Criar"}
+        onPrimary={() => void save()}
+        primaryLoading={saving}
+        hidePrimary={!(editKey || modalStep === "configure")}
+        showStepNav={false}
+        maxWidthClass="max-w-xl"
+        steps={
+          editKey
+            ? []
+            : [
+                { key: "provider", label: "Provedor", icon: Key },
+                { key: "configure", label: "Credenciais", icon: Key },
+              ]
+        }
+        stepKey={modalStep}
+        onStepChange={(key) => {
+          if (key === "provider" || key === "configure") setModalStep(key);
+        }}
+      >
             {/* ── STEP: PROVIDER SELECTION ── */}
             {!editKey && modalStep === "provider" && (
               <div className="p-5 space-y-4 flex-1 overflow-y-auto">
@@ -1016,38 +1006,24 @@ export default function ApiKeysPage() {
             )}
 
             {/* Footer */}
-            {(editKey || modalStep === "configure") && (
-              <div className="flex justify-end gap-3 border-t border-[#1E1E2A] p-5 flex-shrink-0">
-                <button onClick={() => setModalOpen(false)} className="rounded-xl border border-[#1E1E2A] px-4 py-2 text-sm text-gray-300 hover:text-white">
-                  Cancelar
-                </button>
-                <button onClick={save} disabled={saving} className="rounded-xl bg-[#E50914] px-5 py-2 text-sm font-bold text-white hover:bg-[#B00000] disabled:opacity-60">
-                  {saving ? "A guardar..." : editKey ? "Guardar" : "Criar"}
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      </AdminFormWizard>
 
-      {/* ── ENV API KEY EDIT MODAL ── */}
-      {envModalTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] shadow-2xl">
-            <div className="flex items-center justify-between border-b border-[#1E1E2A] p-5">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-500/10 border border-red-500/20">
-                  <Globe className="h-4 w-4 text-red-400" />
-                </div>
-                <div>
-                  <h3 className="font-black text-white">{envModalTarget.configured ? "Editar" : "Configurar"} {envModalTarget.name}</h3>
-                  <p className="text-[11px] text-gray-500">{envModalTarget.provider}</p>
-                </div>
-              </div>
-              <button onClick={() => setEnvModalTarget(null)} className="rounded-xl p-2 text-gray-400 hover:bg-white/5 hover:text-white">✕</button>
-            </div>
 
-            <div className="p-5 space-y-4">
+      <AdminFormWizard
+        open={Boolean(envModalTarget)}
+        title={envModalTarget ? `Chave de ambiente · ${envModalTarget.name}` : "Chave de ambiente"}
+        subtitle={envModalTarget?.provider || "Variável de sistema"}
+        icon={Key}
+        tone="edit"
+        onClose={() => setEnvModalTarget(null)}
+        primaryLabel="Guardar"
+        onPrimary={() => void saveEnvKey()}
+        primaryLoading={envSaving}
+        showStepNav={false}
+        maxWidthClass="max-w-md"
+      >
+            <div className="space-y-4">
+
               <div className="flex items-center gap-2 rounded-xl bg-red-500/5 border border-red-500/20 px-3 py-2.5">
                 <Info className="h-3.5 w-3.5 text-red-400 flex-shrink-0" />
                 <p className="text-xs text-red-300">
@@ -1075,18 +1051,8 @@ export default function ApiKeysPage() {
 
               <p className="text-[10px] text-gray-600 font-mono">{envModalTarget.baseUrl}</p>
             </div>
+      </AdminFormWizard>
 
-            <div className="flex justify-end gap-3 border-t border-[#1E1E2A] p-5">
-              <button onClick={() => setEnvModalTarget(null)} className="rounded-xl border border-[#1E1E2A] px-4 py-2 text-sm text-gray-300 hover:text-white">
-                Cancelar
-              </button>
-              <button onClick={saveEnvKey} disabled={envSaving} className="rounded-xl bg-[#E50914] px-5 py-2 text-sm font-bold text-white hover:bg-[#B00000] disabled:opacity-60">
-                {envSaving ? "A guardar..." : "Guardar"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

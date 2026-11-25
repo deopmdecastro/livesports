@@ -24,14 +24,16 @@ interface AdminFormWizardProps {
   onClose: () => void;
   children: ReactNode;
   footerLeft?: ReactNode;
-  primaryLabel: string;
-  onPrimary: () => void;
+  primaryLabel?: string;
+  onPrimary?: () => void;
   primaryDisabled?: boolean;
   primaryLoading?: boolean;
   secondaryLabel?: string;
   showStepNav?: boolean;
   /** Hide primary button (e.g. view-only) */
   hidePrimary?: boolean;
+  /** When set, replaces the default footer entirely */
+  customFooter?: ReactNode;
   maxWidthClass?: string;
 }
 
@@ -53,13 +55,14 @@ export default function AdminFormWizard({
   onClose,
   children,
   footerLeft,
-  primaryLabel,
-  onPrimary,
+  primaryLabel = "Guardar",
+  onPrimary = () => {},
   primaryDisabled,
   primaryLoading,
   secondaryLabel = "Cancelar",
   showStepNav = true,
   hidePrimary = false,
+  customFooter,
   maxWidthClass = "max-w-2xl",
 }: AdminFormWizardProps) {
   if (!open) return null;
@@ -159,48 +162,52 @@ export default function AdminFormWizard({
 
         {/* Footer */}
         <div className="shrink-0 border-t border-[#1E1E2A] bg-[#0A0A10] px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-5 sm:py-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2 text-xs text-gray-500">{footerLeft}</div>
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={onClose}
-                className="rounded-xl border border-[#1E1E2A] bg-[#111118] px-4 py-2.5 text-sm font-semibold text-gray-300 transition-all hover:border-white/15 hover:text-white"
-              >
-                {secondaryLabel}
-              </button>
-              {showStepNav && hasSteps && !isFirst ? (
+          {customFooter ? (
+            customFooter
+          ) : (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2 text-xs text-gray-500">{footerLeft}</div>
+              <div className="flex flex-wrap items-center justify-end gap-2">
                 <button
                   type="button"
-                  onClick={goPrev}
-                  className="inline-flex items-center gap-1 rounded-xl border border-white/10 px-4 py-2.5 text-sm font-semibold text-white/80 transition-colors hover:bg-white/5"
+                  onClick={onClose}
+                  className="rounded-xl border border-[#1E1E2A] bg-[#111118] px-4 py-2.5 text-sm font-semibold text-gray-300 transition-all hover:border-white/15 hover:text-white"
                 >
-                  <ChevronLeft className="h-4 w-4" />
-                  Anterior
+                  {secondaryLabel}
                 </button>
-              ) : null}
-              {showStepNav && hasSteps && !isLast ? (
-                <button
-                  type="button"
-                  onClick={goNext}
-                  className="inline-flex items-center gap-1 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-white/15"
-                >
-                  Seguinte
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              ) : null}
-              {!hidePrimary ? (
-                <button
-                  type="button"
-                  onClick={onPrimary}
-                  disabled={primaryDisabled || primaryLoading}
-                  className="inline-flex min-w-[7.5rem] items-center justify-center rounded-xl bg-[#E50914] px-5 py-2.5 text-sm font-bold text-white shadow-[0_4px_20px_rgba(229,9,20,0.25)] transition-all hover:bg-[#C50010] disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {primaryLoading ? "A guardar…" : primaryLabel}
-                </button>
-              ) : null}
+                {showStepNav && hasSteps && !isFirst ? (
+                  <button
+                    type="button"
+                    onClick={goPrev}
+                    className="inline-flex items-center gap-1 rounded-xl border border-white/10 px-4 py-2.5 text-sm font-semibold text-white/80 transition-colors hover:bg-white/5"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Anterior
+                  </button>
+                ) : null}
+                {showStepNav && hasSteps && !isLast ? (
+                  <button
+                    type="button"
+                    onClick={goNext}
+                    className="inline-flex items-center gap-1 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-white/15"
+                  >
+                    Seguinte
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                ) : null}
+                {!hidePrimary ? (
+                  <button
+                    type="button"
+                    onClick={onPrimary}
+                    disabled={primaryDisabled || primaryLoading}
+                    className="inline-flex min-w-[7.5rem] items-center justify-center rounded-xl bg-[#E50914] px-5 py-2.5 text-sm font-bold text-white shadow-[0_4px_20px_rgba(229,9,20,0.25)] transition-all hover:bg-[#C50010] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {primaryLoading ? "A guardar…" : primaryLabel}
+                  </button>
+                ) : null}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

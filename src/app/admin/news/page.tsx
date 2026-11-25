@@ -350,23 +350,23 @@ export default function NewsPage() {
       </AdminFormWizard>
 
 
-      {importOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 p-0 backdrop-blur-sm sm:items-center sm:p-4">
-          <div className="flex max-h-[92dvh] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-[#2A2A2A] bg-[#1A1A1A]">
-            <div className="flex items-center justify-between border-b border-[#2A2A2A] p-5">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-red-500/20 bg-red-500/10">
-                  <Rss className="h-4 w-4 text-red-400" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-white">Importar Notícias (NewsData.io)</h3>
-                  <p className="text-[11px] text-gray-500">Notícias de desporto em Portugues e Ingles, prontas a rever e publicar</p>
-                </div>
-              </div>
-              <button onClick={() => setImportOpen(false)} className="text-gray-400 hover:text-white"><X className="h-4 w-4" /></button>
-            </div>
-
-            <div className="flex flex-col gap-3 border-b border-[#2A2A2A] p-5 sm:flex-row sm:items-end">
+      <AdminFormWizard
+        open={importOpen}
+        title="Importar Notícias"
+        subtitle="NewsData.io · desporto em PT e EN, prontas a rever e publicar"
+        icon={Rss}
+        tone="create"
+        onClose={() => setImportOpen(false)}
+        primaryLabel={importLoading ? "A pesquisar…" : "Pesquisar"}
+        onPrimary={() => void fetchExternalNews()}
+        primaryLoading={importLoading}
+        primaryDisabled={importLoading}
+        secondaryLabel="Fechar"
+        showStepNav={false}
+        maxWidthClass="max-w-4xl"
+      >
+        <div className="space-y-4">
+            <div className="flex flex-col gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-3 sm:flex-row sm:items-end">
               <div className="flex-1">
                 <label className="mb-1.5 block text-xs font-medium text-gray-300">Pesquisa</label>
                 <input
@@ -390,7 +390,7 @@ export default function NewsPage() {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-5">
+            <div className="max-h-[50vh] overflow-y-auto">
               {importLoading ? (
                 <div className="py-10 text-center text-sm text-gray-400">A carregar noticias externas...</div>
               ) : importError ? (
@@ -443,9 +443,8 @@ export default function NewsPage() {
                 </div>
               )}
             </div>
-          </div>
         </div>
-      )}
+      </AdminFormWizard>
     </div>
   );
 }
