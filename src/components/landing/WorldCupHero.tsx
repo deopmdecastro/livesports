@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Zap } from "lucide-react";
+import ResilientLogo from "@/components/ui/ResilientLogo";
 import type { Competition } from "@/types";
 import { getCompetitionHero } from "@/lib/competition-public";
 import { competitionThemeStyle, getCompetitionTheme } from "@/lib/competition-theme";
@@ -51,13 +52,15 @@ export default function WorldCupHero({ competition }: WorldCupHeroProps) {
         {hasThumbnail ? (
           <div className="mb-6 flex justify-center">
             <div
-              className="flex h-24 w-24 items-center justify-center rounded-2xl border p-3 backdrop-blur-sm lg:h-28 lg:w-28"
-              style={{ borderColor: theme.border, background: theme.badgeBg }}
+              className="flex h-24 w-24 items-center justify-center rounded-2xl border border-white/20 bg-white/95 p-3 shadow-2xl lg:h-28 lg:w-28"
             >
-              <img
+              <ResilientLogo
                 src={competition.thumbnail}
+                name={competition.name}
+                kind="league"
+                size={96}
                 alt={competition.name}
-                className="max-h-full max-w-full object-contain"
+                className="max-h-full max-w-full"
               />
             </div>
           </div>
