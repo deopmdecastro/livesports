@@ -1,222 +1,44 @@
 "use client";
-
 import { useState } from "react";
 import Link from "next/link";
-import { Eye, EyeOff, Mail, Lock, User, Globe, UserPlus, Loader2, CheckCircle, ArrowRight, Zap, Shield, Tv } from "lucide-react";
-import toast from "react-hot-toast";
-import { apiRequest } from "@/lib/api";
+import { Eye, EyeOff, Loader2, ArrowRight, UserPlus } from "lucide-react";
+import { publicApiRequest, setAuthSession } from "@/lib/api";
 
-const countries = [
-  "Brasil", "Portugal", "Angola", "Cabo Verde", "Moçambique",
-  "São Tomé e Príncipe", "Guiné-Bissau", "Timor-Leste", "Outro"
-];
-
-function PasswordStrength({ password }: { password: string }) {
-  if (!password) return null;
-  const checks = [
-    { label: "8+ caracteres", ok: password.length >= 8 },
-    { label: "Maiúscula", ok: /[A-Z]/.test(password) },
-    { label: "Número", ok: /\d/.test(password) },
-    { label: "Especial", ok: /[!@#$%^&*(),.?":{}|<>]/.test(password) },
-  ];
-  const score = checks.filter(c => c.ok).length;
-  const colors = ["bg-red-500", "bg-yellow-500", "bg-emerald-500", "bg-green-500"];
-  return (
-    <div className="mt-2 space-y-1.5">
-      <div className="flex gap-1">
-        {[0,1,2,3].map(i => (
-          <div key={i} className={`h-1 flex-1 rounded-full transition-all ${i < score ? colors[score-1] : "bg-[#2A2A2A]"}`} />
-        ))}
-      </div>
-      <div className="flex flex-wrap gap-x-3 gap-y-0.5">
-        {checks.map(c => (
-          <span key={c.label} className={`text-[10px] flex items-center gap-1 ${c.ok ? "text-green-400" : "text-gray-600"}`}>
-            <CheckCircle className="w-2.5 h-2.5" /> {c.label}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
+const countries = ["Angola", "Portugal", "Brasil", "Cabo Verde", "Moçambique", "São Tomé e Príncipe", "Guiné-Bissau", "Timor-Leste", "Outro"];
+const input = "input-dark w-full rounded-xl px-4 py-3 text-base sm:text-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20";
 export default function RegisterPage() {
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
+  const [form, setForm] = useState({ name: "", email: "", password: "", confirm: "", country: "", accept: false });
+  const [visible, setVisible] = useState(false);
+  const [visibleConfirm, setVisibleConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({
-    name: "", email: "", password: "", confirm: "", country: "", accept: false
-  });
-
-  const passwordMismatch = form.confirm && form.password !== form.confirm;
-  const canSubmit = form.name && form.email && form.password.length >= 8 && !passwordMismatch && form.accept;
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (passwordMismatch) { toast.error("As senhas não coincidem!"); return; }
-    if (!form.accept) { toast.error("Aceite os termos para continuar"); return; }
-    setLoading(true);
+  const [error, setError] = useState("");
+  const mismatch = !!form.confirm && form.password !== form.confirm;
+  const bytes = new TextEncoder().encode(form.password).length;
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (loading) return;
+    if (form.name.trim().length < 2) return setError("Indique um nome com pelo menos 2 caracteres.");
+    if (form.password !== form.confirm) return setError("As palavras-passe não coincidem.");
+    if (bytes > 72) return setError("A palavra-passe é demasiado longa (máximo 72 bytes).");
+    if (!form.accept) return setError("Aceite os termos para continuar.");
+    setLoading(true); setError("");
     try {
-      await apiRequest("/auth/register", {
-        method: "POST",
-        body: JSON.stringify({ name: form.name, email: form.email, password: form.password, country: form.country }),
-      });
-      toast.success("Conta criada com sucesso! Verifique o seu email.");
-      setTimeout(() => { window.location.href = "/login"; }, 1000);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Erro ao criar conta");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="w-full max-w-[460px] mx-auto">
-      {/* Brand */}
-      <div className="text-center mb-7">
-        <div className="inline-flex items-center justify-center w-[72px] h-[72px] bg-gradient-to-br from-[#E50914] to-[#800000] rounded-[20px] mb-5 shadow-[0_8px_32px_rgba(229,9,20,0.2)]">
-          <Zap className="w-9 h-9 text-white fill-white" />
-        </div>
-        <h1 className="text-[26px] font-black tracking-tight text-white mb-1">Criar Conta</h1>
-        <p className="text-gray-400 text-sm">Registre-se e comece a assistir ao vivo</p>
-      </div>
-
-      {/* Features */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
-        {[
-          { icon: Tv, label: "Ao vivo HD", desc: "Sem travamentos" },
-          { icon: Shield, label: "100% Grátis", desc: "Sem assinatura" },
-          { icon: Zap, label: "Multi-esportes", desc: "Futebol, UFC, F1..." },
-        ].map(({ icon: Icon, label, desc }) => (
-          <div key={label} className="bg-[#0C0C14] border border-[#1E1E2A] rounded-xl p-3 text-center hover:border-red-500/20 transition-colors">
-            <Icon className="w-5 h-5 text-red-400 mx-auto mb-1" />
-            <p className="text-[11px] font-bold text-white">{label}</p>
-            <p className="text-[9px] text-gray-500 mt-0.5">{desc}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Card */}
-      <div className="bg-[#0C0C14] border border-[#1E1E2A] rounded-2xl p-6 shadow-xl">
-        <form onSubmit={handleSubmit} className="space-y-3.5">
-          {/* Name */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-1.5">Nome completo</label>
-            <div className="relative">
-              <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-              <input type="text" required placeholder="Seu nome completo"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="input-dark w-full pl-10 pr-4 py-2.5 text-sm rounded-xl" />
-            </div>
-          </div>
-
-          {/* Email */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-1.5">Email</label>
-            <div className="relative">
-              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-              <input type="email" required placeholder="seu@email.com"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                className="input-dark w-full pl-10 pr-4 py-2.5 text-sm rounded-xl" />
-            </div>
-          </div>
-
-          {/* Country + ref code in one row */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-gray-400 mb-1.5">País</label>
-              <div className="relative">
-                <Globe className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                <select value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })}
-                  className="input-dark w-full pl-10 pr-3 py-2.5 text-sm rounded-xl appearance-none">
-                  <option value="">Selecione</option>
-                  {countries.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-400 mb-1.5">Código convite</label>
-              <input type="text" placeholder="Opcional"
-                className="input-dark w-full px-3 py-2.5 text-sm rounded-xl" />
-            </div>
-          </div>
-
-          {/* Password */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-1.5">Senha</label>
-            <div className="relative">
-              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-              <input type={showPassword ? "text" : "password"} required minLength={8} placeholder="Mínimo 8 caracteres"
-                value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
-                className="input-dark w-full pl-10 pr-10 py-2.5 text-sm rounded-xl" />
-              <button type="button" onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300">
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-            <PasswordStrength password={form.password} />
-          </div>
-
-          {/* Confirm */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-1.5">Confirmar senha</label>
-            <div className="relative">
-              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-              <input type={showConfirm ? "text" : "password"} required placeholder="Repita a senha"
-                value={form.confirm}
-                onChange={(e) => setForm({ ...form, confirm: e.target.value })}
-                className={`input-dark w-full pl-10 pr-10 py-2.5 text-sm rounded-xl ${passwordMismatch ? "border-red-500/50" : form.confirm && !passwordMismatch ? "border-green-500/30" : ""}`} />
-              <button type="button" onClick={() => setShowConfirm(!showConfirm)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300">
-                {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-            {passwordMismatch && <p className="mt-1 text-[11px] text-red-400">As senhas não coincidem</p>}
-          </div>
-
-          {/* Terms */}
-          <label className="flex items-start gap-2.5 cursor-pointer group pt-1">
-            <div className="relative mt-0.5">
-              <input type="checkbox" className="sr-only"
-                checked={form.accept}
-                onChange={(e) => setForm({ ...form, accept: e.target.checked })} />
-              <div className={`w-[18px] h-[18px] rounded-md border-2 transition-all flex items-center justify-center ${
-                form.accept ? "bg-[#E50914] border-[#E50914] shadow-[0_0_8px_rgba(229,9,20,0.3)]" : "border-[#2A2A35] bg-transparent group-hover:border-[#3A3A45]"
-              }`}>
-                {form.accept && <CheckCircle className="w-3 h-3 text-white fill-white" />}
-              </div>
-            </div>
-            <span className="text-xs text-gray-400 leading-relaxed">
-              Aceito os{" "}
-              <Link href="/terms" className="text-red-400 hover:text-red-300 font-medium">Termos de Uso</Link>
-              {" "}e a{" "}
-              <Link href="/privacy" className="text-red-400 hover:text-red-300 font-medium">Política de Privacidade</Link>
-            </span>
-          </label>
-
-          {/* Submit */}
-          <button
-            type="submit" disabled={loading || !canSubmit}
-            className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-[#E50914] to-[#B00000] text-white font-bold rounded-xl hover:from-[#FF1A24] hover:to-[#C50000] transition-all disabled:opacity-40 disabled:cursor-not-allowed text-sm shadow-[0_4px_20px_rgba(229,9,20,0.25)] hover:shadow-[0_6px_24px_rgba(229,9,20,0.35)] hover:-translate-y-0.5"
-          >
-            {loading ? (
-              <><Loader2 className="w-4 h-4 animate-spin" />Criando conta...</>
-            ) : (
-              <><UserPlus className="w-4 h-4" />Criar Conta Grátis</>
-            )}
-          </button>
-        </form>
-      </div>
-
-      {/* Footer */}
-      <p className="text-center text-sm text-gray-500 mt-6">
-        Já tem conta?{" "}
-        <Link href="/login" className="text-red-400 hover:text-red-300 font-semibold inline-flex items-center gap-1 transition-colors group">
-          Entrar na conta <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-        </Link>
-      </p>
-    </div>
-  );
+      const data = await publicApiRequest<{ user: unknown; accessToken: string; refreshToken: string }>("/auth/register", { method: "POST", retries: 0, body: JSON.stringify({ name: form.name.trim(), email: form.email.trim(), password: form.password, country: form.country }) });
+      setAuthSession(data);
+      window.location.assign("/me");
+    } catch (err) { setError(err instanceof Error ? err.message : "Não foi possível criar a conta."); setLoading(false); }
+  }
+  return <div className="mx-auto w-full max-w-[490px] rounded-3xl border border-white/10 bg-[#10111b]/95 p-6 shadow-[0_28px_100px_rgba(0,0,0,.4)] sm:p-9">
+    <p className="text-xs font-bold uppercase tracking-[.2em] text-red-400">Junte-se à LiveSports</p><h1 className="mt-3 text-3xl font-black tracking-tight">Criar conta</h1><p className="mt-2 text-sm leading-6 text-gray-400">Crie a sua conta para acompanhar o seu desporto.</p>
+    <form onSubmit={submit} className="mt-7 space-y-4">
+      {error && <div role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">{error}</div>}
+      <div><label htmlFor="reg-name" className="mb-1.5 block text-sm font-semibold text-gray-300">Nome completo</label><input id="reg-name" name="name" autoComplete="name" required minLength={2} maxLength={100} value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="O seu nome" className={input}/></div>
+      <div><label htmlFor="reg-email" className="mb-1.5 block text-sm font-semibold text-gray-300">Email</label><input id="reg-email" name="email" type="email" autoComplete="email" required maxLength={254} value={form.email} onChange={e=>setForm({...form,email:e.target.value})} placeholder="nome@exemplo.com" className={input}/></div>
+      <div><label htmlFor="reg-country" className="mb-1.5 block text-sm font-semibold text-gray-300">País <span className="font-normal text-gray-500">(opcional)</span></label><select id="reg-country" name="country" value={form.country} onChange={e=>setForm({...form,country:e.target.value})} className={input}><option value="">Selecione o país</option>{countries.map(c=><option key={c} value={c}>{c}</option>)}</select></div>
+      <div><label htmlFor="reg-password" className="mb-1.5 block text-sm font-semibold text-gray-300">Palavra-passe</label><div className="relative"><input id="reg-password" name="password" type={visible?"text":"password"} autoComplete="new-password" required minLength={8} value={form.password} onChange={e=>setForm({...form,password:e.target.value})} aria-describedby="password-help" placeholder="Pelo menos 8 caracteres" className={`${input} pr-14`}/><button type="button" aria-label={visible?"Ocultar palavra-passe":"Mostrar palavra-passe"} onClick={()=>setVisible(!visible)} className="absolute right-0 top-0 flex h-full w-12 items-center justify-center text-gray-400 hover:text-white">{visible?<EyeOff size={19}/>:<Eye size={19}/>}</button></div><p id="password-help" className="mt-1.5 text-xs text-gray-400">Mínimo 8 caracteres; use uma palavra-passe única e difícil de adivinhar.</p></div>
+      <div><label htmlFor="reg-confirm" className="mb-1.5 block text-sm font-semibold text-gray-300">Confirmar palavra-passe</label><div className="relative"><input id="reg-confirm" type={visibleConfirm?"text":"password"} autoComplete="new-password" required value={form.confirm} onChange={e=>setForm({...form,confirm:e.target.value})} aria-invalid={mismatch} aria-describedby={mismatch?"confirm-error":undefined} placeholder="Repita a palavra-passe" className={`${input} pr-14`}/><button type="button" aria-label={visibleConfirm?"Ocultar confirmação":"Mostrar confirmação"} onClick={()=>setVisibleConfirm(!visibleConfirm)} className="absolute right-0 top-0 flex h-full w-12 items-center justify-center text-gray-400 hover:text-white">{visibleConfirm?<EyeOff size={19}/>:<Eye size={19}/>}</button></div>{mismatch&&<p id="confirm-error" className="mt-1 text-xs text-red-300">As palavras-passe não coincidem.</p>}</div>
+      <div className="flex items-start gap-3 pt-1"><input id="reg-terms" type="checkbox" required checked={form.accept} onChange={e=>setForm({...form,accept:e.target.checked})} className="mt-1 h-4 w-4 accent-red-600"/><label htmlFor="reg-terms" className="text-xs leading-5 text-gray-400">Aceito os <Link href="/terms" target="_blank" className="text-red-300 underline">Termos de Uso</Link> e a <Link href="/privacy" target="_blank" className="text-red-300 underline">Política de Privacidade</Link>.</label></div>
+      <button type="submit" disabled={loading} className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#e50914] px-4 py-3.5 text-sm font-bold text-white transition hover:bg-red-600 disabled:opacity-50">{loading?<><Loader2 size={18} className="animate-spin"/>A criar conta...</>:<><UserPlus size={18}/>Criar conta</>}</button>
+    </form><p className="mt-6 text-center text-sm text-gray-400">Já tem conta? <Link href="/login" className="inline-flex items-center gap-1 font-bold text-red-300 hover:text-white">Entrar <ArrowRight size={14}/></Link></p>
+  </div>;
 }

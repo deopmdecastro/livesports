@@ -303,9 +303,8 @@ async function coreFetch<T>(
     if (!response!.ok || payload.success === false) {
       let message = payload.error || `Erro ${response!.status}`;
       // Friendlier messages for common errors
-      if (response!.status === 503) {
-        message = `Serviço indisponível — a base de dados não está acessível.
-Inicie o PostgreSQL: docker-compose up -d postgres`;
+      if (response!.status === 503 && !payload.error) {
+        message = "Serviço temporariamente indisponível. Tente novamente mais tarde.";
       } else if (response!.status === 500) {
         message = `${message} (Erro interno — verifique os logs do servidor)`;
       }

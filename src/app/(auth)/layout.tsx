@@ -1,38 +1,23 @@
 import Link from "next/link";
-import { Tv2, ArrowLeft } from "lucide-react";
+import { ArrowLeft, Radio, ShieldCheck, Trophy } from "lucide-react";
+import BrandIdentity from "@/components/branding/BrandIdentity";
 
-export default function AuthLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="min-h-screen bg-[#060609] flex flex-col">
-      {/* Subtle grid background */}
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px] pointer-events-none" />
-
-      {/* Header */}
-      <header className="relative p-4 flex items-center justify-between border-b border-[#15151A]">
-        <Link href="/" className="flex items-center gap-2 group">
-          <div className="bg-gradient-to-br from-[#E50914] to-[#B00000] rounded-lg p-1.5 shadow-[0_0_12px_rgba(229,9,20,0.2)] group-hover:shadow-[0_0_20px_rgba(229,9,20,0.3)] transition-all">
-            <Tv2 className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <span className="text-[#E50914] font-black text-sm leading-none block">LIVE</span>
-            <span className="text-white font-black text-sm leading-none block">SPORTS</span>
-          </div>
-        </Link>
-        <div className="flex items-center gap-3">
-          <Link href="/" className="text-xs text-gray-500 hover:text-gray-300 transition-colors flex items-center gap-1">
-            <ArrowLeft className="w-3.5 h-3.5" /> Voltar ao site
-          </Link>
-        </div>
-      </header>
-
-      {/* Content */}
-      <div className="relative flex-1 flex items-center justify-center p-4 py-12">
-        {children}
-      </div>
-    </div>
-  );
+export default function AuthLayout({ children }: { children: React.ReactNode }) {
+  return <div className="relative min-h-screen overflow-hidden bg-[#07080e]">
+    <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_10%_5%,rgba(229,9,20,.14),transparent_40%),radial-gradient(ellipse_at_90%_90%,rgba(66,75,121,.12),transparent_40%)]" />
+    <header className="relative mx-auto flex max-w-[1440px] items-center justify-between px-5 py-5 sm:px-10">
+      <Link href="/" aria-label="LiveSports — início"><BrandIdentity mode="navbar" /></Link>
+      <Link href="/" className="inline-flex items-center gap-2 text-sm font-medium text-gray-400 hover:text-white"><ArrowLeft className="h-4 w-4" />Voltar ao site</Link>
+    </header>
+    <main className="relative mx-auto grid min-h-[calc(100vh-90px)] max-w-6xl items-center gap-12 px-5 pb-16 pt-6 sm:px-10 lg:grid-cols-[1fr_490px] lg:gap-20">
+      <aside className="hidden lg:block">
+        <div className="inline-flex items-center gap-2 rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-bold uppercase tracking-[.18em] text-red-300"><Radio className="h-3.5 w-3.5" /> A emoção do desporto</div>
+        <h2 className="mt-6 max-w-lg text-5xl font-black leading-[1.08] tracking-tight text-white">O seu desporto.<br/><span className="text-[#ef2632]">Sempre mais perto.</span></h2>
+        <p className="mt-5 max-w-md text-base leading-7 text-gray-400">Acompanhe jogos, competições e transmissões num só lugar. Entre na sua conta para uma experiência mais pessoal.</p>
+        <div className="mt-10 grid max-w-md gap-3 text-sm text-gray-300"><p className="flex items-center gap-3"><Trophy className="h-5 w-5 text-red-400" /> Descubra competições e resultados</p><p className="flex items-center gap-3"><ShieldCheck className="h-5 w-5 text-red-400" /> Aceda à sua conta em qualquer dispositivo</p></div>
+        <div className="mt-14 h-1 w-24 rounded-full bg-gradient-to-r from-red-600 to-transparent" />
+      </aside>
+      <div className="w-full">{children}</div>
+    </main>
+  </div>;
 }

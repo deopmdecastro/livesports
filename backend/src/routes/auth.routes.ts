@@ -14,16 +14,16 @@ const JWT_SECRET = process.env.JWT_SECRET || 'livesports-secret-key';
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'livesports-refresh-secret';
 
 const loginSchema = z.object({
-  email: z.string().email('Email invalido'),
+  email: z.string().trim().email('Email inválido').max(254).transform(value => value.toLowerCase()),
   password: z.string().min(6, 'Senha muito curta'),
   rememberMe: z.boolean().optional(),
 });
 
 const registerSchema = z.object({
-  name: z.string().min(2, 'Nome muito curto').max(100),
-  email: z.string().email('Email invalido'),
-  password: z.string().min(8, 'Minimo 8 caracteres'),
-  country: z.string().optional(),
+  name: z.string().trim().min(2, 'Nome muito curto').max(100),
+  email: z.string().trim().email('Email inválido').max(254).transform(value => value.toLowerCase()),
+  password: z.string().min(8, 'Mínimo 8 caracteres').refine(value => Buffer.byteLength(value, 'utf8') <= 72, 'Senha demasiado longa (máximo 72 bytes)'),
+  country: z.string().trim().max(100).optional(),
 });
 
 function publicUser(user: any) {
@@ -47,8 +47,8 @@ function publicUser(user: any) {
 // These replace the old $queryRawUnsafe calls for standard CRUD operations.
 
 async function findUserByEmail(email: string) {
-  return prisma.user.findUnique({
-    where: { email },
+  return prisma.user.findFirst({
+    where: { email: { equals: email, mode: 'insensitive' } },
     select: {
       id: true, name: true, email: true, password: true, avatar: true,
       country: true, phone: true, role: true, status: true,
@@ -87,15 +87,13 @@ async function persistRefreshToken(userId: string, token: string, expiresAt: Dat
 }
 
 async function consumeRefreshToken(token: string): Promise<{ userId: string } | null> {
-  const rows = await prisma.$queryRawUnsafe<Array<{ id: string; user_id: string; expires_at: Date }>>(
-    `SELECT id, user_id, expires_at FROM "refresh_tokens" WHERE token = $1 LIMIT 1`,
+  // DELETE ... RETURNING consumes the token atomically, even with concurrent requests.
+  const rows = await prisma.$queryRawUnsafe<Array<{ user_id: string; expires_at: Date }>>(
+    `DELETE FROM "refresh_tokens" WHERE token = $1 RETURNING user_id, expires_at`,
     hashToken(token)
   );
   const row = rows[0];
-  if (!row) return null;
-  // Always revoke on use (rotation) — even if expired, to avoid replay.
-  await prisma.$executeRawUnsafe(`DELETE FROM "refresh_tokens" WHERE id = $1`, row.id);
-  if (new Date(row.expires_at).getTime() < Date.now()) return null;
+  if (!row || new Date(row.expires_at).getTime() < Date.now()) return null;
   return { userId: row.user_id };
 }
 
@@ -108,7 +106,7 @@ router.post('/login', async (req: Request, res: Response) => {
     const { email, password, rememberMe } = loginSchema.parse(req.body);
     const user = await findUserByEmail(email);
     if (!user || !bcrypt.compareSync(password, user.password)) {
-      res.status(401).json({ success: false, error: 'Credenciais invalidas' });
+      res.status(401).json({ success: false, error: 'Email ou palavra-passe incorretos' });
       return;
     }
     if (user.status !== 'active') {
@@ -117,7 +115,7 @@ router.post('/login', async (req: Request, res: Response) => {
     }
     const expiresIn = rememberMe ? '30d' : '24h';
     const accessToken = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn });
-    const refreshToken = jwt.sign({ id: user.id }, JWT_REFRESH_SECRET, { expiresIn: '30d' });
+    const refreshToken = jwt.sign({ id: user.id }, JWT_REFRESH_SECRET, { expiresIn: '30d', jwtid: crypto.randomUUID() });
     const refreshExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
     await persistRefreshToken(user.id, refreshToken, refreshExpiresAt);
     await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
@@ -144,31 +142,24 @@ router.post('/register', async (req: Request, res: Response) => {
     const data = registerSchema.parse(req.body);
     const existing = await findUserByEmail(data.email);
     if (existing) {
-      res.status(409).json({ success: false, error: 'Email ja cadastrado' });
+      res.status(409).json({ success: false, error: 'Este email já está registado' });
       return;
     }
-    const hashedPassword = bcrypt.hashSync(data.password, 12);
-    const user = await prisma.user.create({
-      data: {
-        name: data.name,
-        email: data.email,
-        password: hashedPassword,
-        country: data.country || null,
-        role: 'user',
-        status: 'active',
-      },
-      select: {
-        id: true, name: true, email: true, avatar: true, country: true,
-        phone: true, role: true, status: true, emailVerified: true,
-        twoFactorEnabled: true, createdAt: true,
-      },
+    const hashedPassword = await bcrypt.hash(data.password, SALT_ROUNDS);
+    const { user, accessToken, refreshToken } = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: { name: data.name, email: data.email, password: hashedPassword, country: data.country || null, role: 'user', status: 'active' },
+        select: { id: true, name: true, email: true, avatar: true, country: true, phone: true, role: true, status: true, emailVerified: true, twoFactorEnabled: true, createdAt: true },
+      });
+      const accessToken = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
+      const refreshToken = jwt.sign({ id: user.id }, JWT_REFRESH_SECRET, { expiresIn: '30d', jwtid: crypto.randomUUID() });
+      await tx.refreshToken.create({ data: { userId: user.id, token: hashToken(refreshToken), expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) } });
+      return { user, accessToken, refreshToken };
     });
-    const accessToken = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
-    const refreshToken = jwt.sign({ id: user.id }, JWT_REFRESH_SECRET, { expiresIn: '30d' });
-    await persistRefreshToken(user.id, refreshToken, new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
     res.status(201).json({ success: true, data: { user: publicUser(user), accessToken, refreshToken }, message: 'Conta criada com sucesso!' });
   } catch (error) {
     if (error instanceof z.ZodError) res.status(400).json({ success: false, error: error.errors[0].message });
+    else if ((error as { code?: string })?.code === 'P2002') res.status(409).json({ success: false, error: 'Email já registado' });
     else res.status(500).json({ success: false, error: 'Erro interno' });
   }
 });
@@ -234,13 +225,13 @@ router.post('/refresh', async (req: Request, res: Response) => {
       return;
     }
     const user = await findUserById(decoded.id);
-    if (!user) {
-      res.status(404).json({ success: false, error: 'Utilizador nao encontrado' });
+    if (!user || user.status !== 'active' || user.id !== consumed.userId) {
+      res.status(403).json({ success: false, error: 'Sessão inválida ou conta indisponível' });
       return;
     }
     const accessToken = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
     // Rotate: issue a new refresh token and persist it; the old one is already revoked.
-    const newRefreshToken = jwt.sign({ id: user.id }, JWT_REFRESH_SECRET, { expiresIn: '30d' });
+    const newRefreshToken = jwt.sign({ id: user.id }, JWT_REFRESH_SECRET, { expiresIn: '30d', jwtid: crypto.randomUUID() });
     await persistRefreshToken(user.id, newRefreshToken, new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
     res.json({ success: true, data: { accessToken, refreshToken: newRefreshToken } });
   } catch {
@@ -249,13 +240,8 @@ router.post('/refresh', async (req: Request, res: Response) => {
 });
 
 router.post('/forgot-password', async (_req: Request, res: Response) => {
-  // NOTE: token generation + email delivery is intentionally not implemented —
-  // this backend has no email provider wired up (see .env.example: SMTP_* /
-  // nodemailer were removed as unused dead code). Wire up an email provider
-  // before relying on this endpoint in production. Returning a generic
-  // success message regardless of whether the email exists prevents
-  // account enumeration.
-  res.json({ success: true, message: 'Se o email existir, voce recebera as instrucoes.' });
+  // No mail provider or reset-token implementation is configured yet.
+  res.status(503).json({ success: false, error: 'Recuperação de senha temporariamente indisponível.' });
 });
 
 // ─── POST /change-password ─────────────────────────────────────────────────────
