@@ -57,10 +57,13 @@ export default function ArticleClient({ article, translations, related }: Articl
 
   const current = group?.variants.find((item) => item.id === selectedId) || article;
   const currentLanguage = normalizeArticleLanguage(current);
-  const safeHtml = useMemo(
-    () => DOMPurify.sanitize(current.content || "", { USE_PROFILES: { html: true } }),
-    [current.content]
-  );
+  const safeHtml = useMemo(() => {
+    const raw = current.content || "";
+    if (typeof window !== "undefined" && typeof DOMPurify?.sanitize === "function") {
+      return DOMPurify.sanitize(raw, { USE_PROFILES: { html: true } });
+    }
+    return raw.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "");
+  }, [current.content]);
 
   const relatedGroups = useMemo(() => buildArticleGroups(related).slice(0, 4), [related]);
 
