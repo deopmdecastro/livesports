@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { sportCategories } from "@/lib/mock-data";
 import { useLang } from "@/lib/lang";
+import SportIcon from "@/components/ui/SportIcon";
 
 const sportRoutes: Record<string, string> = {
   football: "/futebol",
@@ -93,7 +94,7 @@ export default function SportCategoriesSection() {
                     border: `1px solid ${meta.bg}25`,
                   }}
                 >
-                  <span className="text-2xl">{sport.icon}</span>
+                  <SportIcon sport={sport.id} className="h-6 w-6" style={{ color: meta.bg }} />
                 </div>
                 <span className="relative text-xs font-semibold text-gray-400 group-hover:text-white text-center leading-tight transition-colors duration-200">
                   {label}
