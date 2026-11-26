@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import {
   Bell, X, Check, CheckCheck, Trash2,
@@ -101,11 +102,37 @@ function NotifItem({
 export default function NotificationBell({ userId }: { userId?: string }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const [pos, setPos] = useState<{ top: number; right: number }>({ top: 96, right: 12 });
+
+  const place = useCallback(() => {
+    const r = btnRef.current?.getBoundingClientRect();
+    if (!r) return;
+    const wide = window.innerWidth >= 640;
+    setPos({ top: Math.round(r.bottom + 10), right: wide ? Math.max(12, Math.round(window.innerWidth - r.right)) : 12 });
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    place();
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    window.addEventListener('resize', place);
+    window.addEventListener('scroll', place, { passive: true });
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('resize', place);
+      window.removeEventListener('scroll', place);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [open, place]);
   const { notifications, unreadCount, loading, markAsRead, markAllRead, deleteNotification } = useNotifications(userId);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      const t = e.target as Node;
+      if (ref.current?.contains(t) || panelRef.current?.contains(t)) return;
+      setOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -125,6 +152,7 @@ export default function NotificationBell({ userId }: { userId?: string }) {
   return (
     <div ref={ref} className='relative shrink-0'>
       <button
+        ref={btnRef}
         onClick={() => setOpen((v) => !v)}
         className={cn(
           'relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-400',
@@ -145,8 +173,8 @@ export default function NotificationBell({ userId }: { userId?: string }) {
         )}
       </button>
 
-      {open && (
-        <div role='dialog' aria-label='Notificações' className='fixed right-3 top-[calc(env(safe-area-inset-top,0px)+8.75rem)] z-50 w-[min(21rem,calc(100vw-1.5rem))] max-h-[min(60vh,26rem)] overflow-y-auto overscroll-contain sm:absolute sm:right-0 sm:top-full sm:mt-2 sm:max-h-[28rem] sm:w-80 animate-fade-in-up overflow-hidden rounded-xl border border-[#1E1E2A] bg-[#0A0A0F] shadow-2xl'>
+      {open && typeof document !== 'undefined' && createPortal(
+        <div ref={panelRef} role='dialog' aria-label='Notificações' style={{ top: pos.top, right: pos.right, maxHeight: `min(60vh, calc(100dvh - ${pos.top + 16}px))` }} className='fixed z-[100] w-[min(21rem,calc(100vw-1.5rem))] overflow-y-auto overscroll-contain animate-fade-in-up rounded-xl border border-[#1E1E2A] bg-[#0A0A0F] shadow-2xl'>
           {/* Header */}
           <div className='flex items-center justify-between border-b border-[#1E1E2A] px-4 py-3'>
             <div className='flex items-center gap-2'>
@@ -211,7 +239,8 @@ export default function NotificationBell({ userId }: { userId?: string }) {
               </span>
             </div>
           )}
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

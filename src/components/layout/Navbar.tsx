@@ -480,7 +480,7 @@ export default function Navbar() {
                   className="flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] text-sm font-semibold text-white/70 active:bg-white/[0.06]"
                 >
                   <Globe className="h-4 w-4" />
-                  {lang === "pt" ? "EN" : "PT"}
+                  {lang === "pt" ? "English" : "Português"}
                 </button>
                 {isAdmin ? (
                   <Link
