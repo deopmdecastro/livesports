@@ -290,17 +290,17 @@ export default function PromoBannerStrip({
               type="button"
               onClick={() => go(index - 1)}
               aria-label="Destaque anterior"
-              className="grid h-8 w-8 place-items-center rounded-full border border-white/10 bg-white/[0.06] text-white/80 transition hover:border-[#E50914]/50 hover:text-white"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[0.06] text-white/80 transition hover:border-[#E50914]/50 hover:text-white"
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-5 w-5" />
             </button>
             <button
               type="button"
               onClick={() => go(index + 1)}
               aria-label="Próximo destaque"
-              className="grid h-8 w-8 place-items-center rounded-full border border-white/10 bg-white/[0.06] text-white/80 transition hover:border-[#E50914]/50 hover:text-white"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[0.06] text-white/80 transition hover:border-[#E50914]/50 hover:text-white"
             >
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-5 w-5" />
             </button>
           </div>
         </div>

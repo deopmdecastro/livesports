@@ -308,7 +308,7 @@ export default function Navbar() {
                     aria-haspopup="true"
                     aria-expanded={userMenuOpen}
                     aria-label={`Menu de ${user.name || "utilizador"}`}
-                    className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#ff2733] to-[#af000d] text-sm font-black text-white shadow-[0_0_18px_rgba(229,9,20,0.28)]"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#ff2733] to-[#af000d] text-sm font-black text-white shadow-[0_0_18px_rgba(229,9,20,0.28)]"
                   >
                     {user.name?.charAt(0).toUpperCase() || "U"}
                   </button>
@@ -358,7 +358,8 @@ export default function Navbar() {
                 onClick={() => setMobileOpen((value) => !value)}
                 aria-label={mobileOpen ? "Fechar menu" : "Abrir menu"}
                 aria-expanded={mobileOpen}
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/8 bg-white/[0.03] text-white/68 transition-colors hover:text-white lg:hidden"
+                type="button"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/8 bg-white/[0.03] text-white/68 transition-colors hover:text-white lg:hidden"
               >
                 {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </button>

@@ -556,18 +556,20 @@ export default function HeroSection() {
             <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] px-4 py-3 sm:gap-4 sm:px-8 sm:py-4 lg:px-10 xl:px-12">
               <div className="flex items-center gap-3">
                 <button
+                  type="button"
                   onClick={() => setCurrent((value) => (value - 1 + slides.length) % slides.length)}
                   aria-label="Slide anterior"
-                  className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/68 transition-colors hover:border-white/20 hover:text-white"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/15 bg-black/40 text-white/85 backdrop-blur transition hover:border-[#E50914]/50 hover:text-white active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-400"
                 >
-                  <ChevronLeft className="h-4 w-4" />
+                  <ChevronLeft className="h-5 w-5 shrink-0" />
                 </button>
                 <button
+                  type="button"
                   onClick={() => setCurrent((value) => (value + 1) % slides.length)}
                   aria-label="Próximo slide"
-                  className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/68 transition-colors hover:border-white/20 hover:text-white"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/15 bg-black/40 text-white/85 backdrop-blur transition hover:border-[#E50914]/50 hover:text-white active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-400"
                 >
-                  <ChevronRight className="h-4 w-4" />
+                  <ChevronRight className="h-5 w-5 shrink-0" />
                 </button>
               </div>
 
