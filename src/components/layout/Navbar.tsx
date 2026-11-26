@@ -381,7 +381,7 @@ export default function Navbar() {
                   aria-label={t.nav_search_placeholder}
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
-                  autoFocus
+                  enterKeyHint="search"
                   className="min-w-0 flex-1 bg-transparent text-[15px] text-white placeholder-white/30 outline-none"
                 />
                 {searchQuery ? (
