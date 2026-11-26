@@ -257,7 +257,7 @@ export default function AdminHeader({ title = "Dashboard", onMenuToggle }: Admin
       <div className="flex items-center gap-3">
         <button
           onClick={onMenuToggle}
-          className="flex h-10 w-10 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-[#1A1A24] hover:text-white lg:hidden"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-[#1A1A24] hover:text-white lg:hidden"
         >
           <Menu className="w-5 h-5" />
         </button>

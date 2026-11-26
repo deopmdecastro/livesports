@@ -18,7 +18,7 @@ export default function PublicError({
   return (
     <div className="flex min-h-[70vh] items-center justify-center px-4">
       <div className="text-center max-w-md">
-        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-[#E50914]/10 border border-[#E50914]/20">
+        <div className="mx-auto mb-6 flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-[#E50914]/10 border border-[#E50914]/20">
           <AlertTriangle className="h-10 w-10 text-[#E50914]" />
         </div>
         <h1 className="text-2xl font-black text-white mb-3">Algo correu mal</h1>

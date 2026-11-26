@@ -158,7 +158,7 @@ export default function AdminDataTable<T extends Record<string, unknown>>({
                 type="button"
                 onClick={() => setPage((p) => Math.max(0, p - 1))}
                 disabled={page === 0}
-                className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 hover:bg-[#1A1A1A] disabled:opacity-30"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/10 hover:bg-[#1A1A1A] disabled:opacity-30"
                 aria-label="Página anterior"
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -170,7 +170,7 @@ export default function AdminDataTable<T extends Record<string, unknown>>({
                 type="button"
                 onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
                 disabled={page >= totalPages - 1}
-                className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 hover:bg-[#1A1A1A] disabled:opacity-30"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/10 hover:bg-[#1A1A1A] disabled:opacity-30"
                 aria-label="Próxima página"
               >
                 <ChevronRight className="h-4 w-4" />

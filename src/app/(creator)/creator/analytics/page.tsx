@@ -31,7 +31,7 @@ function MetricCard({
     <div className="rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] p-4">
       <div className="mb-2 flex items-center justify-between">
         <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">{title}</p>
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: `${color}18` }}>
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: `${color}18` }}>
           <Icon className="h-4 w-4" style={{ color }} />
         </div>
       </div>

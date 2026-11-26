@@ -14,7 +14,7 @@ import { useLang } from "@/lib/lang";
 
 function TeamMark({ logo, name, code }: { logo?: string; name?: string; code?: string }) {
   return (
-    <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-black/25 p-1">
+    <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-black/25 p-1">
       <ResilientLogo src={logo} name={name} code={code} kind="team" size={40} alt={name || ""} className="h-full w-full" />
     </div>
   );

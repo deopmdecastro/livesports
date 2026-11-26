@@ -33,7 +33,7 @@ export default function AdminActionButton({
       onClick={onClick}
       title={title}
       className={cn(
-        "inline-flex h-8 w-8 items-center justify-center rounded-lg border border-transparent text-gray-500 transition-colors",
+        "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-transparent text-gray-500 transition-colors",
         toneClasses[tone]
       )}
     >

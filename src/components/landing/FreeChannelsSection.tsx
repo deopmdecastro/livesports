@@ -183,7 +183,7 @@ export default function FreeChannelsSection() {
 
                 {/* Channel Logo Badge */}
                 <div className="absolute bottom-3 left-3 flex items-center gap-2.5">
-                  <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl border border-white/15 bg-white/95 p-1.5 shadow-lg">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/15 bg-white/95 p-1.5 shadow-lg">
                     <ResilientLogo
                       src={ch.logo}
                       backupUrls={ch.logoBackups}
@@ -206,7 +206,7 @@ export default function FreeChannelsSection() {
 
                 {/* Play hover */}
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-300 group-hover:opacity-100 bg-black/25">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#E50914] shadow-[0_0_28px_rgba(229,9,20,0.75)]">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#E50914] shadow-[0_0_28px_rgba(229,9,20,0.75)]">
                     <Play className="ml-0.5 h-5 w-5 fill-current text-white" />
                   </div>
                 </div>

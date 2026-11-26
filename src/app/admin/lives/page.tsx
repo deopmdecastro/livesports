@@ -1039,7 +1039,7 @@ export default function LivesPage() {
                         <div key={server.id} className="rounded-xl border border-white/[0.06] bg-[#111118] p-4">
                           <div className="mb-3 flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#E50914]/15 text-[10px] font-black text-[#E50914]">{index + 1}</span>
+                              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#E50914]/15 text-[10px] font-black text-[#E50914]">{index + 1}</span>
                               <span className="text-xs font-bold text-gray-300">{server.name || `Servidor ${index + 1}`}</span>
                             </div>
                             <button type="button" onClick={() => setForm({ ...form, streamServers: form.streamServers.length > 1 ? form.streamServers.filter((s) => s.id !== server.id) : [{ ...server, url: "" }] })} className="rounded-lg px-2 py-1 text-[10px] font-semibold text-gray-500 hover:bg-red-500/10 hover:text-red-400 transition-colors"><Trash2 className="h-3 w-3 inline mr-1" />Remover</button>

@@ -409,7 +409,7 @@ export default function LivePlayer({ live, adOverlay = null, autoPlayMuted = fal
           {/* Play/Pause */}
           <button
             onClick={togglePlayback}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-white text-black transition-colors hover:bg-gray-200 active:scale-95"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-black transition-colors hover:bg-gray-200 active:scale-95"
             title={playing ? "Pausar (Espaço)" : "Reproduzir (Espaço)"}
           >
             {playing ? <Pause className="h-5 w-5 fill-black" /> : <Play className="h-5 w-5 fill-black" />}
@@ -418,7 +418,7 @@ export default function LivePlayer({ live, adOverlay = null, autoPlayMuted = fal
           {/* Mute */}
           <button
             onClick={() => setMuted((v) => !v)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-white/10 text-white transition-colors hover:bg-white/15"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/10 text-white transition-colors hover:bg-white/15"
             title={muted ? "Ativar som (M)" : "Silenciar (M)"}
           >
             <VolumeIcon className="h-5 w-5" />

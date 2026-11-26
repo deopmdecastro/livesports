@@ -52,7 +52,7 @@ export default function WorldCupHero({ competition }: WorldCupHeroProps) {
         {hasThumbnail ? (
           <div className="mb-6 flex justify-center">
             <div
-              className="flex h-24 w-24 items-center justify-center rounded-2xl border border-white/20 bg-white/95 p-3 shadow-2xl lg:h-28 lg:w-28"
+              className="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/95 p-3 shadow-2xl lg:h-28 lg:w-28"
             >
               <ResilientLogo
                 src={competition.thumbnail}

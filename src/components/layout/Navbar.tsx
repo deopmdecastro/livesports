@@ -390,7 +390,7 @@ export default function Navbar() {
                     type="button"
                     onClick={() => setSearchQuery("")}
                     aria-label="Limpar pesquisa"
-                    className="flex h-8 w-8 items-center justify-center rounded-full text-white/40 hover:bg-white/5 hover:text-white"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white/40 hover:bg-white/5 hover:text-white"
                   >
                     <X className="h-4 w-4" />
                   </button>

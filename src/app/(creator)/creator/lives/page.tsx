@@ -134,7 +134,7 @@ export default function CreatorLivesPage() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-[#0E0E16]/50 px-6 py-16 text-center">
-          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] text-gray-500">
+          <div className="mb-3 flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] text-gray-500">
             <Radio className="h-5 w-5" />
           </div>
           <p className="text-sm font-semibold text-white">Nenhuma live neste filtro</p>

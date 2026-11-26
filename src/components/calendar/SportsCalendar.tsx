@@ -487,7 +487,7 @@ export default function SportsCalendar({
             </div>
           ) : failed ? (
             <div className="flex flex-col items-center gap-3 py-16 text-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full border border-amber-500/25 bg-amber-500/10 text-amber-300">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-amber-500/25 bg-amber-500/10 text-amber-300">
                 <AlertTriangle className="h-5 w-5" />
               </div>
               <p className="max-w-sm text-sm text-gray-400">{notice}</p>
@@ -502,7 +502,7 @@ export default function SportsCalendar({
             </div>
           ) : (
             <div className="flex flex-col items-center gap-3 py-16 text-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full border border-[#2A2A2A] bg-white/[0.02] text-gray-600">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[#2A2A2A] bg-white/[0.02] text-gray-600">
                 <CalendarX2 className="h-5 w-5" />
               </div>
               <p className="text-sm text-gray-500">

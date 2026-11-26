@@ -167,7 +167,7 @@ function QuickLiveRail({ lives }: { lives: Live[] }) {
           href={`/watch/${live.id}`}
           className="group flex items-center gap-3 rounded-[22px] border border-white/8 bg-white/[0.035] px-4 py-3.5 backdrop-blur-xl transition-all duration-300 hover:border-[#E50914]/22 hover:bg-[#E50914]/[0.06]"
         >
-          <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-black/20">
+          <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-black/20">
             <TeamBadge logo={live.teamALogo} name={live.teamA} size="sm" />
             <span className="absolute -right-1 -top-1 h-3.5 w-3.5 rounded-full border border-[#090b10] bg-[#E50914]" />
           </div>
@@ -509,7 +509,7 @@ export default function HeroSection() {
               ) : (
                 <div className="overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(165deg,rgba(18,20,30,0.95),rgba(7,8,13,0.98))] p-6 shadow-[0_30px_90px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
                   <div className="mb-5 flex items-start justify-between gap-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#E50914]/30 bg-gradient-to-br from-[#E50914]/25 to-[#E50914]/05 text-[#ff5d66] shadow-[0_0_24px_rgba(229,9,20,0.2)]">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[#E50914]/30 bg-gradient-to-br from-[#E50914]/25 to-[#E50914]/05 text-[#ff5d66] shadow-[0_0_24px_rgba(229,9,20,0.2)]">
                       <Zap className="h-6 w-6" />
                     </div>
                     <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-white/50">

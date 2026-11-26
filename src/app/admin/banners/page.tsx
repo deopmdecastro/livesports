@@ -434,7 +434,7 @@ export default function BannersPage() {
                     <p className="text-sm font-black text-white leading-tight line-clamp-1">{slide.title}</p>
                     {slide.subtitle && <p className="mt-0.5 text-[10px] text-white/60 line-clamp-1">{slide.subtitle}</p>}
                   </div>
-                  <div className="absolute top-2 left-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-[10px] font-black text-white border border-white/10">
+                  <div className="absolute top-2 left-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-black/70 text-[10px] font-black text-white border border-white/10">
                     {slide.sortOrder}
                   </div>
                   <button onClick={() => toggleHeroActive(slide.id, slide.active)} className="absolute top-2 right-2" title={slide.active ? "Desativar" : "Ativar"}>

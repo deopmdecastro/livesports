@@ -536,7 +536,7 @@ export default function WorldCupSection({
         <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <div className="flex items-start gap-4">
             <div className="relative flex-shrink-0">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/20 bg-white p-2 shadow-lg">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white p-2 shadow-lg">
                 <ResilientLogo
                   src={competition?.thumbnail}
                   name={competition?.name || hero?.sectionTitle}

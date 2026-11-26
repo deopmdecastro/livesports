@@ -69,7 +69,7 @@ function pickActiveAd(ads: Ad[], position: Ad["position"]) {
 
 function TeamCrestSmall({ logo, name, code }: { logo?: string; name?: string; code?: string }) {
   return (
-    <div className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-full border border-white/15 bg-black/30 p-0.5">
+    <div className="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/15 bg-black/30 p-0.5">
       <ResilientLogo src={logo} name={name} code={code} kind="team" size={24} alt={name || ""} className="h-full w-full" />
     </div>
   );
@@ -817,7 +817,7 @@ export default function WatchExperience({ live, liveId }: WatchExperienceProps) 
                         type="button"
                         title={reaction.label}
                         onClick={() => void sendReaction(reaction.id)}
-                        className="flex h-9 w-9 items-center justify-center rounded-xl transition-transform hover:scale-110 active:scale-95"
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-transform hover:scale-110 active:scale-95"
                         style={{ color: reaction.color }}
                       >
                         <Icon className="h-4 w-4" />
@@ -932,7 +932,7 @@ export default function WatchExperience({ live, liveId }: WatchExperienceProps) 
             {chat.map((msg) => (
               <div key={msg.id} className="flex items-start gap-2">
                 <div className={cn(
-                  "flex-shrink-0 flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-black",
+                  "flex-shrink-0 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-black",
                   msg.admin
                     ? "bg-gradient-to-br from-[#E50914] to-[#B00000] text-white"
                     : "bg-[#1A1A28] border border-[#1E1E2A] text-white"

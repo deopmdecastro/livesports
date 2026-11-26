@@ -136,7 +136,7 @@ function StreamCard({ live }: { live: Live }) {
         )}
 
         <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-          <div className="flex h-13 w-13 items-center justify-center rounded-full bg-[#E50914] p-3.5 shadow-[0_0_30px_rgba(229,9,20,0.65)]">
+          <div className="flex h-13 w-13 shrink-0 items-center justify-center rounded-full bg-[#E50914] p-3.5 shadow-[0_0_30px_rgba(229,9,20,0.65)]">
             <Play className="ml-0.5 h-5 w-5 fill-current text-white" />
           </div>
         </div>

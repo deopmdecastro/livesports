@@ -143,7 +143,7 @@ function StatCard({
           {subtitle && <p className="mt-0.5 text-[10px] text-gray-600">{subtitle}</p>}
         </div>
         <div
-          className="flex h-11 w-11 items-center justify-center rounded-xl border transition-transform group-hover:scale-110"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border transition-transform group-hover:scale-110"
           style={{ backgroundColor: `${accentColor}15`, borderColor: `${accentColor}25` }}
         >
           <Icon className="h-5 w-5" style={{ color: accentColor }} />

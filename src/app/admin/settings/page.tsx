@@ -27,7 +27,7 @@ function Section({ title, icon: Icon, color = "#E50914", children }: {
   return (
     <div className="rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] overflow-hidden">
       <div className="flex items-center gap-3 p-5 border-b border-[#1E1E2A]">
-        <div className="flex h-8 w-8 items-center justify-center rounded-xl" style={{ background: `${color}15`, border: `1px solid ${color}25` }}>
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl" style={{ background: `${color}15`, border: `1px solid ${color}25` }}>
           <Icon className="h-4 w-4" style={{ color }} />
         </div>
         <h3 className="text-sm font-bold text-white">{title}</h3>

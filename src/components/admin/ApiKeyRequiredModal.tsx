@@ -244,7 +244,7 @@ export default function ApiKeyRequiredModal({
                 className="group flex items-center justify-between gap-4 rounded-xl border border-[#E50914]/20 bg-[#E50914]/5 p-4 hover:border-[#E50914]/40 hover:bg-[#E50914]/10 transition-all"
               >
                 <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#E50914]/15 border border-[#E50914]/20">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#E50914]/15 border border-[#E50914]/20">
                     <Key className="h-4 w-4 text-[#E50914]" />
                   </div>
                   <div className="text-left">
@@ -261,7 +261,7 @@ export default function ApiKeyRequiredModal({
                 className="group flex items-center justify-between gap-4 rounded-xl border border-[#1E1E2A] bg-[#111118] p-4 hover:border-[#2A2A38] transition-all"
               >
                 <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#1A1A24] border border-[#1E1E2A]">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#1A1A24] border border-[#1E1E2A]">
                     <Shield className="h-4 w-4 text-red-400" />
                   </div>
                   <div className="text-left">

@@ -339,7 +339,7 @@ export default function FreeChannelsGuideClient() {
                     </div>
 
                     <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100 bg-black/30">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#E50914] shadow-lg">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#E50914] shadow-lg">
                         <Play className="ml-0.5 h-5 w-5 fill-current text-white" />
                       </div>
                     </div>

@@ -142,7 +142,7 @@ export default function CompetitionCarousel({ competitions, selectedSlug, onSele
           <button
             type="button"
             onClick={() => scroll("left")}
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#1E1E2A] bg-[#0E0E16] text-gray-400 transition-colors hover:opacity-80"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#1E1E2A] bg-[#0E0E16] text-gray-400 transition-colors hover:opacity-80"
             style={{ borderColor: activeTheme.border, color: activeTheme.primary }}
             aria-label={lang === "pt" ? "Anterior" : "Previous"}
           >
@@ -151,7 +151,7 @@ export default function CompetitionCarousel({ competitions, selectedSlug, onSele
           <button
             type="button"
             onClick={() => scroll("right")}
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#1E1E2A] bg-[#0E0E16] text-gray-400 transition-colors hover:opacity-80"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#1E1E2A] bg-[#0E0E16] text-gray-400 transition-colors hover:opacity-80"
             style={{ borderColor: activeTheme.border, color: activeTheme.primary }}
             aria-label={lang === "pt" ? "Seguinte" : "Next"}
           >

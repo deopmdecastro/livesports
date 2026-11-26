@@ -171,7 +171,7 @@ export default function CreatorDashboard() {
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={channel.avatar} alt="" className="h-12 w-12 rounded-xl object-cover" />
               ) : (
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#E50914]/15 text-[#E50914]">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#E50914]/15 text-[#E50914]">
                   <Tv2 className="h-6 w-6" />
                 </div>
               )}
@@ -239,7 +239,7 @@ export default function CreatorDashboard() {
             href={href}
             className="group rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] p-4 transition-all hover:border-[#E50914]/30 hover:bg-[#111118]"
           >
-            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl border border-[#E50914]/20 bg-[#E50914]/10 text-[#ff6b73] transition group-hover:scale-105">
+            <div className="mb-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#E50914]/20 bg-[#E50914]/10 text-[#ff6b73] transition group-hover:scale-105">
               <Icon className="h-5 w-5" />
             </div>
             <p className="text-sm font-bold text-white">{title}</p>

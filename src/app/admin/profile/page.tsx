@@ -81,7 +81,7 @@ export default function AdminProfilePage() {
           <div className="flex items-start gap-4 mb-5">
             <div className="relative z-10 -mt-14 w-24 h-24 rounded-2xl border-4 border-[#0E0E16] bg-gradient-to-br from-[#E50914] to-[#B00000] flex items-center justify-center text-4xl font-black text-white flex-shrink-0 shadow-2xl">
               {((profile.name || "A").slice(0, 1)).toUpperCase()}
-              <span className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-[#0E0E16] bg-emerald-500">
+              <span className="absolute -bottom-1 -right-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-[#0E0E16] bg-emerald-500">
                 <span className="h-2 w-2 rounded-full bg-white" />
               </span>
             </div>
@@ -161,7 +161,7 @@ export default function AdminProfilePage() {
         <div className="p-5 border-b border-[#1E1E2A] flex items-center justify-between">
           <div>
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#E50914]/10 border border-[#E50914]/20">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#E50914]/10 border border-[#E50914]/20">
                 <Lock className="h-3.5 w-3.5 text-[#E50914]" />
               </div>
               Alterar Password
@@ -201,7 +201,7 @@ export default function AdminProfilePage() {
       {/* Session Info */}
       <div className="rounded-2xl border border-[#1E1E2A] bg-[#0E0E16] p-5 shadow-lg">
         <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-red-500/10 border border-red-500/20">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-red-500/10 border border-red-500/20">
             <ShieldCheck className="h-3.5 w-3.5 text-red-400" />
           </div>
           Informações da Sessão

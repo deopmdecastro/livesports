@@ -587,7 +587,7 @@ export default function ApiKeysPage() {
                   <tr key={key.id} className="border-b border-[#2A2A2A] last:border-0 hover:bg-white/[0.02]">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-500/10 text-base">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-500/10 text-base">
                           {providerLogo(key.provider)}
                         </div>
                         <div>

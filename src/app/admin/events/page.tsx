@@ -38,7 +38,7 @@ function LogoUploadBox({ value, onChange, disabled }: { value: string; onChange:
           {!disabled && (
             <button
               onClick={() => onChange("")}
-              className="absolute top-1.5 right-1.5 flex h-6 w-6 items-center justify-center rounded-lg bg-black/60 text-gray-400 opacity-0 group-hover:opacity-100 hover:text-white hover:bg-red-500/80 transition-all"
+              className="absolute top-1.5 right-1.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-black/60 text-gray-400 opacity-0 group-hover:opacity-100 hover:text-white hover:bg-red-500/80 transition-all"
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -55,7 +55,7 @@ function LogoUploadBox({ value, onChange, disabled }: { value: string; onChange:
           }`}
         >
           <div className="flex flex-col items-center gap-1">
-            <div className={`flex h-9 w-9 items-center justify-center rounded-lg border transition-colors ${dragOver ? "border-[#E50914]/40 text-[#E50914]" : "border-white/[0.06] text-gray-600"}`}>
+            <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-colors ${dragOver ? "border-[#E50914]/40 text-[#E50914]" : "border-white/[0.06] text-gray-600"}`}>
               {dragOver ? <Upload className="h-4 w-4" /> : <ImageIcon className="h-4 w-4" />}
             </div>
             <span className="text-[10px] text-gray-600 max-w-[100px] text-center leading-tight">
